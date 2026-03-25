@@ -24,7 +24,7 @@
   --text:  #e8e6e1;
   --muted: #5e5e5e;
   --dim:   #333333;
-  --accent:#a78bfa;
+  --accent:#686868;
   --mono:  'IBM Plex Mono', monospace;
   --r:     5px;
   --st:    env(safe-area-inset-top, 0px);
@@ -40,7 +40,7 @@ html.light {
   --text:  #111111;
   --muted: #888888;
   --dim:   #cccccc;
-  --accent:#7c3aed;
+  --accent:#444444;
 }
 
 /* ── RESET ────────────────────────────────────────────── */
@@ -63,16 +63,19 @@ body {
 .vlabel {font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;margin-bottom:3px}
 .vbig  {font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
 .vbig .hl {color:var(--accent)}
-.nametap {cursor:pointer;border-bottom:1px dashed var(--muted);padding-bottom:1px}
-.hbts  {display:flex;gap:6px;margin-top:2px}
+.vname {color:var(--text)}
+.vdate {font-size:9px;color:var(--muted);letter-spacing:.06em;margin-top:4px}
+.vstats {font-size:8px;color:var(--dim);letter-spacing:.05em;margin-top:3px}
+.hbts  {display:flex;gap:12px;margin-top:2px;align-items:center}
 .hbt   {
-  background:transparent;border:1px solid var(--bd2);border-radius:var(--r);
-  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;font-size:13px;color:var(--muted);
-  -webkit-appearance:none;transition:border-color .15s;
+  background:transparent;border:none;padding:0;
+  cursor:pointer;font-size:10px;color:var(--muted);
+  font-family:var(--mono);letter-spacing:.04em;
+  -webkit-appearance:none;transition:color .15s;
+  display:flex;align-items:center;
 }
-.hbt:active {border-color:var(--accent)}
-.hbt img.emoji {width:13px;height:13px;pointer-events:none}
+.hbt:active {color:var(--text)}
+.hbt img.emoji {width:12px;height:12px;pointer-events:none;margin:0 1px}
 
 /* ── SEARCH ───────────────────────────────────────────── */
 .sbar {
@@ -90,7 +93,7 @@ body {
 /* ── TABS ─────────────────────────────────────────────── */
 .tabs {display:flex;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--s1)}
 .tab  {
-  flex:1;padding:10px 0;font-size:9px;font-weight:600;letter-spacing:.14em;
+  flex:1;padding:10px 0;font-size:9px;font-weight:600;letter-spacing:.12em;
   text-transform:uppercase;color:var(--muted);background:none;border:none;
   cursor:pointer;font-family:var(--mono);position:relative;transition:color .15s;
   -webkit-appearance:none;
@@ -100,6 +103,26 @@ body {
   content:'';position:absolute;bottom:0;left:20%;right:20%;
   height:1.5px;background:var(--accent);border-radius:1px;
 }
+.tab-badge {font-size:7px;color:var(--dim);margin-left:2px}
+
+/* ── QUICK CAPTURE ────────────────────────────────────── */
+.qcap {
+  display:flex;align-items:center;
+  border-bottom:1px solid var(--bd);flex-shrink:0;
+  background:var(--s1);
+}
+.qinp {
+  flex:1;background:transparent;border:none;outline:none;
+  padding:10px 16px;color:var(--text);font-family:var(--mono);
+  font-size:10px;letter-spacing:.04em;
+}
+.qinp::placeholder {color:var(--dim);letter-spacing:.08em}
+.qadd {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;padding:10px 16px;
+  letter-spacing:.04em;transition:color .12s;-webkit-appearance:none;
+}
+.qadd:active {color:var(--text)}
 
 /* ── VIEWS ────────────────────────────────────────────── */
 .views {flex:1;overflow:hidden;position:relative}
@@ -121,7 +144,6 @@ body {
   content:'▲';position:absolute;top:9px;right:10px;
   font-size:7px;color:var(--accent);opacity:.8;font-family:var(--mono);
 }
-/* color label: left border */
 .clr-red    {border-left:2.5px solid #f87171!important}
 .clr-orange {border-left:2.5px solid #fb923c!important}
 .clr-yellow {border-left:2.5px solid #facc15!important}
@@ -135,14 +157,14 @@ body {
   padding:5px 11px 8px;border-top:1px solid var(--bd);
 }
 .cts   {font-size:8px;color:var(--muted);letter-spacing:.06em;flex:1}
-.cacts {display:flex;gap:4px}
+.cacts {display:flex;gap:10px}
 .cact  {
-  font-size:8px;padding:3px 8px;border:1px solid var(--bd);border-radius:3px;
+  font-size:8px;padding:0;border:none;
   background:transparent;cursor:pointer;color:var(--muted);font-family:var(--mono);
-  letter-spacing:.06em;-webkit-appearance:none;transition:all .12s;
+  letter-spacing:.06em;-webkit-appearance:none;transition:color .12s;
 }
-.cact:active     {border-color:var(--accent);color:var(--text)}
-.cact.del:active {border-color:#e94560;color:#e94560}
+.cact:active     {color:var(--text)}
+.cact.del:active {color:#e94560}
 
 /* ── PROMEMORIA ───────────────────────────────────────── */
 .prow  {display:flex;align-items:flex-start;gap:10px;padding:10px 12px 6px}
@@ -156,11 +178,15 @@ body {
   flex:1;font-size:11px;line-height:1.65;white-space:pre-wrap;
   word-break:break-word;cursor:pointer;letter-spacing:.01em;
 }
+.ptext b {font-weight:600}
+.ptext i {font-style:italic;color:var(--muted)}
 
 /* ── IDEA CARD ────────────────────────────────────────── */
 .cbody  {padding:10px 12px 6px;cursor:pointer}
 .ctitle {font-size:11px;font-weight:600;margin-bottom:4px;letter-spacing:.02em}
 .ctext  {font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-word;letter-spacing:.01em}
+.ctext b {font-weight:600}
+.ctext i {font-style:italic;color:var(--muted)}
 
 /* ── LISTA CARD ───────────────────────────────────────── */
 .lhead  {
@@ -180,7 +206,7 @@ body {
   flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
   font-size:9px;transition:background .12s,border-color .12s;
 }
-.lck.on {background:var(--accent);border-color:var(--accent);color:#fff}
+.lck.on {background:var(--accent);border-color:var(--accent);color:var(--bg)}
 .lit    {flex:1;font-size:11px;cursor:pointer;letter-spacing:.01em}
 .lit.done {text-decoration:line-through;color:var(--muted)}
 .ldel   {
@@ -188,9 +214,7 @@ body {
   font-size:15px;line-height:1;padding:0 2px;transition:color .12s;
 }
 .ldel:active {color:#e94560}
-.ladd   {
-  display:flex;gap:8px;padding:8px 12px 10px;border-top:1px solid var(--bd);
-}
+.ladd   {display:flex;gap:8px;padding:8px 12px 10px;border-top:1px solid var(--bd)}
 .laddinp {
   flex:1;background:transparent;border:none;outline:none;
   font-size:11px;color:var(--text);font-family:var(--mono);letter-spacing:.01em;
@@ -205,8 +229,8 @@ body {
 /* ── FAB ──────────────────────────────────────────────── */
 .fab {
   position:fixed;bottom:calc(var(--sb) + 20px);right:18px;z-index:60;
-  width:50px;height:50px;border-radius:50%;background:var(--accent);
-  border:none;font-size:26px;cursor:pointer;color:#fff;
+  width:50px;height:50px;border-radius:50%;background:var(--s3);
+  border:1px solid var(--bd2);font-size:26px;cursor:pointer;color:var(--text);
   box-shadow:0 4px 18px rgba(0,0,0,.4);transition:transform .15s,opacity .15s;
   display:flex;align-items:center;justify-content:center;font-family:var(--mono);
 }
@@ -242,12 +266,12 @@ body {
   cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;
 }
 .m-confirm  {
-  flex:1;padding:10px;background:var(--accent);border:none;
-  border-radius:3px;color:#fff;font-family:var(--mono);font-size:10px;
+  flex:1;padding:10px;background:var(--text);border:none;
+  border-radius:3px;color:var(--bg);font-family:var(--mono);font-size:10px;
   font-weight:600;cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;
 }
 .m-cancel:active  {background:var(--s3)}
-.m-confirm:active {opacity:.85}
+.m-confirm:active {opacity:.75}
 
 /* ── COLOR PICKER ─────────────────────────────────────── */
 .clrpick {display:flex;gap:8px;flex-wrap:wrap;padding:2px 0}
@@ -274,7 +298,6 @@ body {
   padding:52px 20px;text-align:center;color:var(--muted);
   font-size:10px;line-height:1.9;letter-spacing:.06em;
 }
-.empi {font-size:26px;display:block;margin-bottom:10px;opacity:.35}
 
 /* ── DRAG ─────────────────────────────────────────────── */
 .drag-ghost {
@@ -294,6 +317,43 @@ body {
 }
 .bk-btn:active {background:var(--s3)}
 .bk-btn img.emoji {width:13px;height:13px;pointer-events:none}
+
+/* ── CESTINO ──────────────────────────────────────────── */
+.cestino-notice {
+  font-size:8px;color:var(--dim);letter-spacing:.06em;
+  padding:14px 16px 6px;text-align:center;
+}
+.trash-act {
+  font-size:8px;background:none;border:none;cursor:pointer;
+  color:var(--muted);font-family:var(--mono);letter-spacing:.06em;
+  -webkit-appearance:none;padding:0;transition:color .12s;
+}
+.trash-act:active {color:var(--text)}
+.trash-act.del:active {color:#e94560}
+
+/* ── FOCUS OVERLAY ────────────────────────────────────── */
+.focus-bg {
+  position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:150;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.focus-bg.open {opacity:1;pointer-events:auto}
+.focus-sheet {
+  background:var(--s1);border:1px solid var(--bd2);border-radius:var(--r);
+  padding:24px 22px 18px;max-width:440px;width:90%;
+  max-height:75dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.focus-ttl  {font-size:13px;font-weight:600;margin-bottom:12px;letter-spacing:.02em;line-height:1.4}
+.focus-body {font-size:12px;line-height:1.9;color:var(--text);letter-spacing:.01em;white-space:pre-wrap;word-break:break-word}
+.focus-body b {font-weight:600}
+.focus-body i {font-style:italic;color:var(--muted)}
+.focus-foot {margin-top:18px;display:flex;justify-content:flex-end}
+.fclose {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  -webkit-appearance:none;transition:color .12s;padding:0;
+}
+.fclose:active {color:var(--text)}
   </style>
 </head>
 <body>
@@ -303,14 +363,16 @@ body {
   <div>
     <div class="vlabel">Blocco note</div>
     <div class="vbig">
-      <span class="nametap" id="name-lbl" onclick="editName()">Marius</span>
+      <span class="vname">Marius</span>
       <span class="hl"> .</span>
     </div>
+    <div class="vdate" id="vdate-lbl"></div>
+    <div class="vstats" id="vstats"></div>
   </div>
   <div class="hbts">
-    <button class="hbt" id="sbtn"      onclick="tglSearch()" title="Cerca">🔍</button>
-    <button class="hbt" id="theme-btn" onclick="tglTheme()"  title="Tema">🌙</button>
-    <button class="hbt"                onclick="openModal('m-io')" title="Backup">💾</button>
+    <button class="hbt" id="sbtn"      onclick="tglSearch()" title="Cerca">[🔍]</button>
+    <button class="hbt" id="theme-btn" onclick="tglTheme()"  title="Tema">[🌙]</button>
+    <button class="hbt"                onclick="openModal('m-io')" title="Backup">[💾]</button>
   </div>
 </div>
 
@@ -321,20 +383,29 @@ body {
 
 <!-- TABS -->
 <div class="tabs">
-  <button class="tab on" id="tab-prom"  onclick="goTab('prom')">Promemoria</button>
-  <button class="tab"    id="tab-idee"  onclick="goTab('idee')">Idee</button>
-  <button class="tab"    id="tab-liste" onclick="goTab('liste')">Liste</button>
+  <button class="tab on" id="tab-prom"    onclick="goTab('prom')">Prom</button>
+  <button class="tab"    id="tab-idee"    onclick="goTab('idee')">Idee</button>
+  <button class="tab"    id="tab-liste"   onclick="goTab('liste')">Liste</button>
+  <button class="tab"    id="tab-cestino" onclick="goTab('cestino')">Cestino<span class="tab-badge" id="cestino-badge"></span></button>
+</div>
+
+<!-- QUICK CAPTURE -->
+<div class="qcap" id="qcap">
+  <input class="qinp" id="qinp" placeholder="[ promemoria rapido... ]"
+    onkeydown="if(event.key==='Enter')qAdd(this)">
+  <button class="qadd" onclick="qAdd(document.getElementById('qinp'))">[+]</button>
 </div>
 
 <!-- VIEWS -->
 <div class="views">
-  <div class="view on" id="v-prom"><div class="vscroll"><div class="stack" id="prom-l"></div></div></div>
-  <div class="view"    id="v-idee"><div class="vscroll"><div class="stack" id="idee-l"></div></div></div>
-  <div class="view"    id="v-liste"><div class="vscroll"><div class="stack" id="liste-l"></div></div></div>
+  <div class="view on" id="v-prom">   <div class="vscroll"><div class="stack" id="prom-l"></div></div></div>
+  <div class="view"    id="v-idee">   <div class="vscroll"><div class="stack" id="idee-l"></div></div></div>
+  <div class="view"    id="v-liste">  <div class="vscroll"><div class="stack" id="liste-l"></div></div></div>
+  <div class="view"    id="v-cestino"><div id="cestino-wrap"></div></div>
 </div>
 
 <!-- FAB -->
-<button class="fab" onclick="onFab()">+</button>
+<button class="fab" id="fab" onclick="onFab()">+</button>
 
 <!-- Modal: card (prom / idea) -->
 <div class="modal-bg" id="m-card" onclick="bgClose(event,'m-card')">
@@ -346,7 +417,7 @@ body {
     </div>
     <div class="m-field">
       <div class="m-lbl">Nota</div>
-      <textarea class="m-inp" id="m-card-tx" rows="4" placeholder="Scrivi qui..."></textarea>
+      <textarea class="m-inp" id="m-card-tx" rows="4" placeholder="Scrivi qui... **grassetto** _corsivo_"></textarea>
     </div>
     <div class="m-field">
       <div class="m-lbl">Etichetta colore</div>
@@ -395,13 +466,25 @@ body {
   </div>
 </div>
 
+<!-- Focus Overlay -->
+<div class="focus-bg" id="focus-modal" onclick="closeFocusBg(event)">
+  <div class="focus-sheet">
+    <div class="focus-ttl" id="focus-ttl"></div>
+    <div class="focus-body" id="focus-body"></div>
+    <div class="focus-foot">
+      <button class="fclose" onclick="closeFocus()">[chiudi]</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ── Constants ──────────────────────────────────────────────────────
-const CLRS   = ['red','orange','yellow','green','blue','purple'];
-const CLRHEX = {red:'#f87171',orange:'#fb923c',yellow:'#facc15',green:'#4ade80',blue:'#60a5fa',purple:'#a78bfa'};
+const CLRS    = ['red','orange','yellow','green','blue','purple'];
+const CLRHEX  = {red:'#f87171',orange:'#fb923c',yellow:'#facc15',green:'#4ade80',blue:'#60a5fa',purple:'#a78bfa'};
+const TRASH_TTL = 30 * 86400e3; // 30 giorni
 
 // ── State ──────────────────────────────────────────────────────────
 let S = load();
@@ -414,13 +497,13 @@ function load() {
   try {
     const d = JSON.parse(localStorage.getItem('blocco') || '{}');
     return {
-      name:  d.name  || 'Marius',
-      proms: d.proms || [],
-      idee:  d.idee  || [],
-      liste: d.liste || [],
-      theme: d.theme || 'dark'
+      proms:   d.proms   || [],
+      idee:    d.idee    || [],
+      liste:   d.liste   || [],
+      cestino: d.cestino || [],
+      theme:   d.theme   || 'dark'
     };
-  } catch { return {name:'Marius',proms:[],idee:[],liste:[],theme:'dark'}; }
+  } catch { return {proms:[],idee:[],liste:[],cestino:[],theme:'dark'}; }
 }
 function persist() { localStorage.setItem('blocco', JSON.stringify(S)); }
 function uid()     { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -433,15 +516,57 @@ function fmtTs(t) {
   if (diff < 7*86400e3)  return Math.floor(diff/86400e3) + 'g fa';
   return new Date(t).toLocaleDateString('it-IT', {day:'numeric', month:'short'});
 }
+
+function fmtTrashExp(deletedAt) {
+  const days = Math.ceil((deletedAt + TRASH_TTL - Date.now()) / 86400e3);
+  if (days <= 0) return 'scaduto';
+  if (days === 1) return 'scade domani';
+  return 'scade tra ' + days + 'g';
+}
+
 function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
+
+// Markdown leggero: **grassetto** _corsivo_
+function md(s) {
+  return (s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/_(.+?)_/g,'<i>$1</i>')
+    .replace(/\n/g,'<br>');
+}
+
 function toast(msg, dur=2000) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── Datetime ───────────────────────────────────────────────────────
+function updateDatetime() {
+  const now = new Date();
+  const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
+  const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+  const el = document.getElementById('vdate-lbl');
+  if (el) el.textContent = d + ' — ' + t;
+}
+
+// ── Stats ──────────────────────────────────────────────────────────
+function updateStats() {
+  const el = document.getElementById('vstats');
+  if (!el) return;
+  const pinned = [...S.proms,...S.idee,...S.liste].filter(i => i.pinned).length;
+  const parts  = [];
+  if (S.proms.length)  parts.push('[' + S.proms.length  + ' prom]');
+  if (S.idee.length)   parts.push('[' + S.idee.length   + ' idee]');
+  if (S.liste.length)  parts.push('[' + S.liste.length  + ' liste]');
+  if (pinned)          parts.push('[' + pinned           + ' pin]');
+  el.textContent = parts.join(' ');
+  const badge = document.getElementById('cestino-badge');
+  if (badge) badge.textContent = S.cestino.length ? ' [' + S.cestino.length + ']' : '';
 }
 
 // ── Twemoji ────────────────────────────────────────────────────────
@@ -455,21 +580,11 @@ function applyTwemoji(el) {
 // ── Theme ──────────────────────────────────────────────────────────
 function applyTheme() {
   document.documentElement.classList.toggle('light', S.theme === 'light');
-  document.getElementById('theme-btn').textContent = S.theme === 'light' ? '🌙' : '☀️';
+  document.getElementById('theme-btn').textContent = S.theme === 'light' ? '[🌙]' : '[☀️]';
   document.getElementById('tc-meta').content = S.theme === 'light' ? '#f0eeea' : '#0e0e0e';
   requestAnimationFrame(() => applyTwemoji());
 }
 function tglTheme() { S.theme = S.theme === 'light' ? 'dark' : 'light'; persist(); applyTheme(); }
-
-// ── Name ───────────────────────────────────────────────────────────
-function editName() {
-  const n = prompt('Il tuo nome:', S.name);
-  if (n && n.trim()) {
-    S.name = n.trim(); persist();
-    document.getElementById('name-lbl').textContent = S.name;
-    applyTwemoji(document.querySelector('.vhead'));
-  }
-}
 
 // ── Search ─────────────────────────────────────────────────────────
 let sOpen = false;
@@ -487,6 +602,10 @@ function goTab(t) {
   curTab = t;
   document.querySelectorAll('.tab').forEach(b  => b.classList.toggle('on', b.id === 'tab-'+t));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-'+t));
+  const isCestino = t === 'cestino';
+  document.getElementById('qcap').style.display = isCestino ? 'none' : '';
+  document.getElementById('fab').style.display  = isCestino ? 'none' : '';
+  if (isCestino) renderCestino();
 }
 
 // ── Color helpers ──────────────────────────────────────────────────
@@ -500,27 +619,37 @@ function buildClrPick(elId, sel) {
 }
 function pickClr(elId, c) { ePick = c === 'none' ? null : c; buildClrPick(elId, c); }
 
+// ── Quick Capture ──────────────────────────────────────────────────
+function qAdd(inp) {
+  const t = inp.value.trim(); if (!t) return;
+  const now = Date.now();
+  S.proms.unshift({id:uid(), text:t, title:'', color:null, pinned:false, created:now, updated:now});
+  inp.value = ''; persist(); renderAll();
+  toast('[+ prom]');
+  if (curTab !== 'prom') goTab('prom');
+}
+
 // ── Render: Promemoria ─────────────────────────────────────────────
 function renderProms() {
   const el = document.getElementById('prom-l');
   let items = [...S.proms].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) items = items.filter(i => matches([i.text]));
   if (!items.length) {
-    el.innerHTML = '<div class="empty"><span class="empi">📝</span>Nessun promemoria.<br>Premi + per aggiungerne uno.</div>';
-    applyTwemoji(el); return;
+    el.innerHTML = '<div class="empty">nessun promemoria.<br>[ + ] per aggiungerne uno.</div>';
+    return;
   }
   el.innerHTML = items.map(i => `
     <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="prom">
       <div class="prow">
         <div class="pcb" onclick="chkProm('${i.id}')"></div>
-        <div class="ptext" onclick="openCardMod('prom','${i.id}')">${esc(i.text)}</div>
+        <div class="ptext" onclick="openFocus('prom','${i.id}')">${md(i.text)}</div>
       </div>
       <div class="cmeta">
         <span class="cts">${fmtTs(i.updated||i.created)}</span>
         <div class="cacts">
-          <button class="cact"     onclick="pinItem('${i.id}','prom')">${i.pinned?'unpin':'pin'}</button>
-          <button class="cact"     onclick="openCardMod('prom','${i.id}')">edit</button>
-          <button class="cact del" onclick="delItem('${i.id}','prom')">del</button>
+          <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
+          <button class="cact"     onclick="openCardMod('prom','${i.id}')">[edit]</button>
+          <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
         </div>
       </div>
     </div>
@@ -534,7 +663,7 @@ function chkProm(id) {
   if (!card) return;
   card.style.transition = 'opacity .3s ease,transform .3s ease';
   card.style.opacity = '0'; card.style.transform = 'translateX(44px)';
-  setTimeout(() => { S.proms = S.proms.filter(i => i.id !== id); persist(); renderProms(); }, 320);
+  setTimeout(() => { S.proms = S.proms.filter(i => i.id !== id); persist(); renderAll(); }, 320);
 }
 
 // ── Render: Idee ───────────────────────────────────────────────────
@@ -543,21 +672,21 @@ function renderIdee() {
   let items = [...S.idee].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) items = items.filter(i => matches([i.title, i.text]));
   if (!items.length) {
-    el.innerHTML = '<div class="empty"><span class="empi">💡</span>Nessuna idea.<br>Premi + per aggiungerne una.</div>';
-    applyTwemoji(el); return;
+    el.innerHTML = '<div class="empty">nessuna idea.<br>[ + ] per aggiungerne una.</div>';
+    return;
   }
   el.innerHTML = items.map(i => `
     <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="idee">
-      <div class="cbody" onclick="openCardMod('idee','${i.id}')">
+      <div class="cbody" onclick="openFocus('idee','${i.id}')">
         ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
-        <div class="ctext">${esc(i.text)}</div>
+        <div class="ctext">${md(i.text)}</div>
       </div>
       <div class="cmeta">
         <span class="cts">${fmtTs(i.updated||i.created)}</span>
         <div class="cacts">
-          <button class="cact"     onclick="pinItem('${i.id}','idee')">${i.pinned?'unpin':'pin'}</button>
-          <button class="cact"     onclick="openCardMod('idee','${i.id}')">edit</button>
-          <button class="cact del" onclick="delItem('${i.id}','idee')">del</button>
+          <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
+          <button class="cact"     onclick="openCardMod('idee','${i.id}')">[edit]</button>
+          <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
         </div>
       </div>
     </div>
@@ -572,8 +701,8 @@ function renderListe() {
   let items = [...S.liste].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) items = items.filter(i => matches([i.title, ...i.items.map(r => r.text)]));
   if (!items.length) {
-    el.innerHTML = '<div class="empty"><span class="empi">📋</span>Nessuna lista.<br>Premi + per crearne una.</div>';
-    applyTwemoji(el); return;
+    el.innerHTML = '<div class="empty">nessuna lista.<br>[ + ] per crearne una.</div>';
+    return;
   }
   el.innerHTML = items.map(lst => {
     const done = lst.items.filter(r => r.done).length;
@@ -600,9 +729,9 @@ function renderListe() {
         <div class="cmeta">
           <span class="cts">${fmtTs(lst.updated||lst.created)}</span>
           <div class="cacts">
-            <button class="cact"     onclick="pinItem('${lst.id}','liste')">${lst.pinned?'unpin':'pin'}</button>
-            <button class="cact"     onclick="openListaMod('${lst.id}')">edit</button>
-            <button class="cact del" onclick="delItem('${lst.id}','liste')">del</button>
+            <button class="cact"     onclick="pinItem('${lst.id}','liste')">[${lst.pinned?'unpin':'pin'}]</button>
+            <button class="cact"     onclick="openListaMod('${lst.id}')">[edit]</button>
+            <button class="cact del" onclick="delItem('${lst.id}','liste')">[del]</button>
           </div>
         </div>
       </div>
@@ -612,6 +741,82 @@ function renderListe() {
   applyTwemoji(el);
 }
 
+// ── Render: Cestino ────────────────────────────────────────────────
+function renderCestino() {
+  const el = document.getElementById('cestino-wrap');
+  if (!S.cestino.length) {
+    el.innerHTML = '<div class="empty">cestino vuoto.</div>';
+    return;
+  }
+  const items = [...S.cestino].sort((a,b) => b.deletedAt - a.deletedAt);
+  const lbl   = {prom:'prom', idee:'idea', liste:'lista'};
+
+  let html = '<div class="cestino-notice">[ elementi conservati 30 giorni ]</div>';
+  html += '<div class="stack" style="padding:10px 16px calc(var(--sb)+80px)">';
+  html += items.map(i => {
+    const preview = i.text
+      ? i.text.slice(0, 80) + (i.text.length > 80 ? '…' : '')
+      : i.items ? i.items.map(x => x.text).join(', ').slice(0, 80) : '';
+    return `
+      <div class="card">
+        <div class="cbody">
+          <div style="font-size:8px;color:var(--dim);margin-bottom:6px;letter-spacing:.05em">
+            [${lbl[i.type]||i.type}] · ${fmtTs(i.deletedAt)} · ${fmtTrashExp(i.deletedAt)}
+          </div>
+          ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
+          <div class="ctext" style="opacity:.55">${esc(preview)}</div>
+        </div>
+        <div class="cmeta">
+          <span class="cts">${new Date(i.deletedAt).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</span>
+          <div class="cacts">
+            <button class="trash-act"     onclick="restoreItem('${i.id}')">[ripristina]</button>
+            <button class="trash-act del" onclick="permaDelete('${i.id}')">[elimina]</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  html += '</div>';
+  html += `<div style="text-align:center;padding:0 16px 20px">
+    <button class="trash-act del" onclick="clearAllTrash()" style="font-size:9px">[svuota cestino]</button>
+  </div>`;
+  el.innerHTML = html;
+  applyTwemoji(el);
+}
+
+function restoreItem(id) {
+  const idx = S.cestino.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const it = {...S.cestino[idx]};
+  const tp = it.type;
+  delete it.type; delete it.deletedAt;
+  S.cestino.splice(idx, 1);
+  const k = tp === 'prom' ? 'proms' : tp;
+  S[k].unshift(it);
+  persist(); renderAll(); renderCestino(); updateStats();
+  toast('[ripristinato]');
+}
+
+function permaDelete(id) {
+  if (!confirm('Eliminare definitivamente?')) return;
+  S.cestino = S.cestino.filter(i => i.id !== id);
+  persist(); renderCestino(); updateStats();
+  toast('[eliminato]');
+}
+
+function clearAllTrash() {
+  if (!confirm('Svuotare tutto il cestino?')) return;
+  S.cestino = []; persist(); renderCestino(); updateStats();
+  toast('[cestino svuotato]');
+}
+
+function purgeTrash() {
+  const before = S.cestino.length;
+  S.cestino = S.cestino.filter(i => (Date.now() - i.deletedAt) < TRASH_TTL);
+  if (S.cestino.length < before) persist();
+}
+
+// ── Lista helpers ──────────────────────────────────────────────────
 function tglLI(lid, iid) {
   const l = S.liste.find(x => x.id===lid); if (!l) return;
   const it = l.items.find(x => x.id===iid); if (!it) return;
@@ -635,25 +840,45 @@ function editLI(lid, iid) {
   if (t !== null && t.trim()) { it.text = t.trim(); l.updated = Date.now(); persist(); renderListe(); }
 }
 
-function renderAll() { renderProms(); renderIdee(); renderListe(); }
+function renderAll() { renderProms(); renderIdee(); renderListe(); updateStats(); }
 
 // ── CRUD ───────────────────────────────────────────────────────────
 function pinItem(id, tp) {
   const k = tp === 'prom' ? 'proms' : tp;
   const it = S[k].find(i => i.id===id); if (!it) return;
   it.pinned = !it.pinned; persist(); renderAll();
-  toast(it.pinned ? 'Fissato' : 'Rimosso dai fissati');
-}
-function delItem(id, tp) {
-  if (!confirm('Eliminare questo elemento?')) return;
-  const k = tp === 'prom' ? 'proms' : tp;
-  S[k] = S[k].filter(i => i.id!==id); persist(); renderAll();
+  toast(it.pinned ? '[fissato]' : '[rimosso dai fissati]');
 }
 
+function delItem(id, tp) {
+  const k   = tp === 'prom' ? 'proms' : tp;
+  const idx = S[k].findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const item = {...S[k][idx], type: tp, deletedAt: Date.now()};
+  S.cestino.unshift(item);
+  S[k].splice(idx, 1);
+  persist(); renderAll();
+  toast('[nel cestino]');
+}
+
+// ── Focus Mode ─────────────────────────────────────────────────────
+function openFocus(tp, id) {
+  const arr = tp === 'prom' ? S.proms : S.idee;
+  const it  = arr.find(i => i.id === id); if (!it) return;
+  const ttlEl  = document.getElementById('focus-ttl');
+  const bodyEl = document.getElementById('focus-body');
+  ttlEl.textContent  = it.title || '';
+  ttlEl.style.display = it.title ? '' : 'none';
+  bodyEl.innerHTML = md(it.text);
+  document.getElementById('focus-modal').classList.add('open');
+}
+function closeFocus()     { document.getElementById('focus-modal').classList.remove('open'); }
+function closeFocusBg(e)  { if (e.target === e.currentTarget) closeFocus(); }
+
 // ── Modals ─────────────────────────────────────────────────────────
-function openModal(id)        { document.getElementById(id).classList.add('open'); applyTwemoji(document.getElementById(id)); }
-function closeModal(id)       { document.getElementById(id).classList.remove('open'); }
-function bgClose(e, id)       { if (e.target === e.currentTarget) closeModal(id); }
+function openModal(id)  { document.getElementById(id).classList.add('open'); applyTwemoji(document.getElementById(id)); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function bgClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
 
 // ── Card modal ─────────────────────────────────────────────────────
 function openCardMod(tp, id) {
@@ -679,14 +904,14 @@ function openCardMod(tp, id) {
 function saveCard() {
   const tx = document.getElementById('m-card-tx').value.trim();
   if (!tx) { document.getElementById('m-card-tx').focus(); return; }
-  const hd = document.getElementById('m-card-hd').value.trim();
+  const hd  = document.getElementById('m-card-hd').value.trim();
   const now = Date.now();
   if (eId) {
     const arr = eType === 'prom' ? S.proms : S.idee;
-    const it = arr.find(i => i.id===eId);
+    const it  = arr.find(i => i.id===eId);
     if (it) { it.text = tx; it.title = hd; it.color = ePick; it.updated = now; }
   } else {
-    const it = {id:uid(), text:tx, title:hd, color:ePick, pinned:false, done:false, created:now, updated:now};
+    const it = {id:uid(), text:tx, title:hd, color:ePick, pinned:false, created:now, updated:now};
     if (eType === 'prom') S.proms.unshift(it); else S.idee.unshift(it);
   }
   persist(); closeModal('m-card'); renderAll();
@@ -724,18 +949,18 @@ function saveLista() {
 
 // ── FAB ────────────────────────────────────────────────────────────
 function onFab() {
-  if (curTab === 'prom')  openCardMod('prom');
-  else if (curTab === 'idee') openCardMod('idee');
-  else openListaMod();
+  if (curTab === 'prom')       openCardMod('prom');
+  else if (curTab === 'idee')  openCardMod('idee');
+  else if (curTab === 'liste') openListaMod();
 }
 
 // ── Import / Export ────────────────────────────────────────────────
 function doExport() {
   const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
   a.download = 'blocco-' + new Date().toISOString().slice(0,10) + '.json';
-  a.click(); URL.revokeObjectURL(a.href); closeModal('m-io'); toast('Backup esportato ✓');
+  a.click(); URL.revokeObjectURL(a.href); closeModal('m-io'); toast('[backup esportato]');
 }
 function doImport(inp) {
   const f = inp.files[0]; if (!f) return;
@@ -744,10 +969,15 @@ function doImport(inp) {
     try {
       const d = JSON.parse(e.target.result);
       if (!confirm('Sovrascrivere i dati attuali con questo file?')) return;
-      S = {name:d.name||'Marius', proms:d.proms||[], idee:d.idee||[], liste:d.liste||[], theme:d.theme||'dark'};
-      persist(); applyTheme();
-      document.getElementById('name-lbl').textContent = S.name;
-      renderAll(); closeModal('m-io'); toast('Importato ✓');
+      S = {
+        proms:   d.proms   || [],
+        idee:    d.idee    || [],
+        liste:   d.liste   || [],
+        cestino: d.cestino || [],
+        theme:   d.theme   || 'dark'
+      };
+      persist(); applyTheme(); renderAll(); renderCestino();
+      closeModal('m-io'); toast('[importato]');
     } catch { alert('File non valido'); }
   };
   r.readAsText(f); inp.value = '';
@@ -825,8 +1055,10 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── Boot ───────────────────────────────────────────────────────────
+purgeTrash();
 applyTheme();
-document.getElementById('name-lbl').textContent = S.name;
+updateDatetime();
+setInterval(updateDatetime, 30000);
 renderAll();
 </script>
 </body>
