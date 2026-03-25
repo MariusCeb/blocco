@@ -63,7 +63,7 @@ body {
 .vlabel {font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;margin-bottom:3px}
 .vbig  {font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
 .vbig .hl {color:var(--accent)}
-.vname {color:var(--text)}
+.vname {color:var(--text);cursor:pointer;border-bottom:1px dashed var(--dim);padding-bottom:1px}
 .vdate {font-size:9px;color:var(--muted);letter-spacing:.06em;margin-top:4px}
 .vstats {font-size:8px;color:var(--dim);letter-spacing:.05em;margin-top:3px}
 .hbts  {display:flex;gap:12px;margin-top:2px;align-items:center}
@@ -362,7 +362,7 @@ body {
   <div>
     <div class="vlabel">Blocco note</div>
     <div class="vbig">
-      <span class="vname">Marius</span>
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span>
       <span class="hl"> .</span>
     </div>
     <div class="vdate" id="vdate-lbl"></div>
@@ -496,13 +496,14 @@ function load() {
   try {
     const d = JSON.parse(localStorage.getItem('blocco') || '{}');
     return {
+      name:    d.name    || 'Marius',
       proms:   d.proms   || [],
       idee:    d.idee    || [],
       liste:   d.liste   || [],
       cestino: d.cestino || [],
       theme:   d.theme   || 'dark'
     };
-  } catch { return {proms:[],idee:[],liste:[],cestino:[],theme:'dark'}; }
+  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark'}; }
 }
 function persist() { localStorage.setItem('blocco', JSON.stringify(S)); }
 function uid()     { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -542,6 +543,15 @@ function toast(msg, dur=2000) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── Name ───────────────────────────────────────────────────────────
+function editName() {
+  const n = prompt('Nome:', S.name);
+  if (n && n.trim()) {
+    S.name = n.trim(); persist();
+    document.getElementById('name-lbl').textContent = S.name;
+  }
 }
 
 // ── Datetime ───────────────────────────────────────────────────────
@@ -1059,6 +1069,7 @@ if ('serviceWorker' in navigator) {
 // ── Boot ───────────────────────────────────────────────────────────
 purgeTrash();
 applyTheme();
+document.getElementById('name-lbl').textContent = S.name;
 updateDatetime();
 setInterval(updateDatetime, 30000);
 renderAll();
