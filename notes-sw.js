@@ -28,7 +28,12 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(request)
         .then(resp => {
-          if (resp.ok) caches.open(CACHE).then(c => c.put(request, resp.clone()));
+          // clone() va chiamato subito in modo sincrono,
+          // prima che qualsiasi operazione asincrona consumi il body
+          if (resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE).then(c => c.put(request, clone));
+          }
           return resp;
         })
         .catch(() => caches.match(request))
@@ -39,7 +44,10 @@ self.addEventListener('fetch', e => {
   // Cache-first per manifest e icon
   e.respondWith(
     caches.match(request).then(cached => cached || fetch(request).then(resp => {
-      if (resp.ok) caches.open(CACHE).then(c => c.put(request, resp.clone()));
+      if (resp.ok) {
+        const clone = resp.clone();
+        caches.open(CACHE).then(c => c.put(request, clone));
+      }
       return resp;
     }))
   );
