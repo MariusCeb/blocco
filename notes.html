@@ -212,18 +212,15 @@ body {
   font-size:7px;color:var(--accent);opacity:.8;font-family:var(--mono);
 }
 /* Bordi colorati a sinistra per le etichette colore */
-.clr-red    {border-left:2.5px solid #fca5a5!important}
-.clr-orange {border-left:2.5px solid #fdba74!important}
-.clr-yellow {border-left:2.5px solid #fef08a!important}
-.clr-green  {border-left:2.5px solid #86efac!important}
-.clr-blue   {border-left:2.5px solid #93c5fd!important}
-.clr-purple {border-left:2.5px solid #c4b5fd!important}
-.clr-pink   {border-left:2.5px solid #f9a8d4!important}
-.clr-mint   {border-left:2.5px solid #a7f3d0!important}
-.clr-peach  {border-left:2.5px solid #fed7aa!important}
-.clr-sky    {border-left:2.5px solid #bae6fd!important}
-.clr-lemon  {border-left:2.5px solid #d9f99d!important}
-.clr-lilac  {border-left:2.5px solid #e9d5ff!important}
+.clr-red    {border-left:2.5px solid #f87171!important}
+.clr-orange {border-left:2.5px solid #fb923c!important}
+.clr-yellow {border-left:2.5px solid #facc15!important}
+.clr-green  {border-left:2.5px solid #4ade80!important}
+.clr-blue   {border-left:2.5px solid #60a5fa!important}
+.clr-purple {border-left:2.5px solid #a78bfa!important}
+.clr-pink   {border-left:2.5px solid #f472b6!important}
+.clr-teal   {border-left:2.5px solid #2dd4bf!important}
+.clr-lime   {border-left:2.5px solid #a3e635!important}
 
 /* ── Riga inferiore della card (timestamp + azioni) ─────── */
 .cmeta {
@@ -689,8 +686,8 @@ body {
 // CLRHEX: mappa nome → codice colore hex (per disegnare i pallini)
 // TRASH_TTL: quanto tempo tenere gli elementi nel cestino (30 giorni in ms)
 // ══════════════════════════════════════════════════════════
-const CLRS    = ['red','orange','yellow','green','blue','purple','pink','mint','peach','sky','lemon','lilac'];
-const CLRHEX  = {red:'#fca5a5',orange:'#fdba74',yellow:'#fef08a',green:'#86efac',blue:'#93c5fd',purple:'#c4b5fd',pink:'#f9a8d4',mint:'#a7f3d0',peach:'#fed7aa',sky:'#bae6fd',lemon:'#d9f99d',lilac:'#e9d5ff'};
+const CLRS    = ['red','orange','yellow','green','blue','purple','pink','teal','lime'];
+const CLRHEX  = {red:'#f87171',orange:'#fb923c',yellow:'#facc15',green:'#4ade80',blue:'#60a5fa',purple:'#a78bfa',pink:'#f472b6',teal:'#2dd4bf',lime:'#a3e635'};
 const TRASH_TTL = 30 * 86400e3; // 86400e3 = millisecondi in un giorno
 
 // ══════════════════════════════════════════════════════════
