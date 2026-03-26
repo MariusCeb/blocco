@@ -484,26 +484,19 @@ body {
   width:100%;background:transparent;border:none;outline:none;
   resize:none;font-family:var(--mono);min-height:200px;
 }
-.focus-foot {margin-top:14px;display:flex;justify-content:space-between;align-items:center}
-/* Barra strumenti nella focus sheet */
-.focus-toolbar {
-  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
-  padding:0 0 10px;border-bottom:1px solid var(--bd);margin-bottom:12px;
+.focus-foot {margin-top:18px;display:flex;gap:8px}
+.f-cancel {
+  flex:1;padding:11px;background:var(--s2);border:1px solid var(--bd);
+  border-radius:3px;color:var(--muted);font-family:var(--mono);font-size:10px;
+  cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;transition:background .12s;
 }
-.ftool {
-  background:var(--s2);border:1px solid var(--bd);border-radius:3px;
-  padding:5px 10px;color:var(--muted);font-family:var(--mono);font-size:10px;
-  cursor:pointer;-webkit-appearance:none;transition:background .12s,color .12s;
-  letter-spacing:.04em;
+.f-cancel:active {background:var(--s3)}
+.f-save {
+  flex:1;padding:11px;background:var(--text);border:none;
+  border-radius:3px;color:var(--bg);font-family:var(--mono);font-size:10px;
+  font-weight:600;cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;transition:opacity .12s;
 }
-.ftool:active,.ftool.on { background:var(--s3);color:var(--text);border-color:var(--bd2) }
-.ftool-sep { width:1px;height:16px;background:var(--bd2);margin:0 3px;flex-shrink:0 }
-.fclose {
-  background:none;border:none;cursor:pointer;color:var(--muted);
-  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
-  -webkit-appearance:none;transition:color .12s;padding:6px 4px;
-}
-.fclose:active {color:var(--text)}
+.f-save:active {opacity:.75}
   </style>
 </head>
 <body>
@@ -664,15 +657,11 @@ body {
       <div class="m-lbl">Titolo</div>
       <input class="m-inp" id="focus-ttl-inp" placeholder="Titolo...">
     </div>
-    <!-- Barra formattazione: solo grassetto -->
-    <div class="focus-toolbar">
-      <button class="ftool" onclick="wrapBold()" title="Grassetto"><b>B</b></button>
-    </div>
     <!-- Testo grezzo modificabile -->
     <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..."></textarea>
     <div class="focus-foot">
-      <button class="fclose" onclick="closeFocus()">[chiudi]</button>
-      <button class="fclose" style="color:var(--text);font-weight:600" onclick="saveFocus()">[salva]</button>
+      <button class="f-cancel" onclick="closeFocus()">Annulla</button>
+      <button class="f-save"   onclick="saveFocus()">Salva</button>
     </div>
   </div>
 </div>
