@@ -143,7 +143,7 @@ body {
 ───────────────────────────────────────────────────────── */
 .tabs {display:flex;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--s1)}
 .tab  {
-  flex:1;padding:10px 0;font-size:10px;font-weight:600;letter-spacing:.1em;
+  flex:1;padding:12px 0;font-size:11px;font-weight:600;letter-spacing:.1em;
   text-transform:uppercase;color:var(--muted);background:none;border:none;
   cursor:pointer;font-family:var(--mono);position:relative;transition:color .15s;
   -webkit-appearance:none;
@@ -230,7 +230,7 @@ body {
 .cacts {display:flex;gap:10px}
 /* Stile bottoni [pin] [edit] [del] — nessun box, solo testo */
 .cact  {
-  font-size:9px;padding:0;border:none;
+  font-size:9px;padding:5px 4px;border:none;
   background:transparent;cursor:pointer;color:var(--muted);font-family:var(--mono);
   letter-spacing:.06em;-webkit-appearance:none;transition:color .12s;
 }
@@ -246,18 +246,31 @@ body {
 ───────────────────────────────────────────────────────── */
 .prow  {display:flex;align-items:flex-start;gap:10px;padding:10px 12px 6px}
 .pcb   {
-  width:17px;height:17px;border-radius:50%;border:1.5px solid var(--muted);
-  flex-shrink:0;cursor:pointer;background:transparent;margin-top:2px;
+  width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);
+  flex-shrink:0;cursor:pointer;background:transparent;margin-top:1px;
   transition:border-color .12s;
 }
 .pcb:active {border-color:var(--accent)}
 .ptext {
-  flex:1;font-size:12px;line-height:1.65;white-space:pre-wrap;
-  word-break:break-word;cursor:pointer;letter-spacing:.01em;
+  flex:1;font-size:12px;line-height:1.65;word-break:break-word;
+  cursor:pointer;letter-spacing:.01em;
+  /* Collassato: max 2 righe */
+  overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;
 }
 /* Markdown leggero: **grassetto** e _corsivo_ */
 .ptext b {font-weight:600}
 .ptext i {font-style:italic;color:var(--muted)}
+/* Card espansa: sfondo leggermente diverso, testo molto più grande */
+.card.exp { background:var(--s2) }
+.card.exp .ptext {
+  display:block;overflow:visible;white-space:pre-wrap;
+  font-size:22px;line-height:1.55;padding:6px 0 2px;
+}
+/* 3 grandezze: S / M / L */
+.card.exp.sz-sm .ptext { font-size:16px }
+.card.exp.sz-md .ptext { font-size:22px }
+.card.exp.sz-lg .ptext { font-size:30px;line-height:1.4 }
 
 /* ─────────────────────────────────────────────────────────
    IDEA CARD — titolo opzionale + testo
@@ -290,9 +303,9 @@ body {
 .lrow:last-child {border-bottom:none}
 /* Checkbox quadrata della lista — diventa grigio scuro quando spuntata */
 .lck    {
-  width:15px;height:15px;border:1.5px solid var(--muted);border-radius:3px;
+  width:19px;height:19px;border:1.5px solid var(--muted);border-radius:3px;
   flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-size:9px;transition:background .12s,border-color .12s;
+  font-size:10px;transition:background .12s,border-color .12s;
 }
 .lck.on {background:var(--accent);border-color:var(--accent);color:var(--bg)}
 /* Testo voce lista — tap per modificare inline */
@@ -451,7 +464,7 @@ body {
 .trash-act {
   font-size:8px;background:none;border:none;cursor:pointer;
   color:var(--muted);font-family:var(--mono);letter-spacing:.06em;
-  -webkit-appearance:none;padding:0;transition:color .12s;
+  -webkit-appearance:none;padding:5px 4px;transition:color .12s;
 }
 .trash-act:active {color:var(--text)}
 .trash-act.del:active {color:#e94560}
@@ -472,16 +485,30 @@ body {
   padding:24px 22px 18px;max-width:440px;width:90%;
   max-height:75dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
-.focus-ttl  {font-size:13px;font-weight:600;margin-bottom:12px;letter-spacing:.02em;line-height:1.4}
-/* Il testo della nota in lettura, con markdown renderizzato */
-.focus-body {font-size:12px;line-height:1.9;color:var(--text);letter-spacing:.01em;white-space:pre-wrap;word-break:break-word}
-.focus-body b {font-weight:600}
-.focus-body i {font-style:italic;color:var(--muted)}
-.focus-foot {margin-top:18px;display:flex;justify-content:flex-end}
+/* focus-ttl-wrap: visibile solo per le idee (con titolo) */
+.focus-body {
+  font-size:12px;line-height:1.9;color:var(--text);letter-spacing:.01em;
+  width:100%;background:transparent;border:none;outline:none;
+  resize:none;font-family:var(--mono);min-height:120px;
+}
+.focus-foot {margin-top:14px;display:flex;justify-content:space-between;align-items:center}
+/* Barra strumenti nella focus sheet */
+.focus-toolbar {
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  padding:0 0 10px;border-bottom:1px solid var(--bd);margin-bottom:12px;
+}
+.ftool {
+  background:var(--s2);border:1px solid var(--bd);border-radius:3px;
+  padding:5px 10px;color:var(--muted);font-family:var(--mono);font-size:10px;
+  cursor:pointer;-webkit-appearance:none;transition:background .12s,color .12s;
+  letter-spacing:.04em;
+}
+.ftool:active,.ftool.on { background:var(--s3);color:var(--text);border-color:var(--bd2) }
+.ftool-sep { width:1px;height:16px;background:var(--bd2);margin:0 3px;flex-shrink:0 }
 .fclose {
   background:none;border:none;cursor:pointer;color:var(--muted);
   font-family:var(--mono);font-size:10px;letter-spacing:.06em;
-  -webkit-appearance:none;transition:color .12s;padding:0;
+  -webkit-appearance:none;transition:color .12s;padding:6px 4px;
 }
 .fclose:active {color:var(--text)}
   </style>
@@ -635,16 +662,30 @@ body {
   </div>
 </div>
 
-<!-- FOCUS OVERLAY — lettura a schermo intero.
+<!-- FOCUS OVERLAY — lettura e modifica a schermo intero.
      Tap fuori dal pannello (sull'overlay scuro) chiude la view. -->
 <div class="focus-bg" id="focus-modal" onclick="closeFocusBg(event)">
   <div class="focus-sheet">
-    <!-- Titolo (visibile solo per le Idee con titolo) -->
-    <div class="focus-ttl" id="focus-ttl"></div>
-    <!-- Testo della nota con markdown renderizzato -->
-    <div class="focus-body" id="focus-body"></div>
+    <!-- Titolo modificabile: visibile solo per le Idee -->
+    <div class="m-field" id="focus-ttl-wrap" style="display:none">
+      <div class="m-lbl">Titolo</div>
+      <input class="m-inp" id="focus-ttl-inp" placeholder="Titolo...">
+    </div>
+    <!-- Barra formattazione: bold + 3 grandezze -->
+    <div class="focus-toolbar">
+      <button class="ftool" onclick="wrapBold()" title="Grassetto"><b>B</b></button>
+      <div class="ftool-sep"></div>
+      <span id="focus-size-btns" style="display:flex;align-items:center;gap:5px">
+        <button class="ftool sz-btn" data-sz="sm" onclick="setFocusSize('sm')">S</button>
+        <button class="ftool sz-btn" data-sz="md" onclick="setFocusSize('md')">M</button>
+        <button class="ftool sz-btn" data-sz="lg" onclick="setFocusSize('lg')">L</button>
+      </span>
+    </div>
+    <!-- Testo grezzo modificabile -->
+    <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..."></textarea>
     <div class="focus-foot">
       <button class="fclose" onclick="closeFocus()">[chiudi]</button>
+      <button class="fclose" style="color:var(--text);font-weight:600" onclick="saveFocus()">[salva]</button>
     </div>
   </div>
 </div>
@@ -677,6 +718,29 @@ let curTab = 'prom';
 let q = '';
 let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
+let focusType = null, focusId = null, focusSizeVal = null;
+
+// Espande/collassa una card promemoria (toggle classe .exp)
+function tglExp(id) {
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (card) card.classList.toggle('exp');
+}
+
+// Avvolge il testo selezionato nella textarea con **grassetto**
+function wrapBold() {
+  const ta = document.getElementById('focus-body');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const sel = ta.value.slice(s, e) || 'testo';
+  ta.value = ta.value.slice(0, s) + '**' + sel + '**' + ta.value.slice(e);
+  ta.selectionStart = s + 2; ta.selectionEnd = e + 2;
+  ta.focus();
+}
+
+// Imposta la grandezza del testo nella card espansa (S/M/L)
+function setFocusSize(sz) {
+  focusSizeVal = sz;
+  document.querySelectorAll('.sz-btn').forEach(b => b.classList.toggle('on', b.dataset.sz === sz));
+}
 
 // Carica i dati da localStorage.
 // Se non esistono (primo avvio) o il JSON è corrotto → valori di default.
@@ -706,11 +770,13 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // t: timestamp in millisecondi (Date.now())
 function fmtTs(t) {
   const diff = Date.now() - t;
-  if (diff < 60e3)       return 'adesso';
-  if (diff < 3600e3)     return Math.floor(diff/60e3)    + 'm fa';
-  if (diff < 86400e3)    return Math.floor(diff/3600e3)  + 'h fa';
-  if (diff < 7*86400e3)  return Math.floor(diff/86400e3) + 'g fa';
-  return new Date(t).toLocaleDateString('it-IT', {day:'numeric', month:'short'});
+  if (diff < 60e3)   return 'adesso';
+  if (diff < 3600e3) return Math.floor(diff/60e3) + 'm fa';
+  // Dopo 1 ora: mostra ora e data esatta
+  const d    = new Date(t);
+  const time = d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+  const date = d.toLocaleDateString('it-IT',  {day:'2-digit', month:'2-digit', year:'numeric'});
+  return '[' + time + ' · ' + date + ']';
 }
 
 // Calcola quanti giorni mancano alla scadenza di un elemento nel cestino.
@@ -908,18 +974,18 @@ function renderProms() {
     return;
   }
   el.innerHTML = items.map(i => `
-    <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="prom">
+    <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}${i.size?' sz-'+i.size:''}" data-id="${i.id}" data-tp="prom">
       <div class="prow">
-        <!-- Cerchietto: tap → animazione slide-out + rimozione dal array -->
+        <!-- Cerchietto: tap → cestino -->
         <div class="pcb" onclick="chkProm('${i.id}')"></div>
-        <!-- Testo: tap → apre focus overlay in sola lettura -->
-        <div class="ptext" onclick="openFocus('prom','${i.id}')">${md(i.text)}</div>
+        <!-- Testo: tap → espande/collassa la card -->
+        <div class="ptext" onclick="tglExp('${i.id}')">${md(i.text)}</div>
       </div>
       <div class="cmeta">
         <span class="cts">${fmtTs(i.updated||i.created)}</span>
         <div class="cacts">
           <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
-          <button class="cact"     onclick="openCardMod('prom','${i.id}')">[edit]</button>
+          <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
           <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
         </div>
       </div>
@@ -934,11 +1000,19 @@ function renderProms() {
 function chkProm(id) {
   const card = document.querySelector(`[data-id="${id}"]`);
   if (!card) return;
-  // Animazione CSS inline: scivola a destra e diventa trasparente
+  // Animazione: scivola a destra e svanisce
   card.style.transition = 'opacity .3s ease,transform .3s ease';
   card.style.opacity = '0'; card.style.transform = 'translateX(44px)';
-  // Dopo 320ms (fine animazione) rimuove dal array e ri-renderizza
-  setTimeout(() => { S.proms = S.proms.filter(i => i.id !== id); persist(); renderAll(); }, 320);
+  // Dopo l'animazione: sposta nel cestino invece di eliminare
+  setTimeout(() => {
+    const idx = S.proms.findIndex(i => i.id === id);
+    if (idx !== -1) {
+      const item = {...S.proms[idx], type:'prom', deletedAt:Date.now()};
+      S.cestino.unshift(item);
+      S.proms.splice(idx, 1);
+    }
+    persist(); renderAll();
+  }, 320);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -964,7 +1038,7 @@ function renderIdee() {
         <span class="cts">${fmtTs(i.updated||i.created)}</span>
         <div class="cacts">
           <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
-          <button class="cact"     onclick="openCardMod('idee','${i.id}')">[edit]</button>
+          <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
           <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
         </div>
       </div>
@@ -1187,12 +1261,34 @@ function delItem(id, tp) {
 function openFocus(tp, id) {
   const arr = tp === 'prom' ? S.proms : S.idee;
   const it  = arr.find(i => i.id === id); if (!it) return;
-  const ttlEl  = document.getElementById('focus-ttl');
-  const bodyEl = document.getElementById('focus-body');
-  ttlEl.textContent   = it.title || '';
-  ttlEl.style.display = it.title ? '' : 'none'; // nasconde il titolo se vuoto
-  bodyEl.innerHTML = md(it.text); // testo con markdown renderizzato
+  focusType = tp; focusId = id;
+  const ttlWrap = document.getElementById('focus-ttl-wrap');
+  const ttlInp  = document.getElementById('focus-ttl-inp');
+  const bodyEl  = document.getElementById('focus-body');
+  // Titolo modificabile solo per le idee
+  if (tp === 'idee') {
+    ttlWrap.style.display = '';
+    ttlInp.value = it.title || '';
+  } else {
+    ttlWrap.style.display = 'none';
+  }
+  bodyEl.value = it.text; // testo grezzo nel textarea
+  // Grandezza: solo per i promemoria (le idee non hanno expand)
+  const sizeGroup = document.getElementById('focus-size-btns');
+  focusSizeVal = it.size || null;
+  sizeGroup.style.display = tp === 'prom' ? 'flex' : 'none';
+  document.querySelectorAll('.sz-btn').forEach(b => b.classList.toggle('on', b.dataset.sz === (focusSizeVal||'md') && tp === 'prom'));
   document.getElementById('focus-modal').classList.add('open');
+}
+function saveFocus() {
+  const arr = focusType === 'prom' ? S.proms : S.idee;
+  const it  = arr.find(i => i.id === focusId); if (!it) return;
+  it.text = document.getElementById('focus-body').value.trim();
+  if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
+  if (focusType === 'prom') it.size = focusSizeVal;
+  it.updated = Date.now();
+  persist(); renderAll();
+  closeFocus();
 }
 function closeFocus()     { document.getElementById('focus-modal').classList.remove('open'); }
 function closeFocusBg(e)  { if (e.target === e.currentTarget) closeFocus(); }
@@ -1352,19 +1448,31 @@ function doImport(inp) {
 // ══════════════════════════════════════════════════════════
 function initDrag(container, tp) {
   container.querySelectorAll('.card[data-id]').forEach(card => {
-    let lt = null, dragging = false, ox = 0, oy = 0;
+    let lt = null, dragging = false, ox = 0, oy = 0, moved = false, swiped = false;
     card.addEventListener('touchstart', e => {
-      // Non avvia drag se si tocca un bottone, input o checkbox
+      // Non avvia drag/swipe se si tocca un bottone, input o checkbox
       if (e.target.closest('button,input,.lck,.pcb')) return;
-      const t = e.touches[0]; ox = t.clientX; oy = t.clientY;
+      const t = e.touches[0]; ox = t.clientX; oy = t.clientY; moved = false; swiped = false;
       // Timer: 420ms di pressione ferma → inizia il drag
       lt = setTimeout(() => { dragging = true; startDrag(card, t); }, 420);
     }, {passive:true});
     card.addEventListener('touchmove', e => {
-      if (lt) {
-        const t = e.touches[0];
-        // Se il dito si sposta più di 9px prima dei 420ms → cancella il timer
-        if (Math.abs(t.clientX-ox) > 9 || Math.abs(t.clientY-oy) > 9) { clearTimeout(lt); lt = null; }
+      const t = e.touches[0];
+      const dx = t.clientX - ox;
+      const dy = Math.abs(t.clientY - oy);
+      // Prima volta che il dito si sposta > 9px → cancella il timer drag
+      if (!moved && (Math.abs(dx) > 9 || dy > 9)) {
+        moved = true;
+        if (lt) { clearTimeout(lt); lt = null; }
+      }
+      // Swipe sinistra: dx < -70px, orizzontale dominante
+      if (moved && !dragging && !swiped && dx < -70 && Math.abs(dx) > dy * 1.6) {
+        swiped = true;
+        e.preventDefault();
+        card.style.transition = 'transform .28s ease,opacity .28s ease';
+        card.style.transform  = 'translateX(-110%)';
+        card.style.opacity    = '0';
+        setTimeout(() => delItem(card.dataset.id, tp), 280);
       }
       if (dragging) { e.preventDefault(); moveDrag(e.touches[0], container); }
     }, {passive:false});
