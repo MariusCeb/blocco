@@ -204,6 +204,7 @@ body {
 .card {
   background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);
   overflow:hidden;position:relative;animation:fadeIn .2s ease both;
+  -webkit-user-select:none;user-select:none;
 }
 @keyframes fadeIn {from{opacity:0;transform:translateY(4px)}}
 /* Indicatore visivo "card fissata" — triangolino grigio in alto a destra */
@@ -1416,11 +1417,12 @@ function doImport(inp) {
 // ══════════════════════════════════════════════════════════
 function initDrag(container, tp) {
   container.querySelectorAll('.card[data-id]').forEach(card => {
-    let lt = null, dragging = false, ox = 0, oy = 0, moved = false, swiped = false;
+    let lt = null, dragging = false, ox = 0, oy = 0, moved = false, swiped = false, didDrag = false;
     card.addEventListener('touchstart', e => {
       // Non avvia drag/swipe se si tocca un bottone, input o checkbox
       if (e.target.closest('button,input,.lck,.pcb')) return;
-      const t = e.touches[0]; ox = t.clientX; oy = t.clientY; moved = false; swiped = false;
+      const t = e.touches[0]; ox = t.clientX; oy = t.clientY;
+      moved = false; swiped = false; didDrag = false;
       // Timer: 420ms di pressione ferma → inizia il drag
       lt = setTimeout(() => { dragging = true; startDrag(card, t); }, 420);
     }, {passive:true});
@@ -1446,8 +1448,10 @@ function initDrag(container, tp) {
     }, {passive:false});
     card.addEventListener('touchend', () => {
       if (lt) { clearTimeout(lt); lt = null; }
-      if (dragging) { dragging = false; endDrag(container, tp); }
+      if (dragging) { dragging = false; didDrag = true; endDrag(container, tp); }
     }, {passive:true});
+    // Mangia il click sintetico che iOS emette dopo touchend durante un drag
+    card.addEventListener('click', e => { if (didDrag) { didDrag = false; e.stopPropagation(); e.preventDefault(); } }, true);
     card.addEventListener('touchcancel', () => {
       if (lt) { clearTimeout(lt); lt = null; }
       if (dragging) { dragging = false; cancelDrag(); }
