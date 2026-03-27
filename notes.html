@@ -824,6 +824,9 @@ let q = '';
 let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
+function _focusBgTouchMove(e) {
+  if (!e.target.closest('.focus-sheet')) e.preventDefault();
+}
 
 // Avvolge il testo selezionato nella textarea con **grassetto**
 function wrapBold() {
@@ -1513,7 +1516,9 @@ function openFocus(tp, id) {
     fdInp.style.display = 'none';
     fdBtn.textContent = '[off]';
   }
-  document.getElementById('focus-modal').classList.add('open');
+  const fm = document.getElementById('focus-modal');
+  fm.classList.add('open');
+  fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
 }
 function doFocusSave(shouldClose) {
   const arr = focusType === 'prom' ? S.proms : S.idee;
@@ -1531,7 +1536,9 @@ function doFocusSave(shouldClose) {
 function saveFocus() { clearTimeout(autoSaveTimer); doFocusSave(true); }
 function closeFocus() {
   clearTimeout(autoSaveTimer);
-  document.getElementById('focus-modal').classList.remove('open');
+  const fm = document.getElementById('focus-modal');
+  fm.classList.remove('open');
+  fm.removeEventListener('touchmove', _focusBgTouchMove);
 }
 function closeFocusBg(e)  { if (e.target === e.currentTarget) closeFocus(); }
 
