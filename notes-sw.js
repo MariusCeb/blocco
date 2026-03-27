@@ -1,4 +1,4 @@
-const CACHE  = 'blocco-v13';
+const CACHE  = 'blocco-v14';
 const STATIC = ['./notes-manifest.json', './notes-icon.svg'];
 
 self.addEventListener('install', e => {
@@ -22,6 +22,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const {request} = e;
   const url = new URL(request.url);
+  // Ignora schemi non-http (chrome-extension, data, ecc.)
+  if (!url.protocol.startsWith('http')) return;
 
   // Network-first per l'HTML: aggiorna sempre, fallback offline
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/blocco')) {

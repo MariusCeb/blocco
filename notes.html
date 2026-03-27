@@ -1437,13 +1437,13 @@ function initDrag(container, tp) {
       // Swipe destra: dx > 70px, orizzontale dominante
       if (moved && !dragging && !swiped && dx > 70 && Math.abs(dx) > dy * 1.6) {
         swiped = true;
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         card.style.transition = 'transform .28s ease,opacity .28s ease';
         card.style.transform  = 'translateX(110%)';
         card.style.opacity    = '0';
         setTimeout(() => delItem(card.dataset.id, tp), 280);
       }
-      if (dragging) { e.preventDefault(); moveDrag(e.touches[0], container); }
+      if (dragging) { if (e.cancelable) e.preventDefault(); moveDrag(e.touches[0], container); }
     }, {passive:false});
     card.addEventListener('touchend', () => {
       if (lt) { clearTimeout(lt); lt = null; }
