@@ -533,8 +533,8 @@ body {
 /* focus-ttl-wrap: visibile solo per le idee (con titolo) */
 .focus-body {
   font-size:12px;line-height:1.9;color:var(--text);letter-spacing:.01em;
-  width:100%;background:transparent;border:none;outline:none;
-  resize:none;font-family:var(--mono);min-height:200px;flex:1;
+  flex:1;min-width:0;background:transparent;border:none;outline:none;
+  resize:none;font-family:var(--mono);overflow-y:auto;
 }
 .focus-foot {margin-top:auto;padding-top:22px;display:flex;justify-content:space-between;align-items:center}
 .fclose {
@@ -543,6 +543,47 @@ body {
   -webkit-appearance:none;transition:color .12s;padding:8px 4px;
 }
 .fclose:active {color:var(--text)}
+
+/* ── Focus editor: numero righe (stile VS Code) ──────── */
+.focus-editor {
+  display:flex;flex:1;min-height:200px;overflow:hidden;
+}
+.focus-lnums {
+  font-size:12px;line-height:1.9;font-family:var(--mono);
+  color:var(--muted);opacity:.35;
+  user-select:none;pointer-events:none;flex-shrink:0;
+  min-width:24px;text-align:right;padding-right:10px;
+  overflow:hidden;white-space:pre;
+}
+
+/* ── Idea card: limita altezza con fade ──────────────── */
+.idea-body {
+  max-height:200px;overflow:hidden;position:relative;
+}
+.idea-body.overflows::after {
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:44px;background:linear-gradient(transparent,var(--s1));
+  pointer-events:none;
+}
+
+/* ── Deadline progress bar ───────────────────────────── */
+.deadline-bar {
+  height:3px;background:var(--bd);overflow:hidden;flex-shrink:0;
+}
+.deadline-fill {
+  height:100%;transition:width .5s ease;
+}
+.dl-lbl { color:var(--muted) }
+.dl-lbl.expired { color:#e94560 }
+@keyframes deadlinePulse {
+  0%,100%{opacity:1}50%{opacity:.3}
+}
+.dl-row {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:2px;
+}
+input[type="datetime-local"] { color-scheme:dark }
+html.light input[type="datetime-local"] { color-scheme:light }
   </style>
 </head>
 <body>
@@ -651,12 +692,19 @@ body {
     <div class="m-field">
       <div class="m-lbl">Nota</div>
       <!-- rows="4" = altezza iniziale della textarea -->
-      <textarea class="m-inp" id="m-card-tx" rows="4" placeholder="Scrivi qui... **grassetto** _corsivo_"></textarea>
+      <textarea class="m-inp" id="m-card-tx" rows="4" placeholder="Scrivi qui... **grassetto** _corsivo_" onkeydown="autoList(event)"></textarea>
     </div>
     <div class="m-field">
       <div class="m-lbl">Etichetta colore</div>
       <!-- I pallini colorati vengono generati da buildClrPick() -->
       <div class="clrpick" id="m-card-clr"></div>
+    </div>
+    <div class="m-field">
+      <div class="dl-row">
+        <div class="m-lbl">Data scadenza</div>
+        <button class="cact" id="m-deadline-toggle" onclick="tglDeadlineField()" style="padding:3px 4px">[off]</button>
+      </div>
+      <input type="datetime-local" class="m-inp" id="m-deadline-inp" style="display:none;margin-top:4px">
     </div>
     <div class="m-actions">
       <button class="m-cancel"  onclick="closeModal('m-card')">[annulla]</button>
@@ -711,10 +759,19 @@ body {
       <div class="m-lbl">Titolo</div>
       <input class="m-inp" id="focus-ttl-inp" placeholder="Titolo...">
     </div>
-    <!-- Testo grezzo modificabile -->
-    <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..."></textarea>
+    <!-- Testo grezzo modificabile + numero righe stile VS Code -->
+    <div class="focus-editor">
+      <div class="focus-lnums" id="focus-lnums">1</div>
+      <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
+    </div>
     <!-- Color picker inline -->
     <div class="clrpick" id="focus-clr" style="padding:14px 0 0"></div>
+    <!-- Data scadenza -->
+    <div class="dl-row" style="padding-top:12px">
+      <span style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Data scadenza</span>
+      <button class="cact" id="focus-deadline-toggle" onclick="tglFocusDeadlineField()" style="padding:3px 4px">[off]</button>
+    </div>
+    <input type="datetime-local" class="m-inp" id="focus-deadline-inp" style="display:none;margin-top:4px;margin-bottom:4px">
     <div class="focus-foot">
       <button class="fclose" onclick="closeFocus()">[chiudi]</button>
       <span id="focus-cc" style="font-size:9px;color:var(--dim);letter-spacing:.05em">0</span>
@@ -835,6 +892,92 @@ function toast(msg, dur=2000) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTO-LIST — continua la lista con "- " a capo automatico
+// ══════════════════════════════════════════════════════════
+function autoList(e) {
+  if (e.key !== 'Enter') return;
+  const ta = e.target;
+  if (ta.selectionStart !== ta.selectionEnd) return; // selezione attiva: non interferire
+  const pos = ta.selectionStart;
+  const val = ta.value;
+  const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+  const currentLine = val.substring(lineStart, pos);
+  const m = currentLine.match(/^(\s*- )/);
+  if (!m) return;
+  e.preventDefault();
+  const prefix = m[1];
+  const afterPrefix = currentLine.substring(prefix.length);
+  if (!afterPrefix.trim()) {
+    // Bullet vuoto → rimuovi e torna a riga normale
+    ta.value = val.substring(0, lineStart) + val.substring(pos);
+    ta.selectionStart = ta.selectionEnd = lineStart;
+  } else {
+    // Continua la lista
+    const ins = '\n' + prefix;
+    ta.value = val.substring(0, pos) + ins + val.substring(pos);
+    ta.selectionStart = ta.selectionEnd = pos + ins.length;
+  }
+  ta.dispatchEvent(new Event('input'));
+}
+
+// ══════════════════════════════════════════════════════════
+// NUMERO RIGHE — aggiorna il pannello numeri nel focus editor
+// ══════════════════════════════════════════════════════════
+function updateLineNumbers() {
+  const ta = document.getElementById('focus-body');
+  const ln = document.getElementById('focus-lnums');
+  if (!ta || !ln) return;
+  const count = ta.value.split('\n').length;
+  ln.textContent = Array.from({length: count}, (_, i) => i + 1).join('\n');
+  ln.scrollTop = ta.scrollTop;
+}
+
+// ══════════════════════════════════════════════════════════
+// DEADLINE — scadenza con progress bar e countdown
+// ══════════════════════════════════════════════════════════
+function toLocalDatetimeInput(ts) {
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function fmtDeadline(ts) {
+  const diff = ts - Date.now();
+  if (diff <= 0) return 'SCADUTO';
+  const m = Math.floor(diff / 60e3);
+  const h = Math.floor(diff / 3600e3);
+  const d = Math.floor(diff / 86400e3);
+  if (d >= 2) return `↓ ${d}g`;
+  if (d === 1) return '↓ domani';
+  if (h >= 1)  return `↓ ${h}h`;
+  return `↓ ${m}m`;
+}
+function deadlineProgress(item) {
+  if (!item.deadline) return 0;
+  const total = item.deadline - item.created;
+  if (total <= 0) return 1;
+  return Math.max(0, Math.min(1, (Date.now() - item.created) / total));
+}
+function deadlineColor(p) {
+  if (p >= 0.9) return '#e94560';
+  if (p >= 0.7) return '#fb923c';
+  if (p >= 0.45) return '#facc15';
+  return '#4ade80';
+}
+function deadlineBar(item) {
+  if (!item.deadline) return '';
+  const p = deadlineProgress(item);
+  const pct = (p * 100).toFixed(1);
+  const col = deadlineColor(p);
+  const pulse = p >= 1 ? ';animation:deadlinePulse 1.2s ease-in-out infinite' : '';
+  return `<div class="deadline-bar"><div class="deadline-fill" style="width:${pct}%;background:${col}${pulse}"></div></div>`;
+}
+function deadlineTag(item) {
+  if (!item.deadline) return '';
+  const p = deadlineProgress(item);
+  return ` · <span class="dl-lbl${p >= 1 ? ' expired' : ''}">${fmtDeadline(item.deadline)}</span>`;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1003,8 +1146,9 @@ function renderProms() {
           <div class="pcb" onclick="chkProm('${i.id}')"></div>
           <div class="ptext" onclick="openFocus('prom','${i.id}')">${md(i.text)}</div>
         </div>
+        ${deadlineBar(i)}
         <div class="cmeta">
-          <span class="cts">${fmtTs(i.updated||i.created)}</span>
+          <span class="cts">${fmtTs(i.updated||i.created)}${deadlineTag(i)}</span>
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
@@ -1056,12 +1200,13 @@ function renderIdee() {
       <div class="del-hint">[del]</div>
       <div class="share-hint">[share]</div>
       <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="idee">
-        <div class="cbody" onclick="openFocus('idee','${i.id}')">
+        <div class="cbody idea-body" onclick="openFocus('idee','${i.id}')">
           ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
           <div class="ctext">${md(i.text)}</div>
         </div>
+        ${deadlineBar(i)}
         <div class="cmeta">
-          <span class="cts">${fmtTs(i.updated||i.created)}</span>
+          <span class="cts">${fmtTs(i.updated||i.created)}${deadlineTag(i)}</span>
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
@@ -1072,6 +1217,12 @@ function renderIdee() {
       </div>
     </div>
   `).join('');
+  // Aggiungi fade gradient alle card con testo lungo
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.idea-body').forEach(b => {
+      b.classList.toggle('overflows', b.scrollHeight > b.clientHeight + 2);
+    });
+  });
   initDrag(el, 'idee');
   initMouseDrag(el, 'idee');
   applyTwemoji(el);
@@ -1315,9 +1466,14 @@ function openFocus(tp, id) {
   }
   bodyEl.value = it.text; // testo grezzo nel textarea
   const cc = document.getElementById('focus-cc');
-  const upd = () => cc.textContent = bodyEl.value.length;
+  const upd = () => { cc.textContent = bodyEl.value.length; updateLineNumbers(); };
   upd();
   bodyEl.oninput = upd;
+  bodyEl.onscroll = () => {
+    const ln = document.getElementById('focus-lnums');
+    if (ln) ln.scrollTop = bodyEl.scrollTop;
+  };
+  updateLineNumbers();
   // Color picker nel focus sheet
   focusColor = it.color || null;
   document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
@@ -1325,6 +1481,18 @@ function openFocus(tp, id) {
       style="${c!=='none'?'background:'+CLRHEX[c]:''}"
       onclick="pickFocusClr('${c}',this)"></div>
   `).join('');
+  // Carica stato deadline nel focus modal
+  const fdInp = document.getElementById('focus-deadline-inp');
+  const fdBtn = document.getElementById('focus-deadline-toggle');
+  if (it.deadline) {
+    fdInp.value = toLocalDatetimeInput(it.deadline);
+    fdInp.style.display = '';
+    fdBtn.textContent = '[on]';
+  } else {
+    fdInp.value = '';
+    fdInp.style.display = 'none';
+    fdBtn.textContent = '[off]';
+  }
   document.getElementById('focus-modal').classList.add('open');
 }
 function saveFocus() {
@@ -1333,6 +1501,9 @@ function saveFocus() {
   it.text = document.getElementById('focus-body').value.trim();
   if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
   it.color = focusColor;
+  const fdInp = document.getElementById('focus-deadline-inp');
+  it.deadline = fdInp.style.display !== 'none' && fdInp.value
+    ? new Date(fdInp.value).getTime() : null;
   it.updated = Date.now();
   persist(); renderAll();
   closeFocus();
@@ -1377,6 +1548,19 @@ function openCardMod(tp, id) {
   document.getElementById('m-hd-wrap').style.display = tp === 'prom' ? 'none' : '';
   document.getElementById('m-card-tx').value = tx;
   buildClrPick('m-card-clr', ePick || 'none');
+  // Carica/resetta il campo deadline
+  const mdInp = document.getElementById('m-deadline-inp');
+  const mdBtn = document.getElementById('m-deadline-toggle');
+  const deadlineVal = id ? ((() => { const arr = tp==='prom'?S.proms:S.idee; const it=arr.find(i=>i.id===id); return it?.deadline||null; })()) : null;
+  if (deadlineVal) {
+    mdInp.value = toLocalDatetimeInput(deadlineVal);
+    mdInp.style.display = '';
+    mdBtn.textContent = '[on]';
+  } else {
+    mdInp.value = '';
+    mdInp.style.display = 'none';
+    mdBtn.textContent = '[off]';
+  }
   openModal('m-card');
   setTimeout(() => document.getElementById('m-card-tx').focus(), 300);
 }
@@ -1385,14 +1569,17 @@ function saveCard() {
   if (!tx) { document.getElementById('m-card-tx').focus(); return; } // testo obbligatorio
   const hd  = document.getElementById('m-card-hd').value.trim();
   const now = Date.now();
+  const mdInp = document.getElementById('m-deadline-inp');
+  const deadline = mdInp.style.display !== 'none' && mdInp.value
+    ? new Date(mdInp.value).getTime() : null;
   if (eId) {
     // Aggiorna elemento esistente
     const arr = eType === 'prom' ? S.proms : S.idee;
     const it  = arr.find(i => i.id===eId);
-    if (it) { it.text = tx; it.title = hd; it.color = ePick; it.updated = now; }
+    if (it) { it.text = tx; it.title = hd; it.color = ePick; it.deadline = deadline; it.updated = now; }
   } else {
     // Crea nuovo elemento e lo aggiunge in cima
-    const it = {id:uid(), text:tx, title:hd, color:ePick, pinned:false, created:now, updated:now};
+    const it = {id:uid(), text:tx, title:hd, color:ePick, deadline, pinned:false, created:now, updated:now};
     if (eType === 'prom') S.proms.unshift(it); else S.idee.unshift(it);
   }
   persist(); closeModal('m-card'); renderAll();
@@ -1431,6 +1618,36 @@ function saveLista() {
     S.liste.unshift({id:uid(), title:nm, items:[], color:ePick, pinned:false, created:now, updated:now});
   }
   persist(); closeModal('m-lista'); renderAll();
+}
+
+// ══════════════════════════════════════════════════════════
+// DEADLINE TOGGLE — mostra/nasconde il campo datetime
+// ══════════════════════════════════════════════════════════
+function tglDeadlineField() {
+  const inp = document.getElementById('m-deadline-inp');
+  const btn = document.getElementById('m-deadline-toggle');
+  const isOn = inp.style.display !== 'none';
+  inp.style.display = isOn ? 'none' : '';
+  btn.textContent = isOn ? '[off]' : '[on]';
+  if (!isOn) {
+    if (!inp.value) {
+      inp.value = toLocalDatetimeInput(Date.now() + 86400e3); // default: domani
+    }
+    setTimeout(() => inp.focus(), 50);
+  }
+}
+function tglFocusDeadlineField() {
+  const inp = document.getElementById('focus-deadline-inp');
+  const btn = document.getElementById('focus-deadline-toggle');
+  const isOn = inp.style.display !== 'none';
+  inp.style.display = isOn ? 'none' : '';
+  btn.textContent = isOn ? '[off]' : '[on]';
+  if (!isOn) {
+    if (!inp.value) {
+      inp.value = toLocalDatetimeInput(Date.now() + 86400e3); // default: domani
+    }
+    setTimeout(() => inp.focus(), 50);
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1711,7 +1928,11 @@ purgeTrash();
 applyTheme();
 document.getElementById('name-lbl').textContent = S.name;
 updateDatetime();
-setInterval(updateDatetime, 30000);
+setInterval(() => {
+  updateDatetime();
+  // Aggiorna le card se ci sono scadenze attive (countdown che avanza)
+  if ([...S.proms, ...S.idee].some(i => i.deadline)) renderAll();
+}, 30000);
 renderAll();
 // Nascondi splash dopo che l'app è pronta
 setTimeout(() => {
