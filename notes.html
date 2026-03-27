@@ -541,8 +541,8 @@ body {
 .focus-sheet {
   background:var(--s1);border:1px solid var(--bd2);border-radius:var(--r);
   padding:28px 26px 22px;max-width:560px;width:96%;
-  max-height:90dvh;min-height:62dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  display:flex;flex-direction:column;
+  height:88dvh;max-height:88dvh;
+  overflow:hidden;display:flex;flex-direction:column;
 }
 /* focus-ttl-wrap: visibile solo per le idee (con titolo) */
 .focus-body {
@@ -560,7 +560,7 @@ body {
 
 /* ── Focus editor: numero righe (stile VS Code) ──────── */
 .focus-editor {
-  display:flex;flex:1;min-height:200px;overflow:hidden;
+  display:flex;flex:1;min-height:0;overflow:hidden;
 }
 .focus-lnums {
   font-size:12px;line-height:1.9;font-family:var(--mono);
@@ -2028,6 +2028,45 @@ function initListItemDrag(lid) {
   });
 }
 
+// ══════════════════════════════════════════════════════════
+// SWIPE TRA TAB — swipe orizzontale per cambiare sezione
+// Solo su mobile; non interferisce con lo swipe delle card
+// (il tocco sulle .card-slot viene ignorato)
+// ══════════════════════════════════════════════════════════
+function initTabSwipe() {
+  const TAB_ORDER = ['prom','idee','liste','cestino'];
+  const views = document.querySelector('.views');
+  let tx = null, ty = 0, moving = false;
+
+  views.addEventListener('touchstart', e => {
+    // Ignora se il tocco parte su una card o su un elemento interattivo
+    if (e.target.closest('.card-slot,button,input,.lck,.pcb,.ldrag')) {
+      tx = null; return;
+    }
+    const t = e.touches[0];
+    tx = t.clientX; ty = t.clientY; moving = false;
+  }, {passive: true});
+
+  views.addEventListener('touchmove', e => {
+    if (tx === null) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - tx) > 8 || Math.abs(t.clientY - ty) > 8) moving = true;
+  }, {passive: true});
+
+  views.addEventListener('touchend', e => {
+    if (tx === null || !moving) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - tx;
+    const dy = Math.abs(t.clientY - ty);
+    tx = null; moving = false;
+    // Soglia 70px orizzontale, angolo non troppo verticale
+    if (Math.abs(dx) < 70 || dy > Math.abs(dx) * 0.65) return;
+    const idx = TAB_ORDER.indexOf(curTab);
+    if (dx < 0 && idx < TAB_ORDER.length - 1) goTab(TAB_ORDER[idx + 1]); // sinistra → avanti
+    if (dx > 0 && idx > 0)                    goTab(TAB_ORDER[idx - 1]); // destra  → indietro
+  }, {passive: true});
+}
+
 // BOOT
 purgeTrash();
 applyTheme();
@@ -2039,6 +2078,7 @@ setInterval(() => {
   if ([...S.proms, ...S.idee].some(i => i.deadline)) renderAll();
 }, 30000);
 renderAll();
+initTabSwipe();
 // Nascondi splash dopo che l'app è pronta
 setTimeout(() => {
   const s = document.getElementById('splash');
