@@ -1482,7 +1482,7 @@ function openFocus(tp, id) {
       doFocusSave(false);
       const st2 = document.getElementById('focus-status');
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
-    }, 1500);
+    }, 1000);
   };
   const upd = () => { cc.textContent = bodyEl.value.length; updateLineNumbers(); schedAutoSave(); };
   upd();
