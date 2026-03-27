@@ -652,6 +652,8 @@ body {
     </div>
     <!-- Testo grezzo modificabile -->
     <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..."></textarea>
+    <!-- Color picker inline -->
+    <div class="clrpick" id="focus-clr" style="padding:14px 0 0"></div>
     <div class="focus-foot">
       <button class="fclose" onclick="closeFocus()">[chiudi]</button>
       <span id="focus-cc" style="font-size:9px;color:var(--dim);letter-spacing:.05em">0</span>
@@ -688,7 +690,7 @@ let curTab = 'prom';
 let q = '';
 let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
-let focusType = null, focusId = null;
+let focusType = null, focusId = null, focusColor = null;
 
 // Avvolge il testo selezionato nella textarea con **grassetto**
 function wrapBold() {
@@ -1235,6 +1237,15 @@ function openFocus(tp, id) {
   const upd = () => cc.textContent = bodyEl.value.length;
   upd();
   bodyEl.oninput = upd;
+  // Color picker nel focus sheet
+  focusColor = it.color || null;
+  document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
+    <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
+      style="${c!=='none'?'background:'+CLRHEX[c]:''}"
+      onclick="focusColor==='${c}'?(focusColor=null):(focusColor='${c}'==='none'?null:'${c}');
+               this.parentNode.querySelectorAll('.clrdot').forEach(d=>d.classList.remove('sel'));
+               this.classList.add('sel')"></div>
+  `).join('');
   document.getElementById('focus-modal').classList.add('open');
 }
 function saveFocus() {
@@ -1242,6 +1253,7 @@ function saveFocus() {
   const it  = arr.find(i => i.id === focusId); if (!it) return;
   it.text = document.getElementById('focus-body').value.trim();
   if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
+  it.color = focusColor;
   it.updated = Date.now();
   persist(); renderAll();
   closeFocus();
