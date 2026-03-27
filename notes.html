@@ -407,9 +407,8 @@ body {
 ───────────────────────────────────────────────────────── */
 .toast {
   position:fixed;top:calc(var(--st) + 54px);left:50%;
-  transform:translateX(-50%) translateY(-8px);
-  background:var(--s1);border:1px solid var(--bd2);
-  border-radius:50px;padding:6px 16px;font-size:9px;font-weight:500;letter-spacing:.08em;
+  transform:translateX(-50%) translateY(-6px);
+  font-size:9px;font-weight:500;letter-spacing:.08em;color:var(--muted);
   z-index:300;opacity:0;transition:all .2s;pointer-events:none;white-space:nowrap;
 }
 .toast.show {opacity:1;transform:translateX(-50%) translateY(0)}
@@ -655,6 +654,7 @@ body {
     <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..."></textarea>
     <div class="focus-foot">
       <button class="fclose" onclick="closeFocus()">[chiudi]</button>
+      <span id="focus-cc" style="font-size:9px;color:var(--dim);letter-spacing:.05em">0</span>
       <button class="fclose" style="color:var(--text);font-weight:600" onclick="saveFocus()">[salva]</button>
     </div>
   </div>
@@ -1231,6 +1231,10 @@ function openFocus(tp, id) {
     ttlWrap.style.display = 'none';
   }
   bodyEl.value = it.text; // testo grezzo nel textarea
+  const cc = document.getElementById('focus-cc');
+  const upd = () => cc.textContent = bodyEl.value.length;
+  upd();
+  bodyEl.oninput = upd;
   document.getElementById('focus-modal').classList.add('open');
 }
 function saveFocus() {
