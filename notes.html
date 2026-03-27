@@ -433,12 +433,12 @@ body {
    .drag-ov: la card su cui stai trascinando riceve un outline
 ───────────────────────────────────────────────────────── */
 .drag-ghost {
-  position:fixed;z-index:400;pointer-events:none;opacity:.85;
-  transform:scale(1.02) rotate(.3deg);box-shadow:0 8px 30px rgba(0,0,0,.45);
-  border-radius:var(--r);overflow:hidden;
+  position:fixed;z-index:400;pointer-events:none;opacity:.88;
+  transform:scale(1.03) rotate(.4deg);box-shadow:0 10px 36px rgba(0,0,0,.5);
+  border-radius:var(--r);overflow:hidden;transition:top .04s linear;
 }
-.drag-src {opacity:.18}
-.drag-ov  {outline:1px dashed var(--accent);outline-offset:2px}
+.drag-src {opacity:.15;pointer-events:none;}
+.card-slot {transition:transform .18s ease;}
 
 /* Bottoni nel modal backup */
 .bk-btn {
@@ -1496,56 +1496,66 @@ function shareItem(id, tp) {
   }
 }
 
-// Crea il ghost: clona la card, la posiziona in fixed sopra tutto
+// Crea il ghost e segna la card originale come placeholder
 function startDrag(card, t) {
-  dSrcId = card.dataset.id; dOvId = null;
+  dSrcId = card.dataset.id;
   const r = card.getBoundingClientRect();
   dGhost = card.cloneNode(true);
   dGhost.className = 'card drag-ghost';
-  dGhost.style.cssText += `;width:${r.width}px;left:${r.left}px;top:${r.top}px`;
+  dGhost.style.width  = r.width  + 'px';
+  dGhost.style.left   = r.left   + 'px';
+  dGhost.style.top    = (t.clientY - r.height / 2) + 'px';
   document.body.appendChild(dGhost);
-  card.classList.add('drag-src'); // rende quasi trasparente la card originale
-  if (navigator.vibrate) navigator.vibrate(40); // feedback tattile
+  card.classList.add('drag-src');
+  if (navigator.vibrate) navigator.vibrate(40);
 }
 
-// Muove il ghost seguendo il dito, rileva la card sotto
+// Sposta il ghost e riordina le card nel DOM in tempo reale
 function moveDrag(t, container) {
   if (!dGhost || !dSrcId) return;
-  dGhost.style.top = (t.clientY - 40) + 'px';
-  // Trick: nasconde il ghost un frame per usare elementFromPoint correttamente
+  dGhost.style.top = (t.clientY - parseInt(dGhost.style.height || 60) / 2) + 'px';
+
+  // Trova quale slot è sotto il dito
   dGhost.style.display = 'none';
   const hit = document.elementFromPoint(t.clientX, t.clientY);
   dGhost.style.display = '';
-  const ov = hit?.closest('.card[data-id]');
-  document.querySelectorAll('.drag-ov').forEach(c => c.classList.remove('drag-ov'));
-  if (ov && ov.dataset.id !== dSrcId) { ov.classList.add('drag-ov'); dOvId = ov.dataset.id; }
+
+  const targetCard = hit?.closest('.card[data-id]');
+  if (!targetCard || targetCard.dataset.id === dSrcId) return;
+
+  const srcSlot = container.querySelector(`.card[data-id="${dSrcId}"]`)?.closest('.card-slot');
+  const tgtSlot = targetCard.closest('.card-slot');
+  if (!srcSlot || !tgtSlot || srcSlot === tgtSlot) return;
+
+  // Inserisce prima o dopo in base alla posizione verticale del dito
+  const tgtRect = tgtSlot.getBoundingClientRect();
+  if (t.clientY < tgtRect.top + tgtRect.height / 2) {
+    container.insertBefore(srcSlot, tgtSlot);
+  } else {
+    container.insertBefore(srcSlot, tgtSlot.nextSibling);
+  }
 }
 
-// Fine drag: scambia le posizioni nell'array e ri-renderizza
+// Rilascio: sincronizza l'array con l'ordine del DOM e persiste
 function endDrag(container, tp) {
   if (dGhost) { dGhost.remove(); dGhost = null; }
-  document.querySelectorAll('.drag-ov').forEach(c  => c.classList.remove('drag-ov'));
-  document.querySelectorAll('.drag-src').forEach(c => c.classList.remove('drag-src'));
-  if (dSrcId && dOvId && dSrcId !== dOvId) {
-    const k   = tp === 'prom' ? 'proms' : tp;
-    const arr = S[k];
-    const fi  = arr.findIndex(i => i.id===dSrcId); // indice sorgente
-    const ti  = arr.findIndex(i => i.id===dOvId);  // indice destinazione
-    if (fi !== -1 && ti !== -1) {
-      // splice(fi,1) estrae l'elemento, splice(ti,0,it) lo reinserisce
-      const [it] = arr.splice(fi,1); arr.splice(ti,0,it);
-      persist(); renderAll();
-    }
-  }
+  const srcCard = container.querySelector(`.card[data-id="${dSrcId}"]`);
+  if (srcCard) srcCard.classList.remove('drag-src');
+
+  // Legge il nuovo ordine dal DOM e aggiorna l'array
+  const k = tp === 'prom' ? 'proms' : tp;
+  const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
+  S[k] = newOrder.map(id => S[k].find(i => i.id === id)).filter(Boolean);
+  persist(); updateStats();
   dSrcId = null; dOvId = null;
 }
 
-// Drag annullato (es: chiamata telefonica): ripristina senza modifiche
+// Drag annullato: ripristina visivamente e ri-renderizza
 function cancelDrag() {
   if (dGhost) { dGhost.remove(); dGhost = null; }
-  document.querySelectorAll('.drag-ov').forEach(c  => c.classList.remove('drag-ov'));
   document.querySelectorAll('.drag-src').forEach(c => c.classList.remove('drag-src'));
   dSrcId = null; dOvId = null;
+  renderAll();
 }
 
 // ══════════════════════════════════════════════════════════
