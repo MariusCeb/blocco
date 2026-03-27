@@ -534,16 +534,15 @@ body {
 ───────────────────────────────────────────────────────── */
 .focus-bg {
   position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:150;
-  display:flex;align-items:flex-start;justify-content:center;
-  padding-top:calc(var(--st) + 18px);
+  display:flex;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;transition:opacity .2s;
 }
 .focus-bg.open {opacity:1;pointer-events:auto}
 .focus-sheet {
   background:var(--s1);border:1px solid var(--bd2);border-radius:var(--r);
-  padding:20px 22px 18px;max-width:560px;width:96%;
-  height:55vh;max-height:55vh;
-  overflow:hidden;display:flex;flex-direction:column;
+  padding:28px 26px 22px;max-width:560px;width:96%;
+  max-height:90dvh;min-height:62dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;
 }
 /* focus-ttl-wrap: visibile solo per le idee (con titolo) */
 .focus-body {
