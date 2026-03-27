@@ -477,26 +477,21 @@ body {
   background:var(--s1);border:1px solid var(--bd2);border-radius:var(--r);
   padding:28px 26px 22px;max-width:560px;width:96%;
   max-height:90dvh;min-height:62dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;
 }
 /* focus-ttl-wrap: visibile solo per le idee (con titolo) */
 .focus-body {
   font-size:12px;line-height:1.9;color:var(--text);letter-spacing:.01em;
   width:100%;background:transparent;border:none;outline:none;
-  resize:none;font-family:var(--mono);min-height:200px;
+  resize:none;font-family:var(--mono);min-height:200px;flex:1;
 }
-.focus-foot {margin-top:18px;display:flex;gap:8px}
-.f-cancel {
-  flex:1;padding:11px;background:var(--s2);border:1px solid var(--bd);
-  border-radius:3px;color:var(--muted);font-family:var(--mono);font-size:10px;
-  cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;transition:background .12s;
+.focus-foot {margin-top:auto;padding-top:22px;display:flex;justify-content:space-between;align-items:center}
+.fclose {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  -webkit-appearance:none;transition:color .12s;padding:8px 4px;
 }
-.f-cancel:active {background:var(--s3)}
-.f-save {
-  flex:1;padding:11px;background:var(--text);border:none;
-  border-radius:3px;color:var(--bg);font-family:var(--mono);font-size:10px;
-  font-weight:600;cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;transition:opacity .12s;
-}
-.f-save:active {opacity:.75}
+.fclose:active {color:var(--text)}
   </style>
 </head>
 <body>
@@ -660,8 +655,8 @@ body {
     <!-- Testo grezzo modificabile -->
     <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..."></textarea>
     <div class="focus-foot">
-      <button class="f-cancel" onclick="closeFocus()">Annulla</button>
-      <button class="f-save"   onclick="saveFocus()">Salva</button>
+      <button class="fclose" onclick="closeFocus()">[chiudi]</button>
+      <button class="fclose" style="color:var(--text);font-weight:600" onclick="saveFocus()">[salva]</button>
     </div>
   </div>
 </div>
