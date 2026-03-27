@@ -960,17 +960,11 @@ function deadlineProgress(item) {
   if (total <= 0) return 1;
   return Math.max(0, Math.min(1, (Date.now() - item.created) / total));
 }
-function deadlineColor(p) {
-  if (p >= 0.9) return '#e94560';
-  if (p >= 0.7) return '#fb923c';
-  if (p >= 0.45) return '#facc15';
-  return '#4ade80';
-}
 function deadlineBar(item) {
   if (!item.deadline) return '';
   const p = deadlineProgress(item);
   const pct = (p * 100).toFixed(1);
-  const col = deadlineColor(p);
+  const col = item.color ? CLRHEX[item.color] : 'var(--accent)';
   const pulse = p >= 1 ? ';animation:deadlinePulse 1.2s ease-in-out infinite' : '';
   return `<div class="deadline-bar"><div class="deadline-fill" style="width:${pct}%;background:${col}${pulse}"></div></div>`;
 }
