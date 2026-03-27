@@ -618,7 +618,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
     <div class="vlabel">Blocco note</div>
     <div class="vbig">
       <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
-      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.2</span>
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.3</span>
     </div>
     <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
     <div class="vdate" id="vdate-lbl"></div>
@@ -828,10 +828,19 @@ function _focusBgTouchMove(e) { e.preventDefault(); }
 function _focusSheetTouchMove(e) { e.stopPropagation(); }
 
 // ── Visual Viewport sync — keeps focus-bg anchored when iOS keyboard opens ──
+// Only adjusts layout when the keyboard is actually open (vv.height shrinks).
+// Without the guard, setting height=vv.height on open causes a grey strip at
+// the bottom because vv.height excludes the iOS safe-area on that event.
 function _syncFocusBgVV() {
   const vv = window.visualViewport;
   const fm = document.getElementById('focus-modal');
   if (!vv || !fm.classList.contains('open')) return;
+  const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
+  if (kbHeight < 100) {
+    // Keyboard not open — let CSS inset:0 cover the full screen
+    fm.style.top = fm.style.left = fm.style.width = fm.style.height = fm.style.bottom = fm.style.right = '';
+    return;
+  }
   fm.style.top    = vv.offsetTop  + 'px';
   fm.style.left   = vv.offsetLeft + 'px';
   fm.style.width  = vv.width      + 'px';
