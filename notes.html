@@ -239,10 +239,13 @@ body {
 }
 .card {
   background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);
-  overflow:hidden;position:relative;animation:fadeIn .2s ease both;
+  overflow:hidden;position:relative;animation:fadeIn .28s cubic-bezier(.22,.68,0,1.2) both;
   -webkit-user-select:none;user-select:none;
 }
-@keyframes fadeIn {from{opacity:0;transform:translateY(4px)}}
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(10px) scale(.97) }
+  to   { opacity:1; transform:translateY(0)    scale(1)   }
+}
 /* Indicatore visivo "card fissata" — triangolino grigio in alto a destra */
 .card.pin-on::after {
   content:'▲';position:absolute;top:9px;right:10px;
@@ -382,14 +385,14 @@ body {
 ───────────────────────────────────────────────────────── */
 .modal-bg {
   position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
-  display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
 }
 .modal-bg.open {opacity:1;pointer-events:auto}
 .modal-sheet {
   background:var(--s1);border-top:1px solid var(--bd2);
-  padding:20px 20px calc(var(--sb) + 28px);width:100%;
+  padding:20px 20px calc(var(--sb) + 28px);width:100%;max-width:500px;
   transform:translateY(14px);transition:transform .25s;
-  /* min-height: la sheet occupa almeno il 46% dello schermo */
   max-height:88dvh;min-height:46dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
 .modal-bg.open .modal-sheet {transform:translateY(0)}
@@ -1007,21 +1010,20 @@ function renderProms() {
 // Segna un promemoria come fatto: anima la card verso destra, poi la rimuove.
 // Non va nel cestino: è un completamento, non una cancellazione.
 function chkProm(id) {
-  const card = document.querySelector(`[data-id="${id}"]`);
-  if (!card) return;
-  // Animazione: scivola a destra e svanisce
-  card.style.transition = 'opacity .3s ease,transform .3s ease';
-  card.style.opacity = '0'; card.style.transform = 'translateX(44px)';
-  // Dopo l'animazione: sposta nel cestino invece di eliminare
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  const el   = card?.closest('.card-slot') || card;
+  if (!el) return;
+  el.style.transition = 'opacity .28s ease,transform .28s ease';
+  el.style.opacity    = '0';
+  el.style.transform  = 'translateX(44px)';
   setTimeout(() => {
     const idx = S.proms.findIndex(i => i.id === id);
     if (idx !== -1) {
-      const item = {...S.proms[idx], type:'prom', deletedAt:Date.now()};
-      S.cestino.unshift(item);
+      S.cestino.unshift({...S.proms[idx], type:'prom', deletedAt:Date.now()});
       S.proms.splice(idx, 1);
     }
     persist(); renderAll();
-  }, 320);
+  }, 300);
 }
 
 // ══════════════════════════════════════════════════════════
