@@ -102,7 +102,6 @@ body {
   from { opacity:0; transform:translateY(8px) scale(.96) }
   to   { opacity:1; transform:translateY(0)   scale(1)   }
 }
-#splash-sub  { font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase }
 /* ── Desktop ≥ 680px ───────────────────────────────────── */
 @media (min-width:680px) {
   body { background:var(--s2);align-items:center; }
@@ -129,7 +128,6 @@ body {
   border-bottom:1px solid var(--bd);
 }
 /* "Blocco note" in piccolo sopra il nome */
-.vlabel {font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;margin-bottom:3px}
 /* Riga grande con il nome — lettering stretto per look minimal */
 .vbig  {font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
 /* Il punto dopo il nome, colorato con l'accento */
@@ -139,7 +137,6 @@ body {
 /* Data e ora in piccolo sotto il nome */
 .vdate {font-size:9px;color:var(--muted);letter-spacing:.06em;margin-top:4px}
 /* Riga statistiche: [5 prom] [3 idee] ecc. — quasi invisibile */
-.vstats {font-size:8px;color:var(--dim);letter-spacing:.05em;margin-top:3px}
 /* Gruppo bottoni in alto a destra */
 .hbts  {display:flex;gap:12px;margin-top:2px;align-items:center}
 /* Stile base dei bottoni header: nessun box, solo testo/icona con [ ] */
@@ -558,16 +555,8 @@ body {
 }
 .fclose:active {color:var(--text)}
 
-/* ── Focus editor: numero righe (stile VS Code) ──────── */
 .focus-editor {
   display:flex;flex:1;min-height:200px;overflow:hidden;
-}
-.focus-lnums {
-  font-size:12px;line-height:1.9;font-family:var(--mono);
-  color:var(--muted);opacity:.35;
-  user-select:none;pointer-events:none;flex-shrink:0;
-  min-width:24px;text-align:right;padding-right:10px;
-  overflow:hidden;white-space:pre;
 }
 
 /* ── Idea card: limita altezza con fade ──────────────── */
@@ -602,7 +591,6 @@ html.light input[type="datetime-local"] { color-scheme:light }
 </head>
 <body>
 
-<!-- Splash screen: visibile al lancio, sparisce dopo init -->
 <div id="splash">
   <div id="splash-name">Blocco<span class="hl">.</span></div>
 </div>
@@ -614,16 +602,12 @@ html.light input[type="datetime-local"] { color-scheme:light }
      ══════════════════════════════════════════════════════ -->
 <div class="vhead">
   <div>
-    <!-- Etichetta fissa sopra il nome -->
-    <div class="vlabel">Blocco note</div>
     <div class="vbig">
       <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
       <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.7</span>
     </div>
     <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
     <div class="vdate" id="vdate-lbl"></div>
-    <!-- Statistiche: [5 prom] [3 idee] ecc., aggiornate da updateStats() -->
-    <div class="vstats" id="vstats"></div>
   </div>
   <div class="hbts">
     <!-- [🔍] apre/chiude la barra di ricerca -->
@@ -775,8 +759,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
     </div>
     <!-- Testo grezzo modificabile + numero righe stile VS Code -->
     <div class="focus-editor">
-      <div class="focus-lnums" id="focus-lnums">1</div>
-      <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
+<textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
     </div>
     <!-- Color picker inline -->
     <div class="clrpick" id="focus-clr" style="padding:14px 0 0"></div>
@@ -841,6 +824,7 @@ function wrapBold() {
   ta.value = ta.value.slice(0, s) + '**' + sel + '**' + ta.value.slice(e);
   ta.selectionStart = s + 2; ta.selectionEnd = e + 2;
   ta.focus();
+  ta.dispatchEvent(new Event('input'));
 }
 
 // Carica i dati da localStorage.
@@ -949,15 +933,6 @@ function autoList(e) {
 // ══════════════════════════════════════════════════════════
 // NUMERO RIGHE — aggiorna il pannello numeri nel focus editor
 // ══════════════════════════════════════════════════════════
-function updateLineNumbers() {
-  const ta = document.getElementById('focus-body');
-  const ln = document.getElementById('focus-lnums');
-  if (!ta || !ln) return;
-  const count = ta.value.split('\n').length;
-  ln.textContent = Array.from({length: count}, (_, i) => i + 1).join('\n');
-  ln.scrollTop = ta.scrollTop;
-}
-
 // ══════════════════════════════════════════════════════════
 // DEADLINE — scadenza con progress bar e countdown
 // ══════════════════════════════════════════════════════════
@@ -1026,17 +1001,6 @@ function updateDatetime() {
 // e il badge numerico sul tab Cestino
 // ══════════════════════════════════════════════════════════
 function updateStats() {
-  const el = document.getElementById('vstats');
-  if (!el) return;
-  // Conta le card fissate in tutte e tre le sezioni
-  const pinned = [...S.proms,...S.idee,...S.liste].filter(i => i.pinned).length;
-  const parts  = [];
-  if (S.proms.length)  parts.push('[' + S.proms.length  + ' prom]');
-  if (S.idee.length)   parts.push('[' + S.idee.length   + ' idee]');
-  if (S.liste.length)  parts.push('[' + S.liste.length  + ' liste]');
-  if (pinned)          parts.push('[' + pinned           + ' pin]');
-  el.textContent = parts.join(' ');
-  // Aggiorna il badge sul tab Cestino (es: " [3]")
   const badge = document.getElementById('cestino-badge');
   if (badge) badge.textContent = S.cestino.length ? ' [' + S.cestino.length + ']' : '';
 }
@@ -1492,14 +1456,9 @@ function openFocus(tp, id) {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  const upd = () => { cc.textContent = bodyEl.value.length; updateLineNumbers(); schedAutoSave(); };
+  const upd = () => { cc.textContent = bodyEl.value.length; schedAutoSave(); };
   upd();
   bodyEl.oninput = upd;
-  bodyEl.onscroll = () => {
-    const ln = document.getElementById('focus-lnums');
-    if (ln) ln.scrollTop = bodyEl.scrollTop;
-  };
-  updateLineNumbers();
   // Auto-save anche dal campo titolo (solo idee)
   if (tp === 'idee') document.getElementById('focus-ttl-inp').oninput = schedAutoSave;
   // Color picker nel focus sheet
@@ -1723,12 +1682,14 @@ function doImport(inp) {
       const d = JSON.parse(e.target.result);
       if (!confirm('Sovrascrivere i dati attuali con questo file?')) return;
       S = {
+        name:    d.name    || S.name,
         proms:   d.proms   || [],
         idee:    d.idee    || [],
         liste:   d.liste   || [],
         cestino: d.cestino || [],
         theme:   d.theme   || 'dark'
       };
+      document.getElementById('name-lbl').textContent = S.name;
       persist(); applyTheme(); renderAll(); renderCestino();
       closeModal('m-io'); toast('[importato]');
     } catch { alert('File non valido'); }
@@ -1865,6 +1826,7 @@ function startDrag(card, t) {
   dGhost = card.cloneNode(true);
   dGhost.className = 'card drag-ghost';
   dGhost.style.width  = r.width  + 'px';
+  dGhost.style.height = r.height + 'px';
   dGhost.style.left   = r.left   + 'px';
   dGhost.style.top    = (t.clientY - r.height / 2) + 'px';
   document.body.appendChild(dGhost);
@@ -2117,10 +2079,9 @@ document.addEventListener('touchmove', e => {
     e.preventDefault();
   }
 }, {passive: false});
-// Nascondi splash dopo che l'app è pronta
 setTimeout(() => {
   const s = document.getElementById('splash');
-  if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 600); }
+  if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
 }, 1200);
 </script>
 </body>
