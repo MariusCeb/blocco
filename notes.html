@@ -76,12 +76,41 @@ html.light {
   margin:0;padding:0;box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
 }
+html { background:#0e0e0e }
+html.light { background:#f0eeea }
 body {
   background:var(--bg);color:var(--text);font-family:var(--mono);
-  /* 100dvh = altezza viewport dinamica (tiene conto della barra URL iPhone) */
-  height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  min-height:100dvh;display:flex;justify-content:center;
   font-size:14px;transition:background .3s,color .3s;
 }
+/* Contenitore app — occupa tutto su mobile, si centra su desktop */
+.app {
+  width:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  position:relative;
+}
+/* ── Splash screen ─────────────────────────────────────── */
+#splash {
+  position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;transition:opacity .4s ease;pointer-events:none;
+}
+#splash-name { font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--text) }
+#splash-name .hl { color:var(--accent) }
+#splash-sub  { font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase }
+/* ── Desktop ≥ 680px ───────────────────────────────────── */
+@media (min-width:680px) {
+  body { background:var(--s2);align-items:center; }
+  .app {
+    max-width:500px;
+    box-shadow:0 0 0 1px var(--bd2),0 28px 80px rgba(0,0,0,.55);
+  }
+  .fab { right:calc(50vw - 228px) }
+  .cact-share { display:inline !important }
+  .card { cursor:grab }
+  .card:active { cursor:grabbing }
+}
+/* ── Bottone share: nascosto su mobile (si usa swipe), visibile su desktop */
+.cact-share { display:none }
 
 /* ─────────────────────────────────────────────────────────
    HEADER — barra in alto con nome, data, bottoni
@@ -501,6 +530,14 @@ body {
 </head>
 <body>
 
+<!-- Splash screen: visibile al lancio, sparisce dopo init -->
+<div id="splash">
+  <div id="splash-name">Blocco<span class="hl">.</span></div>
+  <div id="splash-sub">note personali</div>
+</div>
+
+<div class="app">
+
 <!-- ══════════════════════════════════════════════════════
      HEADER — nome, data/ora, statistiche, bottoni
      ══════════════════════════════════════════════════════ -->
@@ -580,6 +617,8 @@ body {
      onFab() apre il modal giusto in base al tab corrente.
      Si nasconde automaticamente nel tab Cestino. -->
 <button class="fab" id="fab" onclick="onFab()">[+]</button>
+
+</div><!-- /.app -->
 
 <!-- ══════════════════════════════════════════════════════
      MODAL: creazione/modifica promemoria o idea
@@ -953,14 +992,16 @@ function renderProms() {
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
+            <button class="cact cact-share" onclick="shareItem('${i.id}','prom')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
           </div>
         </div>
       </div>
     </div>
   `).join('');
-  initDrag(el, 'prom');   // attiva il drag-and-drop su questa lista
-  applyTwemoji(el);       // converte eventuali emoji nel testo
+  initDrag(el, 'prom');
+  initMouseDrag(el, 'prom');
+  applyTwemoji(el);
 }
 
 // Segna un promemoria come fatto: anima la card verso destra, poi la rimuove.
@@ -1008,6 +1049,7 @@ function renderIdee() {
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
+            <button class="cact cact-share" onclick="shareItem('${i.id}','idee')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
           </div>
         </div>
@@ -1015,6 +1057,7 @@ function renderIdee() {
     </div>
   `).join('');
   initDrag(el, 'idee');
+  initMouseDrag(el, 'idee');
   applyTwemoji(el);
 }
 
@@ -1031,8 +1074,9 @@ function renderListe() {
     return;
   }
   el.innerHTML = items.map(lst => {
-    const done = lst.items.filter(r => r.done).length; // voci completate
+    const done = lst.items.filter(r => r.done).length;
     return `
+      <div class="card-slot">
       <div class="card${lst.pinned?' pin-on':''}${clrCls(lst.color)}" data-id="${lst.id}" data-tp="liste">
         <div class="lhead">
           <span class="ltitle">${esc(lst.title)}</span>
@@ -1065,9 +1109,11 @@ function renderListe() {
           </div>
         </div>
       </div>
+      </div>
     `;
   }).join('');
   initDrag(el, 'liste');
+  initMouseDrag(el, 'liste');
   applyTwemoji(el);
 }
 
@@ -1210,15 +1256,23 @@ function pinItem(id, tp) {
 // Elimina (soft delete): sposta l'elemento nel cestino invece di rimuoverlo.
 // Aggiunge i campi type (per sapere da dove veniva) e deletedAt (per la scadenza).
 function delItem(id, tp) {
-  const k   = tp === 'prom' ? 'proms' : tp;
-  const idx = S[k].findIndex(i => i.id === id);
-  if (idx === -1) return;
-  // Crea una copia dell'elemento con i metadati del cestino
-  const item = {...S[k][idx], type: tp, deletedAt: Date.now()};
-  S.cestino.unshift(item); // aggiunge in cima al cestino
-  S[k].splice(idx, 1);     // rimuove dalla sezione originale
-  persist(); renderAll();
-  toast('[nel cestino]');
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  const el   = card?.closest('.card-slot') || card;
+  const commit = () => {
+    const k   = tp === 'prom' ? 'proms' : tp;
+    const idx = S[k].findIndex(i => i.id === id);
+    if (idx === -1) return;
+    S.cestino.unshift({...S[k][idx], type: tp, deletedAt: Date.now()});
+    S[k].splice(idx, 1);
+    persist(); renderAll();
+    toast('[nel cestino]');
+  };
+  if (el) {
+    el.style.transition = 'opacity .22s ease,transform .22s ease';
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateX(28px)';
+    setTimeout(commit, 230);
+  } else { commit(); }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1252,9 +1306,7 @@ function openFocus(tp, id) {
   document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
     <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
       style="${c!=='none'?'background:'+CLRHEX[c]:''}"
-      onclick="focusColor==='${c}'?(focusColor=null):(focusColor='${c}'==='none'?null:'${c}');
-               this.parentNode.querySelectorAll('.clrdot').forEach(d=>d.classList.remove('sel'));
-               this.classList.add('sel')"></div>
+      onclick="pickFocusClr('${c}',this)"></div>
   `).join('');
   document.getElementById('focus-modal').classList.add('open');
 }
@@ -1567,21 +1619,52 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./notes-sw.js').catch(() => {});
 }
 
-// ══════════════════════════════════════════════════════════
-// BOOT — sequenza di avvio dell'app
-// 1. purgeTrash: rimuove elementi cestino scaduti
-// 2. applyTheme: applica tema scuro/chiaro salvato
-// 3. name-lbl: mostra il nome salvato
-// 4. updateDatetime: mostra data/ora corrente
-// 5. setInterval: aggiorna data/ora ogni 30 secondi
-// 6. renderAll: genera tutte le card dalle liste in S
-// ══════════════════════════════════════════════════════════
+// Seleziona colore nel focus sheet
+function pickFocusClr(c, el) {
+  focusColor = c === 'none' ? null : c;
+  el.parentNode.querySelectorAll('.clrdot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+// Drag con mouse su desktop — inizia subito al mousedown + move > 5px
+function initMouseDrag(container, tp) {
+  container.querySelectorAll('.card[data-id]').forEach(card => {
+    card.addEventListener('mousedown', e => {
+      if (e.target.closest('button,input,.lck,.pcb')) return;
+      if (e.button !== 0) return;
+      e.preventDefault();
+      let dragging = false;
+      const sx = e.clientX, sy = e.clientY;
+      const onMove = ev => {
+        if (!dragging && (Math.abs(ev.clientX-sx)>5 || Math.abs(ev.clientY-sy)>5)) {
+          dragging = true;
+          startDrag(card, ev);
+        }
+        if (dragging) moveDrag(ev, container);
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (dragging) endDrag(container, tp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// BOOT
 purgeTrash();
 applyTheme();
 document.getElementById('name-lbl').textContent = S.name;
 updateDatetime();
 setInterval(updateDatetime, 30000);
 renderAll();
+// Nascondi splash dopo che l'app è pronta
+setTimeout(() => {
+  const s = document.getElementById('splash');
+  if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 420); }
+}, 600);
 </script>
 </body>
 </html>
