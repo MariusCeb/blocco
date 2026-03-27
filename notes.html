@@ -201,6 +201,13 @@ body {
    animation fadeIn: ogni nuova card appare con piccolo slide-up
    .pin-on::after → piccolo triangolino ▲ in alto a destra per le card fissate
 ───────────────────────────────────────────────────────── */
+.card-slot { position:relative;border-radius:var(--r); }
+.share-hint {
+  position:absolute;right:0;top:0;bottom:0;width:68px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  pointer-events:none;
+}
 .card {
   background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);
   overflow:hidden;position:relative;animation:fadeIn .2s ease both;
@@ -934,19 +941,20 @@ function renderProms() {
     return;
   }
   el.innerHTML = items.map(i => `
-    <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="prom">
-      <div class="prow">
-        <!-- Cerchietto: tap → cestino -->
-        <div class="pcb" onclick="chkProm('${i.id}')"></div>
-        <!-- Testo: tap → apre focus sheet (modifica) -->
-        <div class="ptext" onclick="openFocus('prom','${i.id}')">${md(i.text)}</div>
-      </div>
-      <div class="cmeta">
-        <span class="cts">${fmtTs(i.updated||i.created)}</span>
-        <div class="cacts">
-          <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
-          <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
-          <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
+    <div class="card-slot">
+      <div class="share-hint">[share]</div>
+      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="prom">
+        <div class="prow">
+          <div class="pcb" onclick="chkProm('${i.id}')"></div>
+          <div class="ptext" onclick="openFocus('prom','${i.id}')">${md(i.text)}</div>
+        </div>
+        <div class="cmeta">
+          <span class="cts">${fmtTs(i.updated||i.created)}</span>
+          <div class="cacts">
+            <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
+            <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
+            <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
+          </div>
         </div>
       </div>
     </div>
@@ -988,18 +996,20 @@ function renderIdee() {
     return;
   }
   el.innerHTML = items.map(i => `
-    <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="idee">
-      <!-- Tap sul body → apre focus overlay -->
-      <div class="cbody" onclick="openFocus('idee','${i.id}')">
-        ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
-        <div class="ctext">${md(i.text)}</div>
-      </div>
-      <div class="cmeta">
-        <span class="cts">${fmtTs(i.updated||i.created)}</span>
-        <div class="cacts">
-          <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
-          <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
-          <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
+    <div class="card-slot">
+      <div class="share-hint">[share]</div>
+      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="idee">
+        <div class="cbody" onclick="openFocus('idee','${i.id}')">
+          ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
+          <div class="ctext">${md(i.text)}</div>
+        </div>
+        <div class="cmeta">
+          <span class="cts">${fmtTs(i.updated||i.created)}</span>
+          <div class="cacts">
+            <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
+            <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
+            <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1416,46 +1426,74 @@ function doImport(inp) {
 // ══════════════════════════════════════════════════════════
 function initDrag(container, tp) {
   container.querySelectorAll('.card[data-id]').forEach(card => {
-    let lt = null, dragging = false, ox = 0, oy = 0, moved = false, swiped = false, didDrag = false;
+    let lt = null, dragging = false, ox = 0, oy = 0, moved = false, swiped = false, didDrag = false, lastDx = 0;
+    const snapBack = () => { card.style.transition = 'transform .2s ease'; card.style.transform = 'translateX(0)'; };
     card.addEventListener('touchstart', e => {
-      // Non avvia drag/swipe se si tocca un bottone, input o checkbox
       if (e.target.closest('button,input,.lck,.pcb')) return;
       const t = e.touches[0]; ox = t.clientX; oy = t.clientY;
-      moved = false; swiped = false; didDrag = false;
-      // Timer: 420ms di pressione ferma → inizia il drag
+      moved = false; swiped = false; didDrag = false; lastDx = 0;
       lt = setTimeout(() => { dragging = true; startDrag(card, t); }, 420);
     }, {passive:true});
     card.addEventListener('touchmove', e => {
       const t = e.touches[0];
       const dx = t.clientX - ox;
       const dy = Math.abs(t.clientY - oy);
-      // Prima volta che il dito si sposta > 9px → cancella il timer drag
+      lastDx = dx;
       if (!moved && (Math.abs(dx) > 9 || dy > 9)) {
         moved = true;
         if (lt) { clearTimeout(lt); lt = null; }
       }
-      // Swipe destra: dx > 70px, orizzontale dominante
-      if (moved && !dragging && !swiped && dx > 70 && Math.abs(dx) > dy * 1.6) {
-        swiped = true;
-        if (e.cancelable) e.preventDefault();
-        card.style.transition = 'transform .28s ease,opacity .28s ease';
-        card.style.transform  = 'translateX(110%)';
-        card.style.opacity    = '0';
-        setTimeout(() => delItem(card.dataset.id, tp), 280);
+      if (moved && !dragging && !swiped) {
+        // Swipe destra → cestino
+        if (dx > 70 && Math.abs(dx) > dy * 1.6) {
+          swiped = true;
+          if (e.cancelable) e.preventDefault();
+          card.style.transition = 'transform .28s ease,opacity .28s ease';
+          card.style.transform  = 'translateX(110%)';
+          card.style.opacity    = '0';
+          setTimeout(() => delItem(card.dataset.id, tp), 280);
+        }
+        // Swipe sinistra → rivela [share] con feedback continuo
+        else if (dx < -10 && Math.abs(dx) > dy * 1.5) {
+          if (e.cancelable) e.preventDefault();
+          card.style.transition = 'none';
+          card.style.transform  = `translateX(${Math.max(dx, -80)}px)`;
+        }
       }
       if (dragging) { if (e.cancelable) e.preventDefault(); moveDrag(e.touches[0], container); }
     }, {passive:false});
     card.addEventListener('touchend', () => {
       if (lt) { clearTimeout(lt); lt = null; }
-      if (dragging) { dragging = false; didDrag = true; endDrag(container, tp); }
+      if (dragging) { dragging = false; didDrag = true; endDrag(container, tp); return; }
+      if (!swiped && lastDx < -50) {
+        // Swipe sinistra abbastanza → share, poi snap back
+        snapBack();
+        shareItem(card.dataset.id, tp);
+      } else if (!swiped && lastDx < 0) {
+        snapBack();
+      }
     }, {passive:true});
-    // Mangia il click sintetico che iOS emette dopo touchend durante un drag
     card.addEventListener('click', e => { if (didDrag) { didDrag = false; e.stopPropagation(); e.preventDefault(); } }, true);
     card.addEventListener('touchcancel', () => {
       if (lt) { clearTimeout(lt); lt = null; }
       if (dragging) { dragging = false; cancelDrag(); }
+      if (lastDx < 0) snapBack();
     });
   });
+}
+
+// Condivide il testo di una nota via Web Share API (iOS share sheet) o clipboard
+function shareItem(id, tp) {
+  const arr = tp === 'prom' ? S.proms : S.idee;
+  const it  = arr?.find(i => i.id === id); if (!it) return;
+  const text = (it.title ? it.title + '\n\n' : '') + it.text;
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(text)
+      .then(() => toast('[copiato]'))
+      .catch(() => toast('[errore copia]'));
+  }
 }
 
 // Crea il ghost: clona la card, la posiziona in fixed sopra tutto
