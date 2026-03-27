@@ -536,7 +536,6 @@ body {
 <!-- Splash screen: visibile al lancio, sparisce dopo init -->
 <div id="splash">
   <div id="splash-name">Blocco<span class="hl">.</span></div>
-  <div id="splash-sub">note personali</div>
 </div>
 
 <div class="app">
@@ -550,8 +549,7 @@ body {
     <div class="vlabel">Blocco note</div>
     <div class="vbig">
       <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
-      <span class="vname" id="name-lbl" onclick="editName()">Marius</span>
-      <span class="hl">.</span>
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.</span>
     </div>
     <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
     <div class="vdate" id="vdate-lbl"></div>
@@ -1665,8 +1663,8 @@ renderAll();
 // Nascondi splash dopo che l'app è pronta
 setTimeout(() => {
   const s = document.getElementById('splash');
-  if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 420); }
-}, 600);
+  if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 600); }
+}, 1800);
 </script>
 </body>
 </html>
