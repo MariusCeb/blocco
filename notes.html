@@ -3,8 +3,8 @@
 <head>
   <!-- Codifica caratteri: permette lettere accentate e simboli -->
   <meta charset="UTF-8">
-  <!-- Viewport mobile: impedisce lo zoom automatico su iPhone -->
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <!-- Viewport mobile: impedisce lo zoom automatico su iPhone; viewport-fit=cover copre l'intero schermo fisico (notch incluso) -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <!-- Permette di aggiungere l'app alla schermata home come PWA su iPhone -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <!-- Stile della barra di stato iPhone: trasparente scuro -->
@@ -1482,6 +1482,7 @@ function doImport(inp) {
 //   dGhost: elemento DOM clonato che segue il dito
 // ══════════════════════════════════════════════════════════
 function initDrag(container, tp) {
+  if (window.innerWidth >= 680) return; // swipe e touch-drag solo su mobile
   container.querySelectorAll('.card[data-id]').forEach(card => {
     let lt = null, dragging = false, ox = 0, oy = 0, moved = false, swiped = false, didDrag = false, lastDx = 0;
     const snapBack = () => { card.style.transition = 'transform .2s ease'; card.style.transform = 'translateX(0)'; };
