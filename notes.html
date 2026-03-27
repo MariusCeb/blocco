@@ -618,7 +618,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
     <div class="vlabel">Blocco note</div>
     <div class="vbig">
       <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
-      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.</span>
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.1</span>
     </div>
     <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
     <div class="vdate" id="vdate-lbl"></div>
@@ -824,9 +824,8 @@ let q = '';
 let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
-function _focusBgTouchMove(e) {
-  if (!e.target.closest('.focus-sheet')) e.preventDefault();
-}
+function _focusBgTouchMove(e) { e.preventDefault(); }
+function _focusSheetTouchMove(e) { e.stopPropagation(); }
 
 // Avvolge il testo selezionato nella textarea con **grassetto**
 function wrapBold() {
@@ -1517,8 +1516,10 @@ function openFocus(tp, id) {
     fdBtn.textContent = '[off]';
   }
   const fm = document.getElementById('focus-modal');
+  const fs = fm.querySelector('.focus-sheet');
   fm.classList.add('open');
   fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
+  fs.addEventListener('touchmove', _focusSheetTouchMove);
 }
 function doFocusSave(shouldClose) {
   const arr = focusType === 'prom' ? S.proms : S.idee;
@@ -1537,8 +1538,10 @@ function saveFocus() { clearTimeout(autoSaveTimer); doFocusSave(true); }
 function closeFocus() {
   clearTimeout(autoSaveTimer);
   const fm = document.getElementById('focus-modal');
+  const fs = fm.querySelector('.focus-sheet');
   fm.classList.remove('open');
   fm.removeEventListener('touchmove', _focusBgTouchMove);
+  fs.removeEventListener('touchmove', _focusSheetTouchMove);
 }
 function closeFocusBg(e)  { if (e.target === e.currentTarget) closeFocus(); }
 
