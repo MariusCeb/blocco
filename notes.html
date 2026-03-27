@@ -371,21 +371,20 @@ body {
 }
 .m-inp:focus {border-color:var(--bd2)}
 .m-inp::placeholder {color:var(--dim)}
-/* Riga con Annulla + Salva */
-.m-actions  {display:flex;gap:8px;margin-top:12px}
+/* Riga con [annulla] + [salva] */
+.m-actions  {display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:4px}
 .m-cancel   {
-  flex:1;padding:10px;background:var(--s2);border:1px solid var(--bd);
-  border-radius:3px;color:var(--muted);font-family:var(--mono);font-size:10px;
-  cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  -webkit-appearance:none;transition:color .12s;padding:8px 4px;
 }
-/* Salva: sfondo bianco (= --text) con testo scuro (= --bg) — massimo contrasto */
+.m-cancel:active  {color:var(--text)}
 .m-confirm  {
-  flex:1;padding:10px;background:var(--text);border:none;
-  border-radius:3px;color:var(--bg);font-family:var(--mono);font-size:10px;
-  font-weight:600;cursor:pointer;-webkit-appearance:none;letter-spacing:.06em;
+  background:none;border:none;cursor:pointer;color:var(--text);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  font-weight:600;-webkit-appearance:none;transition:color .12s;padding:8px 4px;
 }
-.m-cancel:active  {background:var(--s3)}
-.m-confirm:active {opacity:.75}
+.m-confirm:active {opacity:.6}
 
 /* ─────────────────────────────────────────────────────────
    COLOR PICKER — pallini colorati nel modal
@@ -600,8 +599,8 @@ body {
       <div class="clrpick" id="m-card-clr"></div>
     </div>
     <div class="m-actions">
-      <button class="m-cancel"  onclick="closeModal('m-card')">Annulla</button>
-      <button class="m-confirm" onclick="saveCard()">Salva</button>
+      <button class="m-cancel"  onclick="closeModal('m-card')">[annulla]</button>
+      <button class="m-confirm" onclick="saveCard()">[salva]</button>
     </div>
   </div>
 </div>
@@ -619,8 +618,8 @@ body {
       <div class="clrpick" id="m-lista-clr"></div>
     </div>
     <div class="m-actions">
-      <button class="m-cancel"  onclick="closeModal('m-lista')">Annulla</button>
-      <button class="m-confirm" onclick="saveLista()">Salva</button>
+      <button class="m-cancel"  onclick="closeModal('m-lista')">[annulla]</button>
+      <button class="m-confirm" onclick="saveLista()">[salva]</button>
     </div>
   </div>
 </div>
@@ -638,7 +637,7 @@ body {
       <input type="file" id="f-in" accept=".json" style="display:none" onchange="doImport(this)">
     </div>
     <div class="m-actions">
-      <button class="m-cancel" style="width:100%" onclick="closeModal('m-io')">Chiudi</button>
+      <button class="m-cancel" onclick="closeModal('m-io')">[chiudi]</button>
     </div>
   </div>
 </div>
