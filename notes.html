@@ -77,11 +77,11 @@ html.light {
   margin:0;padding:0;box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
 }
-html { background:#0e0e0e;-webkit-text-size-adjust:100%;text-size-adjust:100%;width:100% }
+html { background:#0e0e0e;-webkit-text-size-adjust:100%;text-size-adjust:100%;width:100%;height:100%;overflow:hidden }
 html.light { background:#f0eeea }
 body {
   margin:0;width:100%;background:var(--bg);color:var(--text);font-family:var(--mono);
-  min-height:100dvh;display:flex;justify-content:center;
+  height:100%;overflow:hidden;display:flex;justify-content:center;
   font-size:14px;transition:background .3s,color .3s;
 }
 /* Contenitore app — occupa tutto su mobile, si centra su desktop */
@@ -618,7 +618,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
     <div class="vlabel">Blocco note</div>
     <div class="vbig">
       <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
-      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.4</span>
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.5</span>
     </div>
     <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
     <div class="vdate" id="vdate-lbl"></div>
@@ -2127,6 +2127,13 @@ document.addEventListener('focusout', () => {
     }
   }, 150);
 });
+// Blocca il bounce/scroll della pagina intera su iOS.
+// Solo i contenitori esplicitamente scrollabili possono ricevere touchmove.
+document.addEventListener('touchmove', e => {
+  if (!e.target.closest('.view, .focus-sheet, .modal-sheet, textarea')) {
+    e.preventDefault();
+  }
+}, {passive: false});
 // Nascondi splash dopo che l'app è pronta
 setTimeout(() => {
   const s = document.getElementById('splash');
