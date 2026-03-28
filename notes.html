@@ -2274,6 +2274,19 @@ document.addEventListener('touchmove', e => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && secretMode) toggleSecretMode();
 });
+
+// Fix iOS: tastiera copre le ultime righe della textarea.
+// Quando il visual viewport si riduce (tastiera aperta), aggiungo
+// padding-bottom alla textarea pari all'altezza della tastiera,
+// così l'ultima riga può essere scrollata sopra la tastiera.
+if (window.visualViewport) {
+  visualViewport.addEventListener('resize', () => {
+    const ta = document.getElementById('focus-body');
+    if (!ta) return;
+    const kbH = window.innerHeight - visualViewport.height;
+    ta.style.paddingBottom = (kbH > 80 ? kbH + 24 : 16) + 'px';
+  });
+}
 setTimeout(() => {
   const s = document.getElementById('splash');
   if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
