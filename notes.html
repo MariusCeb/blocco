@@ -708,7 +708,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
   <div>
     <div class="vbig">
       <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
-      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.</span>
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.1</span>
     </div>
     <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
     <div class="vdate" id="vdate-lbl"></div>
@@ -2287,6 +2287,61 @@ if (window.visualViewport) {
     ta.style.paddingBottom = (kbH > 80 ? kbH + 24 : 16) + 'px';
   });
 }
+// Swipe destra per chiudere il focus sheet (come iOS Notes)
+(function() {
+  const fm = document.getElementById('focus-modal');
+  let sx = 0, sy = 0, tracking = false, swiping = false, dx = 0;
+
+  fm.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    tracking = true; swiping = false; dx = 0;
+    fm.style.transition = 'none';
+  }, {passive: true});
+
+  fm.addEventListener('touchmove', e => {
+    if (!tracking || e.touches.length !== 1) return;
+    const ddx = e.touches[0].clientX - sx;
+    const ddy = e.touches[0].clientY - sy;
+    if (!swiping) {
+      if (Math.abs(ddx) < 10 && Math.abs(ddy) < 10) return;
+      if (ddx > 0 && Math.abs(ddx) > Math.abs(ddy) * 1.2) {
+        swiping = true; // swipe orizzontale verso destra confermato
+      } else {
+        tracking = false; return; // verticale o verso sinistra: lascia scorrere normalmente
+      }
+    }
+    dx = Math.max(0, ddx);
+    fm.style.transform = `translateX(${dx}px)`;
+    fm.style.opacity = String(1 - dx / window.innerWidth * 0.4);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, {passive: false});
+
+  fm.addEventListener('touchend', () => {
+    if (!swiping) { fm.style.transition = ''; return; }
+    swiping = false; tracking = false;
+    if (dx > window.innerWidth * 0.3) {
+      fm.style.transition = 'transform .28s cubic-bezier(.32,.72,0,1), opacity .28s';
+      fm.style.transform  = `translateX(${window.innerWidth}px)`;
+      fm.style.opacity    = '0';
+      setTimeout(() => {
+        fm.style.transform = '';
+        fm.style.opacity   = '';
+        fm.style.transition = '';
+        closeFocus();
+      }, 280);
+    } else {
+      fm.style.transition = 'transform .22s ease, opacity .22s';
+      fm.style.transform  = '';
+      fm.style.opacity    = '';
+      setTimeout(() => fm.style.transition = '', 220);
+    }
+    dx = 0;
+  }, {passive: true});
+})();
+
 setTimeout(() => {
   const s = document.getElementById('splash');
   if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
