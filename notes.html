@@ -50,7 +50,7 @@
   --dim:   #333333;
   --accent:#686868;
   --mono:  'IBM Plex Mono', monospace;
-  --r:     2px;
+  --r:     3px;
   --st:    env(safe-area-inset-top, 0px);
   --sb:    env(safe-area-inset-bottom, 0px);
 }
@@ -104,15 +104,103 @@ body {
 }
 /* ── Desktop ≥ 680px ───────────────────────────────────── */
 @media (min-width:680px) {
-  body { background:var(--s2);align-items:center; }
-  .app {
-    max-width:500px;
-    box-shadow:0 0 0 1px var(--bd2),0 28px 80px rgba(0,0,0,.55);
+  body {
+    background: var(--s2);
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
   }
-  .fab { right:calc(50vw - 228px) }
-  .cact-share { display:inline !important }
-  .card { cursor:grab }
-  .card:active { cursor:grabbing }
+
+  /* App = griglia 2 colonne. background:var(--s1) = colore sidebar.
+     La colonna destra (.views) sovrascrive con var(--bg). */
+  .app {
+    max-width: 840px;
+    height: calc(100vh - 56px);
+    max-height: 800px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--s1);
+    box-shadow: 0 0 0 1px var(--bd2), 0 24px 64px rgba(0,0,0,.6);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  /* ── Sidebar ── */
+  .vhead {
+    grid-column: 1; grid-row: 1;
+    padding: 24px 20px 16px;
+    border-bottom: none;
+    border-right: 1px solid var(--bd);
+  }
+  .vbig { font-size: 15px; }
+
+  .sbar {
+    grid-column: 1; grid-row: 2;
+    border-bottom: none;
+    border-right: 1px solid var(--bd);
+  }
+  .sinp { padding: 8px 16px; font-size: 11px; }
+
+  .tabs {
+    grid-column: 1; grid-row: 3;
+    flex-direction: column;
+    border-bottom: none;
+    border-right: 1px solid var(--bd);
+    background: transparent;
+  }
+  .tab {
+    flex: none;
+    text-align: left;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--bd);
+    font-size: 9px;
+    transition: background .12s, color .15s;
+  }
+  /* Tab attivo: stesso colore del pannello destro → sembra "selezionato" */
+  .tab.on { background: var(--bg); color: var(--text); }
+  .tab.on::after { display: none; }
+  .tab:hover:not(.on) { background: rgba(255,255,255,.04); color: var(--text); }
+
+  /* qcap incollato al fondo della sidebar */
+  .qcap {
+    grid-column: 1; grid-row: 4;
+    border-right: 1px solid var(--bd);
+    border-bottom: none;
+    border-top: 1px solid var(--bd);
+    align-self: end;
+  }
+  .qinp { padding: 11px 16px; font-size: 11px; }
+  .qadd { padding: 11px 14px; font-size: 13px; }
+
+  /* ── Pannello destro ── */
+  .views {
+    grid-column: 2; grid-row: 1 / -1;
+    background: var(--bg);
+  }
+  .vscroll { padding: 28px 32px 72px; }
+  .stack   { max-width: 520px; }
+
+  /* FAB in basso a destra del pannello destro */
+  .fab {
+    position: absolute;
+    grid-column: 2; grid-row: 1 / -1;
+    bottom: 32px; right: 32px;
+    font-size: 18px;
+  }
+
+  /* ── Hover / interazioni mouse ── */
+  .card { cursor: default; }
+  .card:hover { background: var(--s2); }
+  .cact:hover { color: var(--text); }
+  .hbt:hover  { color: var(--text); }
+  .cact-share { display: inline !important }
+
+  /* ── Scrollbar sottile ── */
+  ::-webkit-scrollbar       { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 }
 /* ── Bottone share: nascosto su mobile (si usa swipe), visibile su desktop */
 .cact-share { display:none }
@@ -158,7 +246,7 @@ body {
 .sbar.open {max-height:50px}
 .sinp {
   display:block;width:100%;background:transparent;border:none;
-  padding:12px 20px;color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:9px 20px;color:var(--text);font-family:var(--mono);font-size:12px;
   outline:none;letter-spacing:.04em;
 }
 .sinp::placeholder {color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
@@ -216,7 +304,7 @@ body {
 .view.on  {display:block} /* la vista attiva */
 /* Padding interno: 20px laterali, più spazio in basso per il FAB [+] */
 .vscroll  {padding:12px 16px calc(var(--sb) + 80px)}
-.stack    {display:flex;flex-direction:column;gap:6px}
+.stack    {display:flex;flex-direction:column;gap:8px}
 
 /* ─────────────────────────────────────────────────────────
    CARD — il blocco base per ogni nota/promemoria/lista
@@ -272,7 +360,7 @@ body {
 .cacts {display:flex;gap:8px}
 .cact  {
   font-size:8px;padding:4px 3px;border:none;
-  background:transparent;cursor:pointer;color:var(--dim);font-family:var(--mono);
+  background:transparent;cursor:pointer;color:var(--muted);font-family:var(--mono);
   letter-spacing:.05em;-webkit-appearance:none;transition:color .12s;
 }
 .cact:active     {color:var(--text)}
@@ -397,7 +485,7 @@ body {
   background:var(--s1);border-top:1px solid var(--bd2);
   padding:20px 20px calc(var(--sb) + 28px);width:100%;max-width:500px;
   transform:translateY(14px);transition:transform .25s;
-  max-height:88dvh;min-height:46dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
 .modal-bg.open .modal-sheet {transform:translateY(0)}
 /* Titolino in cima alla sheet, tipo "NUOVO PROMEMORIA" */
@@ -436,8 +524,8 @@ body {
 ───────────────────────────────────────────────────────── */
 .clrpick {display:flex;gap:8px;flex-wrap:wrap;padding:2px 0}
 .clrdot  {
-  width:22px;height:22px;border-radius:50%;cursor:pointer;
-  border:2.5px solid transparent;transition:transform .12s,border-color .12s;
+  width:18px;height:18px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:transform .12s,border-color .12s;
 }
 .clrdot:active {transform:scale(.8)}
 .clrdot.sel    {border-color:var(--text)}
@@ -839,7 +927,23 @@ let q = '';
 let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
+let secretMode = false;
 function _focusBgTouchMove(e) { e.preventDefault(); }
+
+function curProms() { return secretMode ? S.secret.proms : S.proms; }
+function curIdee()  { return secretMode ? S.secret.idee  : S.idee;  }
+
+function toggleSecretMode() {
+  secretMode = !secretMode;
+  const dot = document.querySelector('.vbig .hl');
+  if (dot) dot.style.color = secretMode ? '#e94560' : '';
+  ['tab-liste','tab-cestino','v-liste','v-cestino'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = secretMode ? 'none' : '';
+  });
+  if (secretMode && (curTab === 'liste' || curTab === 'cestino')) goTab('prom');
+  q = ''; renderAll();
+}
 
 
 // Avvolge il testo selezionato nella textarea con **grassetto**
@@ -864,9 +968,10 @@ function load() {
       idee:    d.idee    || [],   // array di idee
       liste:   d.liste   || [],   // array di liste
       cestino: d.cestino || [],   // array di elementi eliminati
-      theme:   d.theme   || 'dark'
+      theme:   d.theme   || 'dark',
+      secret:  d.secret  || {proms:[], idee:[]}
     };
-  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark'}; }
+  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark',secret:{proms:[],idee:[]}}; }
 }
 
 // Salva tutto lo stato in localStorage come stringa JSON.
@@ -880,10 +985,6 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // Formatta un timestamp in testo leggibile relativo ("adesso", "3m fa", "2g fa"…)
 // t: timestamp in millisecondi (Date.now())
 function fmtTs(t) {
-  const diff = Date.now() - t;
-  if (diff < 60e3)   return 'adesso';
-  if (diff < 3600e3) return Math.floor(diff/60e3) + 'm fa';
-  // Dopo 1 ora: mostra ora e data esatta
   const d    = new Date(t);
   const time = d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
   const date = d.toLocaleDateString('it-IT',  {day:'2-digit', month:'2-digit', year:'numeric'});
@@ -1077,7 +1178,16 @@ function tglSearch() {
   if (sOpen) setTimeout(() => document.getElementById('sinp').focus(), 260);
   else { document.getElementById('sinp').value = ''; q = ''; renderAll(); }
 }
-function doSearch(v) { q = v.toLowerCase().trim(); renderAll(); }
+function doSearch(v) {
+  if (v === '...') {
+    toggleSecretMode();
+    document.getElementById('sinp').value = '';
+    document.getElementById('sbar').classList.remove('open');
+    sOpen = false;
+    return;
+  }
+  q = v.toLowerCase().trim(); renderAll();
+}
 // arr: array di stringhe da cercare (es: [titolo, testo])
 function matches(arr) { return !q || arr.some(s => s && s.toLowerCase().includes(q)); }
 
@@ -1124,7 +1234,7 @@ function qAdd(inp) {
   const t = inp.value.trim(); if (!t) return;
   const now = Date.now();
   // unshift() aggiunge in cima all'array (più recente primo)
-  S.proms.unshift({id:uid(), text:t, title:'', color:null, pinned:false, created:now, updated:now});
+  curProms().unshift({id:uid(), text:t, title:'', color:null, pinned:false, created:now, updated:now});
   inp.value = ''; persist(); renderAll();
   toast('[+ prom]');
   if (curTab !== 'prom') goTab('prom');
@@ -1138,7 +1248,7 @@ function qAdd(inp) {
 // ══════════════════════════════════════════════════════════
 function renderProms() {
   const el = document.getElementById('prom-l');
-  let items = [...S.proms].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  let items = [...curProms()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) items = items.filter(i => matches([i.text]));
   if (!items.length) {
     el.innerHTML = '<div class="empty">nessun promemoria.<br>[ + ] per aggiungerne uno.</div>';
@@ -1155,7 +1265,7 @@ function renderProms() {
         </div>
         ${deadlineBar(i)}
         <div class="cmeta">
-          <span class="cts">${fmtTs(i.updated||i.created)}${deadlineTag(i)}</span>
+          <span class="cts">${fmtTs(i.created)}${deadlineTag(i)}</span>
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
@@ -1196,7 +1306,7 @@ function chkProm(id) {
 // ══════════════════════════════════════════════════════════
 function renderIdee() {
   const el = document.getElementById('idee-l');
-  let items = [...S.idee].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  let items = [...curIdee()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) items = items.filter(i => matches([i.title, i.text]));
   if (!items.length) {
     el.innerHTML = '<div class="empty">nessuna idea.<br>[ + ] per aggiungerne una.</div>';
@@ -1213,7 +1323,7 @@ function renderIdee() {
         </div>
         ${deadlineBar(i)}
         <div class="cmeta">
-          <span class="cts">${fmtTs(i.updated||i.created)}${deadlineTag(i)}</span>
+          <span class="cts">${fmtTs(i.created)}${deadlineTag(i)}</span>
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
@@ -1274,7 +1384,7 @@ function renderListe() {
           <button class="laddbtn" onclick="addLI('${lst.id}',document.getElementById('ladd-${lst.id}'))">+</button>
         </div>
         <div class="cmeta">
-          <span class="cts">${fmtTs(lst.updated||lst.created)}</span>
+          <span class="cts">${fmtTs(lst.created)}</span>
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${lst.id}','liste')">[${lst.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openListaMod('${lst.id}')">[edit]</button>
@@ -1421,8 +1531,8 @@ function renderAll() { renderProms(); renderIdee(); renderListe(); updateStats()
 
 // Toggle pin: fissa/sfissa una card in cima alla lista
 function pinItem(id, tp) {
-  const k = tp === 'prom' ? 'proms' : tp; // 'prom' → 'proms' per coerenza con S
-  const it = S[k].find(i => i.id===id); if (!it) return;
+  const arr = tp === 'prom' ? curProms() : curIdee();
+  const it = arr.find(i => i.id===id); if (!it) return;
   it.pinned = !it.pinned; persist(); renderAll();
   toast(it.pinned ? '[fissato]' : '[rimosso dai fissati]');
 }
@@ -1433,13 +1543,19 @@ function delItem(id, tp) {
   const card = document.querySelector(`.card[data-id="${id}"]`);
   const el   = card?.closest('.card-slot') || card;
   const commit = () => {
-    const k   = tp === 'prom' ? 'proms' : tp;
-    const idx = S[k].findIndex(i => i.id === id);
-    if (idx === -1) return;
-    S.cestino.unshift({...S[k][idx], type: tp, deletedAt: Date.now()});
-    S[k].splice(idx, 1);
-    persist(); renderAll();
-    toast('[nel cestino]');
+    if (secretMode && (tp === 'prom' || tp === 'idee')) {
+      const arr = tp === 'prom' ? S.secret.proms : S.secret.idee;
+      const idx = arr.findIndex(i => i.id === id);
+      if (idx !== -1) arr.splice(idx, 1);
+      persist(); renderAll(); toast('[eliminato]');
+    } else {
+      const k   = tp === 'prom' ? 'proms' : tp;
+      const idx = S[k].findIndex(i => i.id === id);
+      if (idx === -1) return;
+      S.cestino.unshift({...S[k][idx], type: tp, deletedAt: Date.now()});
+      S[k].splice(idx, 1);
+      persist(); renderAll(); toast('[nel cestino]');
+    }
   };
   if (el) {
     el.style.transition = 'opacity .22s ease,transform .22s ease';
@@ -1455,7 +1571,7 @@ function delItem(id, tp) {
 let _focusIsEdit = false;
 
 function openFocus(tp, id) {
-  const arr = tp === 'prom' ? S.proms : S.idee;
+  const arr = tp === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === id); if (!it) return;
   focusType = tp; focusId = id; focusColor = it.color || null;
   const fm = document.getElementById('focus-modal');
@@ -1477,7 +1593,7 @@ function _focusPopulateView(it) {
   applyTwemoji(vBody);
   const metaParts = [];
   if (it.deadline) metaParts.push(fmtDeadline(it.deadline));
-  metaParts.push(fmtTs(it.updated || it.created));
+  metaParts.push(fmtTs(it.created));
   vMeta.textContent = metaParts.join(' · ');
   if (it.color) {
     clrDot.style.background = CLRHEX[it.color];
@@ -1499,7 +1615,7 @@ function _updateLineNums() {
 }
 
 function focusEnterEdit() {
-  const arr = focusType === 'prom' ? S.proms : S.idee;
+  const arr = focusType === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === focusId); if (!it) return;
   _focusIsEdit = true;
   // Popola textarea e titolo
@@ -1558,7 +1674,7 @@ function _focusShowMode(mode) {
 }
 
 function doFocusSave(shouldClose) {
-  const arr = focusType === 'prom' ? S.proms : S.idee;
+  const arr = focusType === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === focusId); if (!it) return;
   it.text  = document.getElementById('focus-body').value.trim();
   if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
@@ -1607,7 +1723,7 @@ function openCardMod(tp, id) {
   let ttl, hd = '', tx = '', clr = null;
   if (id) {
     // Modalità modifica: carica i dati esistenti
-    const arr = tp === 'prom' ? S.proms : S.idee;
+    const arr = tp === 'prom' ? curProms() : curIdee();
     const it = arr.find(i => i.id===id); if (!it) return;
     ttl = tp === 'prom' ? 'Modifica promemoria' : 'Modifica idea';
     hd = it.title||''; tx = it.text; clr = it.color;
@@ -1625,7 +1741,7 @@ function openCardMod(tp, id) {
   // Carica/resetta il campo deadline
   const mdInp = document.getElementById('m-deadline-inp');
   const mdBtn = document.getElementById('m-deadline-toggle');
-  const deadlineVal = id ? ((() => { const arr = tp==='prom'?S.proms:S.idee; const it=arr.find(i=>i.id===id); return it?.deadline||null; })()) : null;
+  const deadlineVal = id ? ((() => { const arr = tp==='prom'?curProms():curIdee(); const it=arr.find(i=>i.id===id); return it?.deadline||null; })()) : null;
   if (deadlineVal) {
     mdInp.value = toLocalDatetimeInput(deadlineVal);
     mdInp.style.display = '';
@@ -1648,13 +1764,13 @@ function saveCard() {
     ? new Date(mdInp.value).getTime() : null;
   if (eId) {
     // Aggiorna elemento esistente
-    const arr = eType === 'prom' ? S.proms : S.idee;
+    const arr = eType === 'prom' ? curProms() : curIdee();
     const it  = arr.find(i => i.id===eId);
     if (it) { it.text = tx; it.title = hd; it.color = ePick; it.deadline = deadline; it.updated = now; }
   } else {
     // Crea nuovo elemento e lo aggiunge in cima
     const it = {id:uid(), text:tx, title:hd, color:ePick, deadline, pinned:false, created:now, updated:now};
-    if (eType === 'prom') S.proms.unshift(it); else S.idee.unshift(it);
+    if (eType === 'prom') curProms().unshift(it); else curIdee().unshift(it);
   }
   persist(); closeModal('m-card'); renderAll();
 }
@@ -2154,6 +2270,10 @@ document.addEventListener('touchmove', e => {
     e.preventDefault();
   }
 }, {passive: false});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && secretMode) toggleSecretMode();
+});
 setTimeout(() => {
   const s = document.getElementById('splash');
   if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
