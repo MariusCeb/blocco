@@ -123,19 +123,14 @@ body {
    flex-shrink:0 → non si restringe mai, rimane sempre visibile
 ───────────────────────────────────────────────────────── */
 .vhead {
-  padding:calc(var(--st) + 14px) 20px 12px;flex-shrink:0;
+  padding:calc(var(--st) + 12px) 20px 10px;flex-shrink:0;
   display:flex;align-items:flex-start;justify-content:space-between;
   border-bottom:1px solid var(--bd);
 }
-/* "Blocco note" in piccolo sopra il nome */
-/* Riga grande con il nome — lettering stretto per look minimal */
-.vbig  {font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
-/* Il punto dopo il nome, colorato con l'accento */
+.vbig  {font-size:17px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
 .vbig .hl {color:var(--accent)}
-/* Il nome è cliccabile: mostra un trattino tratteggiato sotto come hint */
 .vname {color:var(--text);cursor:pointer;border-bottom:1px dashed var(--dim);padding-bottom:1px}
-/* Data e ora in piccolo sotto il nome */
-.vdate {font-size:9px;color:var(--muted);letter-spacing:.06em;margin-top:4px}
+.vdate {font-size:9px;color:var(--muted);letter-spacing:.06em;margin-top:3px}
 /* Riga statistiche: [5 prom] [3 idee] ecc. — quasi invisibile */
 /* Gruppo bottoni in alto a destra */
 .hbts  {display:flex;gap:12px;margin-top:2px;align-items:center}
@@ -175,19 +170,17 @@ body {
 ───────────────────────────────────────────────────────── */
 .tabs {display:flex;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--s1)}
 .tab  {
-  flex:1;padding:12px 0;font-size:11px;font-weight:600;letter-spacing:.1em;
+  flex:1;padding:9px 0;font-size:10px;font-weight:500;letter-spacing:.07em;
   text-transform:uppercase;color:var(--muted);background:none;border:none;
   cursor:pointer;font-family:var(--mono);position:relative;transition:color .15s;
   -webkit-appearance:none;
 }
 .tab.on {color:var(--text)}
-/* Lineetta sotto il tab attivo, costruita con ::after pseudo-elemento */
 .tab.on::after {
-  content:'';position:absolute;bottom:0;left:20%;right:20%;
-  height:1.5px;background:var(--accent);border-radius:1px;
+  content:'';position:absolute;bottom:0;left:25%;right:25%;
+  height:1px;background:var(--text);border-radius:1px;
 }
-/* Badge numerico nel tab Cestino, es: " [3]" */
-.tab-badge {font-size:7px;color:var(--dim);margin-left:2px}
+.tab-badge {font-size:7px;color:var(--muted);margin-left:3px}
 
 /* ─────────────────────────────────────────────────────────
    QUICK CAPTURE — barra di input sempre visibile
@@ -196,18 +189,16 @@ body {
 .qcap {
   display:flex;align-items:center;
   border-bottom:1px solid var(--bd);flex-shrink:0;
-  background:var(--s1);
 }
 .qinp {
   flex:1;background:transparent;border:none;outline:none;
-  padding:10px 20px;color:var(--text);font-family:var(--mono);
-  font-size:11px;letter-spacing:.04em;
+  padding:9px 20px;color:var(--text);font-family:var(--mono);
+  font-size:12px;letter-spacing:.02em;
 }
-.qinp::placeholder {color:var(--dim);letter-spacing:.08em}
-/* Bottone [+] a destra della quick capture */
+.qinp::placeholder {color:var(--dim);letter-spacing:.06em}
 .qadd {
   background:none;border:none;cursor:pointer;color:var(--muted);
-  font-family:var(--mono);font-size:11px;padding:10px 20px;
+  font-family:var(--mono);font-size:14px;padding:9px 18px;
   letter-spacing:.04em;transition:color .12s;-webkit-appearance:none;
 }
 .qadd:active {color:var(--text)}
@@ -224,9 +215,8 @@ body {
 }
 .view.on  {display:block} /* la vista attiva */
 /* Padding interno: 20px laterali, più spazio in basso per il FAB [+] */
-.vscroll  {padding:14px 20px calc(var(--sb) + 80px)}
-/* Colonna verticale con gap tra le card */
-.stack    {display:flex;flex-direction:column;gap:8px}
+.vscroll  {padding:12px 16px calc(var(--sb) + 80px)}
+.stack    {display:flex;flex-direction:column;gap:6px}
 
 /* ─────────────────────────────────────────────────────────
    CARD — il blocco base per ogni nota/promemoria/lista
@@ -263,33 +253,29 @@ body {
   font-size:7px;color:var(--accent);opacity:.8;font-family:var(--mono);
 }
 /* Bordi colorati a sinistra per le etichette colore */
-.clr-red    {border-left:2.5px solid #f87171!important}
-.clr-orange {border-left:2.5px solid #fb923c!important}
-.clr-yellow {border-left:2.5px solid #facc15!important}
-.clr-green  {border-left:2.5px solid #4ade80!important}
-.clr-blue   {border-left:2.5px solid #60a5fa!important}
-.clr-purple {border-left:2.5px solid #a78bfa!important}
-.clr-pink   {border-left:2.5px solid #f472b6!important}
-.clr-teal   {border-left:2.5px solid #2dd4bf!important}
-.clr-lime   {border-left:2.5px solid #a3e635!important}
+.clr-red    {border-left:3px solid #f87171!important}
+.clr-orange {border-left:3px solid #fb923c!important}
+.clr-yellow {border-left:3px solid #facc15!important}
+.clr-green  {border-left:3px solid #4ade80!important}
+.clr-blue   {border-left:3px solid #60a5fa!important}
+.clr-purple {border-left:3px solid #a78bfa!important}
+.clr-pink   {border-left:3px solid #f472b6!important}
+.clr-teal   {border-left:3px solid #2dd4bf!important}
+.clr-lime   {border-left:3px solid #a3e635!important}
 
 /* ── Riga inferiore della card (timestamp + azioni) ─────── */
 .cmeta {
   display:flex;align-items:center;gap:8px;
-  padding:5px 11px 8px;border-top:1px solid var(--bd);
+  padding:4px 10px 5px;border-top:1px solid var(--bd);
 }
-/* Timestamp tipo "3m fa", "2g fa" */
-.cts   {font-size:9px;color:var(--muted);letter-spacing:.06em;flex:1}
-/* Gruppo bottoni azione */
-.cacts {display:flex;gap:10px}
-/* Stile bottoni [pin] [edit] [del] — nessun box, solo testo */
+.cts   {font-size:8px;color:var(--dim);letter-spacing:.05em;flex:1}
+.cacts {display:flex;gap:8px}
 .cact  {
-  font-size:9px;padding:5px 4px;border:none;
-  background:transparent;cursor:pointer;color:var(--muted);font-family:var(--mono);
-  letter-spacing:.06em;-webkit-appearance:none;transition:color .12s;
+  font-size:8px;padding:4px 3px;border:none;
+  background:transparent;cursor:pointer;color:var(--dim);font-family:var(--mono);
+  letter-spacing:.05em;-webkit-appearance:none;transition:color .12s;
 }
 .cact:active     {color:var(--text)}
-/* [del] diventa rosso al tap */
 .cact.del:active {color:#e94560}
 
 /* ─────────────────────────────────────────────────────────
@@ -298,20 +284,19 @@ body {
    Tap sul cerchio → animazione slide-out e rimozione
    Tap sul testo → apre la focus view (lettura)
 ───────────────────────────────────────────────────────── */
-.prow  {display:flex;align-items:flex-start;gap:10px;padding:10px 12px 6px}
+.prow  {display:flex;align-items:flex-start;gap:10px;padding:9px 11px 5px}
 .pcb   {
-  width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);
-  flex-shrink:0;cursor:pointer;background:transparent;margin-top:1px;
+  width:18px;height:18px;border-radius:50%;border:1.5px solid var(--muted);
+  flex-shrink:0;cursor:pointer;background:transparent;margin-top:2px;
   transition:border-color .12s;
 }
 .pcb:active {border-color:var(--accent)}
 .ptext {
-  flex:1;font-size:12px;line-height:1.65;word-break:break-word;
+  flex:1;font-size:13px;line-height:1.6;word-break:break-word;
   cursor:pointer;letter-spacing:.01em;
   overflow:hidden;display:-webkit-box;
-  -webkit-line-clamp:1;-webkit-box-orient:vertical;white-space:normal;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;
 }
-/* Markdown leggero: **grassetto** e _corsivo_ */
 .ptext b {font-weight:600}
 .ptext i {font-style:italic;color:var(--muted)}
 
@@ -319,9 +304,9 @@ body {
    IDEA CARD — titolo opzionale + testo
    Tap sul body → apre focus view (lettura)
 ───────────────────────────────────────────────────────── */
-.cbody  {padding:10px 12px 6px;cursor:pointer}
-.ctitle {font-size:12px;font-weight:600;margin-bottom:4px;letter-spacing:.02em}
-.ctext  {font-size:12px;line-height:1.65;white-space:pre-wrap;word-break:break-word;letter-spacing:.01em}
+.cbody  {padding:9px 11px 5px;cursor:pointer}
+.ctitle {font-size:13px;font-weight:600;margin-bottom:3px;letter-spacing:.01em}
+.ctext  {font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;letter-spacing:.01em}
 .ctext b {font-weight:600}
 .ctext i {font-style:italic;color:var(--muted)}
 
@@ -331,45 +316,39 @@ body {
    .ladd = riga in fondo per aggiungere nuove voci
 ───────────────────────────────────────────────────────── */
 .lhead  {
-  padding:10px 12px 8px;display:flex;align-items:center;gap:8px;
+  padding:9px 11px 7px;display:flex;align-items:center;gap:8px;
   border-bottom:1px solid var(--bd);
 }
-/* Titolo della lista — tronca con … se troppo lungo */
-.ltitle {font-size:12px;font-weight:600;letter-spacing:.02em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Contatore "3/7" in alto a destra della lista */
-.lprog  {font-size:9px;color:var(--muted);flex-shrink:0;letter-spacing:.08em}
-.lrows  {padding:4px 12px 0}
+.ltitle {font-size:13px;font-weight:600;letter-spacing:.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lprog  {font-size:8px;color:var(--dim);flex-shrink:0;letter-spacing:.06em}
+.lrows  {padding:2px 11px 0}
 .lrow   {
   display:flex;align-items:center;gap:8px;padding:5px 0;
   border-bottom:1px solid var(--bd);
 }
 .lrow:last-child {border-bottom:none}
-/* Checkbox quadrata della lista — diventa grigio scuro quando spuntata */
 .lck    {
-  width:19px;height:19px;border:1.5px solid var(--muted);border-radius:3px;
+  width:17px;height:17px;border:1.5px solid var(--muted);border-radius:2px;
   flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-size:10px;transition:background .12s,border-color .12s;
+  font-size:9px;transition:background .12s,border-color .12s;
 }
 .lck.on {background:var(--accent);border-color:var(--accent);color:var(--bg)}
-/* Testo voce lista — tap per modificare inline */
-.lit    {flex:1;font-size:12px;cursor:pointer;letter-spacing:.01em}
-.lit.done {text-decoration:line-through;color:var(--muted)}
-/* × per rimuovere una voce dalla lista */
+.lit    {flex:1;font-size:13px;cursor:pointer;letter-spacing:.01em}
+.lit.done {text-decoration:line-through;color:var(--dim)}
 .ldel   {
   background:none;border:none;cursor:pointer;color:var(--dim);
-  font-size:15px;line-height:1;padding:0 2px;transition:color .12s;
+  font-size:14px;line-height:1;padding:0 2px;transition:color .12s;
 }
 .ldel:active {color:#e94560}
-/* Riga aggiungi voce in fondo alla lista */
-.ladd   {display:flex;gap:8px;padding:8px 12px 10px;border-top:1px solid var(--bd)}
+.ladd   {display:flex;gap:8px;padding:6px 11px 9px;border-top:1px solid var(--bd)}
 .laddinp {
   flex:1;background:transparent;border:none;outline:none;
-  font-size:12px;color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+  font-size:13px;color:var(--text);font-family:var(--mono);letter-spacing:.01em;
 }
 .laddinp::placeholder {color:var(--dim)}
 .laddbtn {
   background:none;border:none;cursor:pointer;color:var(--muted);
-  font-size:17px;line-height:1;transition:color .12s;
+  font-size:16px;line-height:1;transition:color .12s;
 }
 .laddbtn:active {color:var(--accent)}
 /* Handle drag voci lista */
@@ -394,9 +373,9 @@ body {
    Nessun cerchio: solo testo [+] minimal
 ───────────────────────────────────────────────────────── */
 .fab {
-  position:fixed;bottom:calc(var(--sb) + 58px);right:22px;z-index:60;
-  background:transparent;border:none;padding:0;
-  font-size:18px;cursor:pointer;color:var(--muted);font-family:var(--mono);
+  position:fixed;bottom:calc(var(--sb) + 52px);right:20px;z-index:60;
+  background:transparent;border:none;padding:4px;
+  font-size:20px;cursor:pointer;color:var(--muted);font-family:var(--mono);
   letter-spacing:.04em;transition:color .15s;-webkit-appearance:none;
 }
 .fab:active {color:var(--text)}
@@ -470,16 +449,16 @@ body {
    transform:translateY(-8px) → parte un po' più in su, poi scende a 0
 ───────────────────────────────────────────────────────── */
 .toast {
-  position:fixed;top:calc(var(--st) + 54px);left:50%;
-  transform:translateX(-50%) translateY(-6px);
-  font-size:9px;font-weight:500;letter-spacing:.08em;color:var(--muted);
+  position:fixed;top:calc(var(--st) + 16px);left:50%;
+  transform:translateX(-50%) translateY(-4px);
+  font-size:9px;font-weight:500;letter-spacing:.08em;color:var(--text);
   z-index:300;opacity:0;transition:all .2s;pointer-events:none;white-space:nowrap;
 }
 .toast.show {opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* Messaggio stato vuoto delle sezioni */
 .empty {
-  padding:52px 20px;text-align:center;color:var(--muted);
+  padding:44px 20px;text-align:center;color:var(--dim);
   font-size:10px;line-height:1.9;letter-spacing:.06em;
 }
 
@@ -576,7 +555,7 @@ body {
 /* Barra inferiore */
 .focus-foot {
   border-top:1px solid var(--bd);flex-shrink:0;
-  padding:8px 20px 10px;
+  padding:8px 20px calc(var(--sb) + 10px);
   display:flex;align-items:center;gap:10px;
 }
 /* Numeri di riga stile VS Code */
@@ -666,17 +645,16 @@ html.light input[type="datetime-local"] { color-scheme:light }
      goTab('prom'|'idee'|'liste'|'cestino') gestisce il cambio
      ══════════════════════════════════════════════════════ -->
 <div class="tabs">
-  <button class="tab on" id="tab-prom"    onclick="goTab('prom')">Prom</button>
-  <button class="tab"    id="tab-idee"    onclick="goTab('idee')">Idee</button>
-  <button class="tab"    id="tab-liste"   onclick="goTab('liste')">Liste</button>
-  <!-- Badge numerico mostra quanti elementi ci sono nel cestino -->
-  <button class="tab"    id="tab-cestino" onclick="goTab('cestino')">Cestino<span class="tab-badge" id="cestino-badge"></span></button>
+  <button class="tab on" id="tab-prom"    onclick="goTab('prom')">prom</button>
+  <button class="tab"    id="tab-idee"    onclick="goTab('idee')">idee</button>
+  <button class="tab"    id="tab-liste"   onclick="goTab('liste')">liste</button>
+  <button class="tab"    id="tab-cestino" onclick="goTab('cestino')">cestino<span class="tab-badge" id="cestino-badge"></span></button>
 </div>
 
 <!-- Quick capture: input sempre visibile per promemoria rapidi.
      Premi Invio o [+] → qAdd() aggiunge direttamente a S.proms -->
 <div class="qcap" id="qcap">
-  <input class="qinp" id="qinp" placeholder="[ promemoria rapido... ]"
+  <input class="qinp" id="qinp" placeholder="promemoria rapido..."
     onkeydown="if(event.key==='Enter')qAdd(this)">
   <button class="qadd" onclick="qAdd(document.getElementById('qinp'))">[+]</button>
 </div>
@@ -789,7 +767,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
 <div class="focus-bg" id="focus-modal">
   <!-- Barra superiore -->
   <div class="focus-topbar">
-    <button class="fclose" onclick="closeFocus()">← chiudi</button>
+    <button class="fclose" onclick="closeFocus()">[←] chiudi</button>
     <div style="display:flex;align-items:center;gap:16px">
       <span id="focus-status" style="font-size:9px;color:var(--dim);letter-spacing:.05em"></span>
       <button class="fclose" id="focus-edit-btn" onclick="focusEnterEdit()">modifica</button>
@@ -1480,12 +1458,10 @@ function openFocus(tp, id) {
   const arr = tp === 'prom' ? S.proms : S.idee;
   const it  = arr.find(i => i.id === id); if (!it) return;
   focusType = tp; focusId = id; focusColor = it.color || null;
-  _focusIsEdit = false;
-  _focusPopulateView(it);
-  _focusShowMode('view');
   const fm = document.getElementById('focus-modal');
   fm.classList.add('open');
   fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
+  focusEnterEdit();
 }
 
 function _focusPopulateView(it) {
