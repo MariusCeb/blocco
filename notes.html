@@ -1179,7 +1179,7 @@ function tglSearch() {
   else { document.getElementById('sinp').value = ''; q = ''; renderAll(); }
 }
 function doSearch(v) {
-  if (v === '...') {
+  if (v === '...' || v === '…') {
     toggleSecretMode();
     document.getElementById('sinp').value = '';
     document.getElementById('sbar').classList.remove('open');
