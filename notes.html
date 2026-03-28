@@ -525,39 +525,76 @@ body {
 .trash-act.del:active {color:#e94560}
 
 /* ─────────────────────────────────────────────────────────
-   FOCUS OVERLAY — lettura a schermo intero
-   Si apre cliccando il testo di un promemoria o idea
-   Overlay scuro quasi opaco + pannello centrato
+   FOCUS — schermata a schermo intero, stile iOS Notes
+   Due modalità: view (lettura) ed edit (modifica)
+   Slide-up dal basso all'apertura
 ───────────────────────────────────────────────────────── */
 .focus-bg {
-  position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:150;
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .2s;
-}
-.focus-bg.open {opacity:1;pointer-events:auto}
-.focus-sheet {
-  background:var(--s1);border:1px solid var(--bd2);border-radius:var(--r);
-  padding:28px 26px 22px;max-width:560px;width:96%;
-  max-height:70%;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  position:fixed;inset:0;background:var(--bg);z-index:150;
   display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transform:translateY(100%);
+  transition:opacity .22s,transform .3s cubic-bezier(.32,.72,0,1);
 }
-/* focus-ttl-wrap: visibile solo per le idee (con titolo) */
+.focus-bg.open {opacity:1;pointer-events:auto;transform:translateY(0)}
+/* Barra superiore: [chiudi] a sx, status + pulsante a dx */
+.focus-topbar {
+  padding:calc(var(--st) + 14px) 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bd);flex-shrink:0;
+}
+/* Area lettura: testo renderizzato, scrollabile */
+.focus-view {
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:24px 24px 20px;overscroll-behavior:contain;
+}
+.focus-view-title {
+  font-size:16px;font-weight:600;letter-spacing:-.01em;
+  margin-bottom:14px;color:var(--text);line-height:1.3;
+}
+.focus-view-body {
+  font-size:13px;line-height:1.9;color:var(--text);
+  font-family:var(--mono);letter-spacing:.01em;
+}
+.focus-view-body p { margin:0 0 6px }
+/* Area modifica: textarea occupa tutto lo spazio disponibile */
+.focus-edit {flex:1;display:flex;flex-direction:column;overflow:hidden}
+.focus-ttl-inp {
+  width:100%;background:transparent;border:none;
+  border-bottom:1px solid var(--bd);outline:none;
+  font-size:14px;font-weight:600;font-family:var(--mono);
+  color:var(--text);padding:14px 24px 12px;letter-spacing:-.01em;
+  -webkit-appearance:none;appearance:none;flex-shrink:0;
+}
 .focus-body {
-  font-size:12px;line-height:1.9;color:var(--text);letter-spacing:.01em;
-  flex:1;min-width:0;background:transparent;border:none;outline:none;
-  resize:none;font-family:var(--mono);overflow-y:auto;
+  flex:1;padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
+  color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+  background:transparent;border:none;outline:none;resize:none;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
 }
-.focus-foot {margin-top:auto;padding-top:22px;display:flex;justify-content:space-between;align-items:center}
+/* Barra inferiore */
+.focus-foot {
+  border-top:1px solid var(--bd);flex-shrink:0;
+  padding:8px 20px 10px;
+  display:flex;align-items:center;gap:10px;
+}
+/* Numeri di riga stile VS Code */
+.focus-lnums {
+  font-size:13px;line-height:1.9;font-family:var(--mono);
+  color:var(--muted);opacity:.35;user-select:none;pointer-events:none;
+  flex-shrink:0;min-width:28px;text-align:right;
+  padding:16px 4px 16px 16px;overflow:hidden;white-space:pre;
+}
+/* Wrapper textarea + numeri riga */
+.focus-editor-wrap {flex:1;display:flex;overflow:hidden}
 .fclose {
   background:none;border:none;cursor:pointer;color:var(--muted);
   font-family:var(--mono);font-size:10px;letter-spacing:.06em;
-  -webkit-appearance:none;transition:color .12s;padding:8px 4px;
+  -webkit-appearance:none;appearance:none;transition:color .12s;padding:6px 0;
 }
 .fclose:active {color:var(--text)}
-
-.focus-editor {
-  display:flex;flex:1;min-height:200px;overflow:hidden;
-}
+.fclose.primary {color:var(--text);font-weight:600}
 
 /* ── Idea card: limita altezza con fade ──────────────── */
 .idea-body {
@@ -604,7 +641,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
   <div>
     <div class="vbig">
       <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
-      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.7</span>
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.</span>
     </div>
     <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
     <div class="vdate" id="vdate-lbl"></div>
@@ -748,32 +785,49 @@ html.light input[type="datetime-local"] { color-scheme:light }
   </div>
 </div>
 
-<!-- FOCUS OVERLAY — lettura e modifica a schermo intero.
-     Tap fuori dal pannello (sull'overlay scuro) chiude la view. -->
-<div class="focus-bg" id="focus-modal" onclick="closeFocusBg(event)">
-  <div class="focus-sheet">
-    <!-- Titolo modificabile: visibile solo per le Idee -->
-    <div class="m-field" id="focus-ttl-wrap" style="display:none">
-      <div class="m-lbl">Titolo</div>
-      <input class="m-inp" id="focus-ttl-inp" placeholder="Titolo...">
+<!-- FOCUS — schermata a schermo intero stile iOS Notes -->
+<div class="focus-bg" id="focus-modal">
+  <!-- Barra superiore -->
+  <div class="focus-topbar">
+    <button class="fclose" onclick="closeFocus()">← chiudi</button>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span id="focus-status" style="font-size:9px;color:var(--dim);letter-spacing:.05em"></span>
+      <button class="fclose" id="focus-edit-btn" onclick="focusEnterEdit()">modifica</button>
+      <button class="fclose primary" id="focus-save-btn" style="display:none" onclick="saveFocus()">salva</button>
     </div>
-    <!-- Testo grezzo modificabile + numero righe stile VS Code -->
-    <div class="focus-editor">
-<textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
+  </div>
+
+  <!-- VIEW MODE: testo renderizzato, grande e comodo -->
+  <div class="focus-view" id="focus-view">
+    <div class="focus-view-title" id="focus-view-title" style="display:none"></div>
+    <div class="focus-view-body" id="focus-view-body"></div>
+    <div id="focus-view-meta" style="margin-top:20px;font-size:9px;color:var(--muted);letter-spacing:.05em"></div>
+  </div>
+
+  <!-- EDIT MODE: textarea a tutto schermo -->
+  <div class="focus-edit" id="focus-edit" style="display:none">
+    <input class="focus-ttl-inp" id="focus-ttl-inp" placeholder="Titolo..." style="display:none">
+    <div class="focus-editor-wrap">
+      <div class="focus-lnums" id="focus-lnums">1</div>
+      <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
     </div>
-    <!-- Color picker inline -->
-    <div class="clrpick" id="focus-clr" style="padding:14px 0 0"></div>
-    <!-- Data scadenza -->
-    <div class="dl-row" style="padding-top:12px">
-      <span style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Data scadenza</span>
-      <button class="cact" id="focus-deadline-toggle" onclick="tglFocusDeadlineField()" style="padding:3px 4px">[off]</button>
+  </div>
+
+  <!-- Barra inferiore -->
+  <div class="focus-foot">
+    <!-- View: mostra colore e scadenza in sola lettura -->
+    <div id="focus-foot-view" style="display:flex;align-items:center;gap:10px;flex:1">
+      <div id="focus-view-clr" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></div>
+      <span id="focus-foot-dl" style="font-size:9px;color:var(--muted)"></span>
     </div>
-    <input type="datetime-local" class="m-inp" id="focus-deadline-inp" style="display:none;margin-top:4px;margin-bottom:4px">
-    <div class="focus-foot">
-      <button class="fclose" onclick="closeFocus()">[chiudi]</button>
-      <span id="focus-cc" style="font-size:9px;color:var(--dim);letter-spacing:.05em">0</span>
-      <span id="focus-status" style="font-size:9px;color:var(--dim);letter-spacing:.05em;transition:opacity .3s"></span>
-      <button class="fclose" style="color:var(--text);font-weight:600" onclick="saveFocus()">[salva]</button>
+    <!-- Edit: color picker + scadenza -->
+    <div id="focus-foot-edit" style="display:none;flex:1;flex-direction:column;gap:6px">
+      <div class="clrpick" id="focus-clr"></div>
+      <div class="dl-row">
+        <span style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Scadenza</span>
+        <button class="cact" id="focus-deadline-toggle" onclick="tglFocusDeadlineField()" style="padding:3px 4px">[off]</button>
+      </div>
+      <input type="datetime-local" class="m-inp" id="focus-deadline-inp" style="display:none;margin-bottom:2px">
     </div>
   </div>
 </div>
@@ -808,12 +862,6 @@ let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
 function _focusBgTouchMove(e) { e.preventDefault(); }
-function _focusSheetTouchMove(e) {
-  // Textarea: let it scroll naturally, stop propagation so focus-bg doesn't preventDefault it
-  if (e.target.closest('textarea')) { e.stopPropagation(); return; }
-  // Everything else (footer, empty space, color dots…): block page bounce
-  e.preventDefault();
-}
 
 
 // Avvolge il testo selezionato nella textarea con **grassetto**
@@ -1424,28 +1472,67 @@ function delItem(id, tp) {
 }
 
 // ══════════════════════════════════════════════════════════
-// FOCUS MODE — lettura a schermo intero
-// openFocus(): cerca la nota nel array giusto, inietta il contenuto
-//              nell'overlay e lo rende visibile
-// closeFocus(): rimuove la classe .open
-// closeFocusBg(): chiude solo se si clicca sull'overlay scuro (non sul pannello)
 // ══════════════════════════════════════════════════════════
+// ── Focus mode — view e edit ────────────────────────────
+let _focusIsEdit = false;
+
 function openFocus(tp, id) {
   const arr = tp === 'prom' ? S.proms : S.idee;
   const it  = arr.find(i => i.id === id); if (!it) return;
-  focusType = tp; focusId = id;
-  const ttlWrap = document.getElementById('focus-ttl-wrap');
-  const ttlInp  = document.getElementById('focus-ttl-inp');
-  const bodyEl  = document.getElementById('focus-body');
-  // Titolo modificabile solo per le idee
-  if (tp === 'idee') {
-    ttlWrap.style.display = '';
-    ttlInp.value = it.title || '';
+  focusType = tp; focusId = id; focusColor = it.color || null;
+  _focusIsEdit = false;
+  _focusPopulateView(it);
+  _focusShowMode('view');
+  const fm = document.getElementById('focus-modal');
+  fm.classList.add('open');
+  fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
+}
+
+function _focusPopulateView(it) {
+  const vTitle = document.getElementById('focus-view-title');
+  const vBody  = document.getElementById('focus-view-body');
+  const vMeta  = document.getElementById('focus-view-meta');
+  const clrDot = document.getElementById('focus-view-clr');
+  const footDl = document.getElementById('focus-foot-dl');
+  if (focusType === 'idee' && it.title) {
+    vTitle.textContent = it.title; vTitle.style.display = '';
+  } else { vTitle.style.display = 'none'; }
+  vBody.innerHTML = md(it.text || '');
+  applyTwemoji(vBody);
+  const metaParts = [];
+  if (it.deadline) metaParts.push(fmtDeadline(it.deadline));
+  metaParts.push(fmtTs(it.updated || it.created));
+  vMeta.textContent = metaParts.join(' · ');
+  if (it.color) {
+    clrDot.style.background = CLRHEX[it.color];
+    clrDot.style.border = 'none';
   } else {
-    ttlWrap.style.display = 'none';
+    clrDot.style.background = 'transparent';
+    clrDot.style.border = '1px solid var(--bd2)';
   }
-  bodyEl.value = it.text; // testo grezzo nel textarea
-  const cc = document.getElementById('focus-cc');
+  footDl.textContent = it.deadline ? fmtDeadline(it.deadline) : '';
+}
+
+function _updateLineNums() {
+  const ta = document.getElementById('focus-body');
+  const ln = document.getElementById('focus-lnums');
+  if (!ta || !ln) return;
+  const n = ta.value.split('\n').length;
+  ln.textContent = Array.from({length: n}, (_, i) => i + 1).join('\n');
+  ln.scrollTop = ta.scrollTop;
+}
+
+function focusEnterEdit() {
+  const arr = focusType === 'prom' ? S.proms : S.idee;
+  const it  = arr.find(i => i.id === focusId); if (!it) return;
+  _focusIsEdit = true;
+  // Popola textarea e titolo
+  const bodyEl = document.getElementById('focus-body');
+  const ttlInp = document.getElementById('focus-ttl-inp');
+  bodyEl.value = it.text;
+  if (focusType === 'idee') { ttlInp.value = it.title || ''; ttlInp.style.display = ''; }
+  else { ttlInp.style.display = 'none'; }
+  // Auto-save con status nel topbar
   const schedAutoSave = () => {
     clearTimeout(autoSaveTimer);
     const st = document.getElementById('focus-status');
@@ -1456,40 +1543,48 @@ function openFocus(tp, id) {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  const upd = () => { cc.textContent = bodyEl.value.length; schedAutoSave(); };
-  upd();
+  const upd = () => { _updateLineNums(); schedAutoSave(); };
+  _updateLineNums();
   bodyEl.oninput = upd;
-  // Auto-save anche dal campo titolo (solo idee)
-  if (tp === 'idee') document.getElementById('focus-ttl-inp').oninput = schedAutoSave;
-  // Color picker nel focus sheet
+  bodyEl.onscroll = () => {
+    const ln = document.getElementById('focus-lnums');
+    if (ln) ln.scrollTop = bodyEl.scrollTop;
+  };
+  if (focusType === 'idee') ttlInp.oninput = schedAutoSave;
+  // Color picker
   focusColor = it.color || null;
   document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
     <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
       style="${c!=='none'?'background:'+CLRHEX[c]:''}"
       onclick="pickFocusClr('${c}',this)"></div>
   `).join('');
-  // Carica stato deadline nel focus modal
+  // Deadline
   const fdInp = document.getElementById('focus-deadline-inp');
   const fdBtn = document.getElementById('focus-deadline-toggle');
   if (it.deadline) {
     fdInp.value = toLocalDatetimeInput(it.deadline);
-    fdInp.style.display = '';
-    fdBtn.textContent = '[on]';
+    fdInp.style.display = ''; fdBtn.textContent = '[on]';
   } else {
-    fdInp.value = '';
-    fdInp.style.display = 'none';
-    fdBtn.textContent = '[off]';
+    fdInp.value = ''; fdInp.style.display = 'none'; fdBtn.textContent = '[off]';
   }
-  const fm = document.getElementById('focus-modal');
-  const fs = fm.querySelector('.focus-sheet');
-  fm.classList.add('open');
-  fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
-  fs.addEventListener('touchmove', _focusSheetTouchMove);
+  _focusShowMode('edit');
+  setTimeout(() => bodyEl.focus(), 60);
 }
+
+function _focusShowMode(mode) {
+  const isEdit = mode === 'edit';
+  document.getElementById('focus-view').style.display      = isEdit ? 'none' : '';
+  document.getElementById('focus-edit').style.display      = isEdit ? 'flex' : 'none';
+  document.getElementById('focus-edit-btn').style.display  = isEdit ? 'none' : '';
+  document.getElementById('focus-save-btn').style.display  = isEdit ? '' : 'none';
+  document.getElementById('focus-foot-view').style.display = isEdit ? 'none' : 'flex';
+  document.getElementById('focus-foot-edit').style.display = isEdit ? 'flex' : 'none';
+}
+
 function doFocusSave(shouldClose) {
   const arr = focusType === 'prom' ? S.proms : S.idee;
   const it  = arr.find(i => i.id === focusId); if (!it) return;
-  it.text = document.getElementById('focus-body').value.trim();
+  it.text  = document.getElementById('focus-body').value.trim();
   if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
   it.color = focusColor;
   const fdInp = document.getElementById('focus-deadline-inp');
@@ -1497,18 +1592,22 @@ function doFocusSave(shouldClose) {
     ? new Date(fdInp.value).getTime() : null;
   it.updated = Date.now();
   persist(); renderAll();
-  if (shouldClose) closeFocus();
+  if (shouldClose) { closeFocus(); return; }
+  // Aggiorna anche la view dopo il save
+  _focusPopulateView(it);
 }
+
 function saveFocus() { clearTimeout(autoSaveTimer); doFocusSave(true); }
+
 function closeFocus() {
   clearTimeout(autoSaveTimer);
+  if (_focusIsEdit) doFocusSave(false);
   const fm = document.getElementById('focus-modal');
-  const fs = fm.querySelector('.focus-sheet');
   fm.classList.remove('open');
   fm.removeEventListener('touchmove', _focusBgTouchMove);
-  fs.removeEventListener('touchmove', _focusSheetTouchMove);
+  // Dopo l'animazione di chiusura, torna in view mode per la prossima apertura
+  setTimeout(() => { if (!fm.classList.contains('open')) _focusShowMode('view'); }, 320);
 }
-function closeFocusBg(e)  { if (e.target === e.currentTarget) closeFocus(); }
 
 // ══════════════════════════════════════════════════════════
 // GESTIONE MODAL
@@ -2075,7 +2174,7 @@ document.addEventListener('focusout', () => {
 // Blocca il bounce/scroll della pagina intera su iOS.
 // Solo i contenitori esplicitamente scrollabili possono ricevere touchmove.
 document.addEventListener('touchmove', e => {
-  if (!e.target.closest('.view, .focus-sheet, .modal-sheet, textarea')) {
+  if (!e.target.closest('.view, .focus-view, .modal-sheet, textarea')) {
     e.preventDefault();
   }
 }, {passive: false});
