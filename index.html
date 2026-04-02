@@ -106,6 +106,7 @@ body {
 /* ── Mobile-only hidden elements (must be before media query) ── */
 .cact-share   { display: none; }
 .new-folder-btn { display: none; }
+.new-folder-form { display: none; }
 .shortcuts-panel { display: none; }
 .folders-sec  { display: none; }
 
@@ -187,6 +188,32 @@ body {
     transition: color .15s, background .12s;
   }
   .new-folder-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+  .new-folder-form {
+    display: none;
+    grid-column: 1; grid-row: 4;
+    border-right: 1px solid var(--bd);
+    border-top: 1px solid var(--bd);
+    border-bottom: none;
+  }
+  .new-folder-form.open { display: flex; }
+  .nfinp {
+    flex: 1; background: none; border: none; outline: none;
+    font-family: inherit; font-size: 11px; color: var(--text);
+    padding: 11px 0 11px 20px;
+  }
+  .nfinp::placeholder { color: var(--dim); }
+  .nfok {
+    background: none; border: none; font-family: inherit; font-size: 11px;
+    color: var(--accent); cursor: pointer; padding: 11px 16px;
+    transition: opacity .15s;
+  }
+  .nfok:hover { opacity: .7; }
+  .nfcancel {
+    background: none; border: none; font-family: inherit; font-size: 11px;
+    color: var(--dim); cursor: pointer; padding: 11px 12px 11px 0;
+    transition: color .15s;
+  }
+  .nfcancel:hover { color: var(--text); }
 
   /* ── Folders list: row 5 (grows to fill space) ── */
   .folders-sec {
@@ -837,7 +864,13 @@ html.light input[type="datetime-local"] { color-scheme:light }
 
 <!-- Cartelle personalizzate (solo desktop) -->
 <!-- Pulsante nuova cartella — sempre visibile su desktop -->
-<button class="new-folder-btn" onclick="newFolder()">[ + nuova cartella ]</button>
+<button class="new-folder-btn" id="new-folder-btn" onclick="openFolderForm()">[ + nuova cartella ]</button>
+<div class="new-folder-form" id="new-folder-form">
+  <input class="nfinp" id="nfinp" placeholder="nome cartella..." maxlength="32"
+    onkeydown="if(event.key==='Enter')confirmFolder();if(event.key==='Escape')closeFolderForm();">
+  <button class="nfok"     onclick="confirmFolder()">[ok]</button>
+  <button class="nfcancel" onclick="closeFolderForm()">[×]</button>
+</div>
 
 <div class="folders-sec" id="folders-sec">
   <div class="folder-hdr">
@@ -1406,7 +1439,7 @@ function renderProms() {
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
-            <button class="cact" onclick="assignFolder('${i.id}','prom')">[folder]</button>
+
             <button class="cact cact-share" onclick="shareItem('${i.id}','prom')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
           </div>
@@ -1465,7 +1498,7 @@ function renderIdee() {
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
-            <button class="cact" onclick="assignFolder('${i.id}','idee')">[folder]</button>
+
             <button class="cact cact-share" onclick="shareItem('${i.id}','idee')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
           </div>
@@ -1712,12 +1745,25 @@ function renderFolder() {
   applyTwemoji(el);
 }
 
-function newFolder() {
-  const name = prompt('Nome cartella:');
-  if (!name || !name.trim()) return;
+function openFolderForm() {
+  document.getElementById('new-folder-btn').style.display = 'none';
+  const form = document.getElementById('new-folder-form');
+  form.classList.add('open');
+  setTimeout(() => document.getElementById('nfinp').focus(), 50);
+}
+function closeFolderForm() {
+  document.getElementById('nfinp').value = '';
+  document.getElementById('new-folder-form').classList.remove('open');
+  document.getElementById('new-folder-btn').style.display = '';
+}
+function confirmFolder() {
+  const name = document.getElementById('nfinp').value.trim();
+  if (!name) { closeFolderForm(); return; }
   if (!S.folders) S.folders = [];
-  S.folders.push({id: uid(), name: name.trim()});
+  S.folders.push({id: uid(), name});
   persist(); renderFolders();
+  closeFolderForm();
+  toast('[cartella creata]');
 }
 
 function delFolder(id) {
