@@ -124,7 +124,7 @@ body {
     box-shadow: 0 0 0 1px var(--bd2), 0 24px 64px rgba(0,0,0,.6);
     display: grid;
     grid-template-columns: 260px 1fr;
-    grid-template-rows: auto auto auto 1fr auto;
+    grid-template-rows: auto auto auto auto 1fr auto auto;
   }
 
   /* ── Sidebar ── */
@@ -165,7 +165,7 @@ body {
 
   /* qcap incollato al fondo della sidebar */
   .qcap {
-    grid-column: 1; grid-row: 5;
+    grid-column: 1; grid-row: 7;
     border-right: 1px solid var(--bd);
     border-bottom: none;
     border-top: 1px solid var(--bd);
@@ -203,10 +203,34 @@ body {
   ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-  .folders-sec {
+  .new-folder-btn {
+    display: block; width: 100%;
     grid-column: 1; grid-row: 4;
     border-right: 1px solid var(--bd);
     border-top: 1px solid var(--bd);
+    border-bottom: none; border-left: none;
+    padding: 12px 22px 12px 26px;
+    font-family: inherit; font-size: 10px;
+    color: var(--dim); background: none;
+    text-align: left; cursor: pointer;
+    transition: color .15s, background .12s;
+    letter-spacing: .02em;
+  }
+  .new-folder-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+  .shortcuts-panel {
+    grid-column: 1; grid-row: 6;
+    border-right: 1px solid var(--bd);
+    border-top: 1px solid var(--bd);
+    padding: 10px 22px 10px 26px;
+  }
+  .sc-row { display:flex; justify-content:space-between; margin-bottom:5px; }
+  .sc-row:last-child { margin-bottom:0; }
+  .sc-key { font-size:9px; color:var(--accent); letter-spacing:.04em; }
+  .sc-lbl { font-size:9px; color:var(--dim); }
+  .shortcuts-panel { display: block; }
+  .folders-sec {
+    grid-column: 1; grid-row: 5;
+    border-right: 1px solid var(--bd);
     overflow-y: auto;
     display: none;
   }
@@ -245,6 +269,8 @@ body {
 /* ── Bottone share: nascosto su mobile (si usa swipe), visibile su desktop */
 .cact-share { display:none }
 .folders-sec { display: none; } /* hidden on mobile */
+.new-folder-btn { display: none; } /* hidden on mobile */
+.shortcuts-panel { display: none; } /* hidden on mobile */
 
 /* ─────────────────────────────────────────────────────────
    HEADER — barra in alto con nome, data, bottoni
@@ -811,12 +837,21 @@ html.light input[type="datetime-local"] { color-scheme:light }
 </div>
 
 <!-- Cartelle personalizzate (solo desktop) -->
+<!-- Pulsante nuova cartella — sempre visibile su desktop -->
+<button class="new-folder-btn" onclick="newFolder()">[ + nuova cartella ]</button>
+
 <div class="folders-sec" id="folders-sec">
   <div class="folder-hdr">
     <span>cartelle</span>
-    <button class="folder-add-btn" onclick="newFolder()" title="Nuova cartella">[+]</button>
   </div>
   <div id="folders-list"></div>
+</div>
+
+<!-- Shortcuts panel — desktop only, above quick capture -->
+<div class="shortcuts-panel">
+  <div class="sc-row"><span class="sc-key">n</span><span class="sc-lbl">nuova nota</span></div>
+  <div class="sc-row"><span class="sc-key">1-4</span><span class="sc-lbl">cambia tab</span></div>
+  <div class="sc-row"><span class="sc-key">/</span><span class="sc-lbl">cerca</span></div>
 </div>
 
 <!-- Quick capture: input sempre visibile per promemoria rapidi.
