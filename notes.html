@@ -928,7 +928,11 @@ let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
 let secretMode = false;
-function _focusBgTouchMove(e) { e.preventDefault(); }
+function _focusBgTouchMove(e) {
+  const scrollable = document.getElementById('focus-body');
+  if (scrollable && scrollable.contains(e.target)) return;
+  e.preventDefault();
+}
 
 function curProms() { return secretMode ? S.secret.proms : S.proms; }
 function curIdee()  { return secretMode ? S.secret.idee  : S.idee;  }
