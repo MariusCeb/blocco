@@ -691,6 +691,27 @@ body {
 }
 input[type="datetime-local"] { color-scheme:dark }
 html.light input[type="datetime-local"] { color-scheme:light }
+
+/* ── Login overlay ── */
+#login-overlay {
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:20px;
+}
+#login-overlay.hidden { display:none; }
+.login-logo { font-size:22px;font-weight:600;letter-spacing:-.02em;font-family:inherit; }
+.login-logo .hl { color:var(--accent); }
+.login-sub { font-size:11px;color:var(--dim); }
+.login-btn {
+  font-family:inherit;font-size:11px;letter-spacing:.02em;
+  border:1px solid var(--bd2);border-radius:4px;
+  padding:11px 22px;cursor:pointer;
+  background:var(--s1);color:var(--text);
+  transition:background .12s;
+}
+.login-btn:hover { background:var(--s2); }
   </style>
 </head>
 <body>
@@ -699,7 +720,13 @@ html.light input[type="datetime-local"] { color-scheme:light }
   <div id="splash-name">Blocco<span class="hl">.</span></div>
 </div>
 
-<div class="app">
+<div id="login-overlay">
+  <div class="login-logo">blocco<span class="hl">.</span></div>
+  <div class="login-sub">le tue note, ovunque</div>
+  <button class="login-btn" onclick="signInWithGoogle()">[ accedi con Google ]</button>
+</div>
+
+<div class="app" id="app" style="display:none">
 
 <!-- ══════════════════════════════════════════════════════
      HEADER — nome, data/ora, statistiche, bottoni
@@ -720,6 +747,8 @@ html.light input[type="datetime-local"] { color-scheme:light }
     <button class="hbt" id="theme-btn" onclick="tglTheme()" title="Tema">[<span id="theme-ico"></span>]</button>
     <!-- [archivio] apre il modal backup esporta/importa JSON -->
     <button class="hbt" onclick="openModal('m-io')" title="Backup">[<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg>]</button>
+    <!-- [esci] sign out Firebase -->
+    <button class="hbt" onclick="doSignOut()" title="Esci">[×]</button>
   </div>
 </div>
 
@@ -980,7 +1009,12 @@ function load() {
 
 // Salva tutto lo stato in localStorage come stringa JSON.
 // Viene chiamata ogni volta che qualcosa cambia.
-function persist() { localStorage.setItem('blocco', JSON.stringify(S)); }
+function persist() {
+  localStorage.setItem('blocco', JSON.stringify(S));
+  if (window._fbUser && window._fbDb) {
+    window._fbDb.collection('users').doc(window._fbUser.uid).set(S).catch(() => {});
+  }
+}
 
 // Genera un ID unico basato sul timestamp + caratteri random.
 // Esempio: "lq3k7abcd" — usato come chiave per ogni nota/lista/voce.
@@ -2240,10 +2274,11 @@ function initTabSwipe() {
   }, {passive: true});
 }
 
-// BOOT
-purgeTrash();
-applyTheme();
-document.getElementById('name-lbl').textContent = S.name;
+// BOOT — chiamato dopo il login Firebase
+function initApp() {
+  purgeTrash();
+  applyTheme();
+  document.getElementById('name-lbl').textContent = S.name;
 updateDatetime();
 setInterval(() => {
   updateDatetime();
@@ -2252,6 +2287,8 @@ setInterval(() => {
 }, 30000);
 renderAll();
 initTabSwipe();
+} // end initApp()
+
 // Nascondi FAB quando la tastiera iOS è aperta (qualsiasi input attivo)
 document.addEventListener('focusin', e => {
   if (e.target.matches('input,textarea')) {
@@ -2350,6 +2387,64 @@ setTimeout(() => {
   const s = document.getElementById('splash');
   if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
 }, 1200);
+</script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const _fbApp = firebase.initializeApp({
+  apiKey: "AIzaSyDuT4RPa4z3JwkOP7uT9ejQYyyA3QzHcVQ",
+  authDomain: "blocco-96dd9.firebaseapp.com",
+  projectId: "blocco-96dd9",
+  storageBucket: "blocco-96dd9.firebasestorage.app",
+  messagingSenderId: "8856261247",
+  appId: "1:8856261247:web:ef6048b99e0d26c2b3654a"
+});
+const _fbAuth = firebase.auth();
+const _fbDb   = firebase.firestore();
+window._fbDb  = _fbDb;
+
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  _fbAuth.signInWithPopup(provider).catch(err => console.error(err));
+}
+
+function doSignOut() {
+  _fbAuth.signOut();
+}
+
+_fbAuth.onAuthStateChanged(async user => {
+  const overlay = document.getElementById('login-overlay');
+  const appEl   = document.getElementById('app');
+  if (user) {
+    window._fbUser = user;
+    // Load data from Firestore
+    try {
+      const doc = await _fbDb.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        const d = doc.data();
+        S = {
+          name:    d.name    || S.name,
+          proms:   d.proms   || [],
+          idee:    d.idee    || [],
+          liste:   d.liste   || [],
+          cestino: d.cestino || [],
+          theme:   d.theme   || 'dark',
+          secret:  d.secret  || {proms:[], idee:[]}
+        };
+      }
+    } catch(e) { console.warn('Firestore load error', e); }
+    overlay.classList.add('hidden');
+    appEl.style.display = '';
+    initApp();
+  } else {
+    window._fbUser = null;
+    appEl.style.display = 'none';
+    overlay.classList.remove('hidden');
+  }
+});
 </script>
 </body>
 </html>
