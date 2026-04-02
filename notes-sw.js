@@ -1,4 +1,4 @@
-const CACHE  = 'blocco-v20';
+const CACHE  = 'blocco-v21';
 const STATIC = ['./notes-manifest.json', './notes-icon.svg'];
 
 self.addEventListener('install', e => {
