@@ -2420,6 +2420,8 @@ _fbAuth.onAuthStateChanged(async user => {
   const appEl   = document.getElementById('app');
   if (user) {
     window._fbUser = user;
+    // Always start with empty data — never bleed localStorage into other users
+    S = {name: user.displayName || 'Utente', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}};
     // Load data from Firestore
     try {
       const doc = await _fbDb.collection('users').doc(user.uid).get();
@@ -2441,6 +2443,9 @@ _fbAuth.onAuthStateChanged(async user => {
     initApp();
   } else {
     window._fbUser = null;
+    // Clear localStorage so next user starts fresh
+    localStorage.removeItem('blocco');
+    S = {name:'', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}};
     appEl.style.display = 'none';
     overlay.classList.remove('hidden');
   }
