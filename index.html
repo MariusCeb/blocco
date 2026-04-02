@@ -109,6 +109,7 @@ body {
 .new-folder-form { display: none; }
 .shortcuts-panel { display: none; }
 .folders-sec  { display: none; }
+.folder-compose { display: none; }
 
 /* ─────────────────────────────────────────────────────────
    DESKTOP ≥ 680px
@@ -296,6 +297,44 @@ body {
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── Cleaner cards on desktop: actions visible only on hover ── */
+  .cacts { opacity: 0; transition: opacity .15s; }
+  .card:hover .cacts { opacity: 1; }
+  .cmeta { padding: 5px 14px 6px; }
+  .card { margin-bottom: 10px; }
+
+  /* ── Folder compose area ── */
+  .folder-compose { display: block; }
+  .folder-compose {
+    background: var(--s1); border: 1px solid var(--bd);
+    border-radius: var(--r); margin-bottom: 20px; overflow: hidden;
+  }
+  .fc-title {
+    display: block; width: 100%; background: none; border: none; outline: none;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--text); padding: 16px 18px 8px;
+    letter-spacing: -.01em;
+  }
+  .fc-title::placeholder { color: var(--dim); font-weight: 400; }
+  .fc-body {
+    display: block; width: 100%; background: none; border: none; outline: none;
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    padding: 4px 18px 12px; resize: none; min-height: 80px; line-height: 1.6;
+  }
+  .fc-body::placeholder { color: var(--dim); }
+  .fc-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px 10px 18px;
+    border-top: 1px solid var(--bd);
+  }
+  .fc-hint { font-size: 9px; color: var(--dim); letter-spacing: .04em; }
+  .fc-save {
+    background: none; border: 1px solid var(--bd2); border-radius: 4px;
+    font-family: var(--mono); font-size: 10px; color: var(--text);
+    padding: 5px 12px; cursor: pointer; transition: background .12s;
+  }
+  .fc-save:hover { background: var(--s2); }
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -917,7 +956,19 @@ html.light input[type="datetime-local"] { color-scheme:light }
   </div>
   <!-- Vista Cartella: mostra le note della cartella selezionata -->
   <div class="view" id="v-folder">
-    <div class="vscroll"><div class="stack" id="folder-l"></div></div>
+    <div class="vscroll"><div class="stack">
+      <div class="folder-compose" id="folder-compose">
+        <input  class="fc-title" id="fc-title" placeholder="Titolo (opzionale)..." maxlength="100"
+          onkeydown="if(event.key==='Tab'){event.preventDefault();document.getElementById('fc-body').focus()}">
+        <textarea class="fc-body" id="fc-body" placeholder="Testo nota..."
+          onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))addFolderNote()"></textarea>
+        <div class="fc-footer">
+          <span class="fc-hint">ctrl+enter per salvare</span>
+          <button class="fc-save" onclick="addFolderNote()">[+ salva]</button>
+        </div>
+      </div>
+      <div id="folder-l"></div>
+    </div></div>
   </div>
 </div>
 
@@ -1728,21 +1779,40 @@ function renderFolder() {
   const el = document.getElementById('folder-l');
   if (!el) return;
   const notes = [...(S.proms||[]), ...(S.idee||[])].filter(n => n.folder === curFolder).sort((a,b) => b.created - a.created);
-  if (!notes.length) { el.innerHTML = '<div class="empty">cartella vuota.<br>assegna note con [folder].</div>'; return; }
+  if (!notes.length) { el.innerHTML = '<div class="empty">nessuna nota.<br>scrivine una qui sopra.</div>'; return; }
   el.innerHTML = notes.map(n => {
     const tp = S.proms.find(p => p.id === n.id) ? 'prom' : 'idee';
     return `<div class="card${clrCls(n.color)}" data-id="${n.id}" data-tp="${tp}">
-      <div class="ptext" onclick="openFocus('${tp}','${n.id}')">${md(n.text)}</div>
+      <div class="cbody idea-body" onclick="openFocus('${tp}','${n.id}')">
+        ${n.title ? `<div class="ctitle">${esc(n.title)}</div>` : ''}
+        <div class="ctext">${md(n.text)}</div>
+      </div>
       <div class="cmeta">
-        <span class="cts">${fmtTs(n.created)} · <span style="color:var(--dim)">${tp}</span></span>
+        <span class="cts">${fmtTs(n.created)}</span>
         <div class="cacts">
           <button class="cact" onclick="openFocus('${tp}','${n.id}')">[edit]</button>
-          <button class="cact del" onclick="unassignFolder('${n.id}','${tp}')">[remove]</button>
+          <button class="cact del" onclick="unassignFolder('${n.id}','${tp}');renderFolder()">[remove]</button>
         </div>
       </div>
     </div>`;
   }).join('');
   applyTwemoji(el);
+}
+
+function addFolderNote() {
+  const title = (document.getElementById('fc-title').value || '').trim();
+  const text  = (document.getElementById('fc-body').value  || '').trim();
+  if (!text && !title) return;
+  const now = Date.now();
+  const note = {id:uid(), title, text: text || title, color:null, pinned:false, created:now, updated:now, folder:curFolder};
+  if (!title) delete note.title;
+  S.idee.unshift(note);
+  persist();
+  document.getElementById('fc-title').value = '';
+  document.getElementById('fc-body').value  = '';
+  document.getElementById('fc-body').style.height = '';
+  renderFolder(); renderFolders();
+  toast('[nota aggiunta]');
 }
 
 function openFolderForm() {
