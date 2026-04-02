@@ -2408,6 +2408,7 @@ window._fbDb  = _fbDb;
 
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   _fbAuth.signInWithPopup(provider).catch(err => console.error(err));
 }
 
