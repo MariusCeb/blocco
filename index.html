@@ -2585,15 +2585,26 @@ const _fbAuth = firebase.auth();
 const _fbDb   = firebase.firestore();
 window._fbDb  = _fbDb;
 
+function _isStandalone() {
+  return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+}
+
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  _fbAuth.signInWithPopup(provider).catch(err => console.error(err));
+  if (_isStandalone()) {
+    _fbAuth.signInWithRedirect(provider);
+  } else {
+    _fbAuth.signInWithPopup(provider).catch(err => console.error(err));
+  }
 }
 
 function doSignOut() {
   _fbAuth.signOut();
 }
+
+// Handle redirect result (iOS PWA login)
+_fbAuth.getRedirectResult().catch(err => console.error(err));
 
 _fbAuth.onAuthStateChanged(async user => {
   const overlay = document.getElementById('login-overlay');
