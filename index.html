@@ -124,7 +124,7 @@ body {
     box-shadow: 0 0 0 1px var(--bd2), 0 24px 64px rgba(0,0,0,.6);
     display: grid;
     grid-template-columns: 260px 1fr;
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr auto;
   }
 
   /* ── Sidebar ── */
@@ -153,7 +153,7 @@ body {
   .tab {
     flex: none;
     text-align: left;
-    padding: 15px 22px;
+    padding: 15px 22px 15px 26px;
     border-bottom: 1px solid var(--bd);
     font-size: 11px;
     transition: background .12s, color .15s;
@@ -165,7 +165,7 @@ body {
 
   /* qcap incollato al fondo della sidebar */
   .qcap {
-    grid-column: 1; grid-row: 4;
+    grid-column: 1; grid-row: 5;
     border-right: 1px solid var(--bd);
     border-bottom: none;
     border-top: 1px solid var(--bd);
@@ -202,9 +202,49 @@ body {
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  .folders-sec {
+    grid-column: 1; grid-row: 4;
+    border-right: 1px solid var(--bd);
+    border-top: 1px solid var(--bd);
+    overflow-y: auto;
+    display: none;
+  }
+  .folders-sec.has-folders { display: block; }
+  .folder-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 22px 10px 26px;
+    font-size: 9px; color: var(--dim); letter-spacing: .06em;
+    border-bottom: 1px solid var(--bd);
+  }
+  .folder-add-btn {
+    background: none; border: none; color: var(--dim);
+    font-family: inherit; font-size: 11px; cursor: pointer;
+    padding: 0 2px; line-height: 1;
+  }
+  .folder-add-btn:hover { color: var(--text); }
+  .folder-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px 11px 26px;
+    font-size: 10px; cursor: pointer; color: var(--muted);
+    border-bottom: 1px solid var(--bd);
+    transition: background .12s, color .15s;
+    background: none; border-left: none; width: 100%; text-align: left;
+    font-family: inherit;
+  }
+  .folder-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
+  .folder-item.on { background: var(--bg); color: var(--text); }
+  .folder-del {
+    background: none; border: none; color: var(--dim); font-family: inherit;
+    font-size: 10px; cursor: pointer; opacity: 0; padding: 0 2px;
+    transition: opacity .15s;
+  }
+  .folder-item:hover .folder-del { opacity: 1; }
+  .folder-del:hover { color: var(--accent); }
 }
 /* ── Bottone share: nascosto su mobile (si usa swipe), visibile su desktop */
 .cact-share { display:none }
+.folders-sec { display: none; } /* hidden on mobile */
 
 /* ─────────────────────────────────────────────────────────
    HEADER — barra in alto con nome, data, bottoni
@@ -270,6 +310,7 @@ body {
   height:1px;background:var(--text);border-radius:1px;
 }
 .tab-badge {font-size:7px;color:var(--muted);margin-left:3px}
+.tab-cnt { color: var(--dim); font-size: 9px; }
 
 /* ─────────────────────────────────────────────────────────
    QUICK CAPTURE — barra di input sempre visibile
@@ -763,10 +804,19 @@ html.light input[type="datetime-local"] { color-scheme:light }
      goTab('prom'|'idee'|'liste'|'cestino') gestisce il cambio
      ══════════════════════════════════════════════════════ -->
 <div class="tabs">
-  <button class="tab on" id="tab-prom"    onclick="goTab('prom')">prom</button>
-  <button class="tab"    id="tab-idee"    onclick="goTab('idee')">idee</button>
-  <button class="tab"    id="tab-liste"   onclick="goTab('liste')">liste</button>
+  <button class="tab on" id="tab-prom"    onclick="goTab('prom')">prom <span class="tab-cnt" id="cnt-prom"></span></button>
+  <button class="tab"    id="tab-idee"    onclick="goTab('idee')">idee <span class="tab-cnt" id="cnt-idee"></span></button>
+  <button class="tab"    id="tab-liste"   onclick="goTab('liste')">liste <span class="tab-cnt" id="cnt-liste"></span></button>
   <button class="tab"    id="tab-cestino" onclick="goTab('cestino')">cestino<span class="tab-badge" id="cestino-badge"></span></button>
+</div>
+
+<!-- Cartelle personalizzate (solo desktop) -->
+<div class="folders-sec" id="folders-sec">
+  <div class="folder-hdr">
+    <span>cartelle</span>
+    <button class="folder-add-btn" onclick="newFolder()" title="Nuova cartella">[+]</button>
+  </div>
+  <div id="folders-list"></div>
 </div>
 
 <!-- Quick capture: input sempre visibile per promemoria rapidi.
@@ -797,6 +847,10 @@ html.light input[type="datetime-local"] { color-scheme:light }
   <!-- Vista Cestino: generata da renderCestino() al cambio tab -->
   <div class="view" id="v-cestino">
     <div class="vscroll" id="cestino-wrap"></div>
+  </div>
+  <!-- Vista Cartella: mostra le note della cartella selezionata -->
+  <div class="view" id="v-folder">
+    <div class="vscroll"><div class="stack" id="folder-l"></div></div>
   </div>
 </div>
 
@@ -958,6 +1012,7 @@ let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
 let secretMode = false;
+let curFolder = null; // null = no folder filter, string = folder id
 function _focusBgTouchMove(e) {
   const scrollable = document.getElementById('focus-body');
   if (scrollable && scrollable.contains(e.target)) return;
@@ -1003,9 +1058,10 @@ function load() {
       liste:   d.liste   || [],   // array di liste
       cestino: d.cestino || [],   // array di elementi eliminati
       theme:   d.theme   || 'dark',
-      secret:  d.secret  || {proms:[], idee:[]}
+      secret:  d.secret  || {proms:[], idee:[]},
+      folders: d.folders || []
     };
-  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark',secret:{proms:[],idee:[]}}; }
+  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark',secret:{proms:[],idee:[]},folders:[]}; }
 }
 
 // Salva tutto lo stato in localStorage come stringa JSON.
@@ -1169,6 +1225,12 @@ function updateDatetime() {
 function updateStats() {
   const badge = document.getElementById('cestino-badge');
   if (badge) badge.textContent = S.cestino.length ? ' [' + S.cestino.length + ']' : '';
+  const cp = document.getElementById('cnt-prom');
+  const ci = document.getElementById('cnt-idee');
+  const cl = document.getElementById('cnt-liste');
+  if (cp) cp.textContent = S.proms.length ? S.proms.length : '';
+  if (ci) ci.textContent = S.idee.length ? S.idee.length : '';
+  if (cl) cl.textContent = S.liste.length ? S.liste.length : '';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1238,8 +1300,10 @@ function matches(arr) { return !q || arr.some(s => s && s.toLowerCase().includes
 // ══════════════════════════════════════════════════════════
 function goTab(t) {
   curTab = t;
+  curFolder = null;
   // Aggiorna lo stile attivo su tab e viste
   document.querySelectorAll('.tab').forEach(b  => b.classList.toggle('on', b.id === 'tab-'+t));
+  document.querySelectorAll('.folder-item').forEach(b => b.classList.remove('on'));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-'+t));
   const isCestino = t === 'cestino';
   // Nel cestino non ha senso aggiungere note → nascondi quick capture e FAB
@@ -1308,6 +1372,7 @@ function renderProms() {
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
+            <button class="cact" onclick="assignFolder('${i.id}','prom')">[folder]</button>
             <button class="cact cact-share" onclick="shareItem('${i.id}','prom')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
           </div>
@@ -1366,6 +1431,7 @@ function renderIdee() {
           <div class="cacts">
             <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
+            <button class="cact" onclick="assignFolder('${i.id}','idee')">[folder]</button>
             <button class="cact cact-share" onclick="shareItem('${i.id}','idee')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
           </div>
@@ -1561,8 +1627,100 @@ function editLI(lid, iid) {
   if (t !== null && t.trim()) { it.text = t.trim(); l.updated = Date.now(); persist(); renderListe(); }
 }
 
+// ══════════════════════════════════════════════════════════
+// CARTELLE — gestione cartelle personalizzate
+// ══════════════════════════════════════════════════════════
+function renderFolders() {
+  const sec = document.getElementById('folders-sec');
+  const lst = document.getElementById('folders-list');
+  if (!sec || !lst) return;
+  const folders = S.folders || [];
+  sec.classList.toggle('has-folders', folders.length > 0);
+  lst.innerHTML = folders.map(f => {
+    const cnt = [...(S.proms||[]), ...(S.idee||[])].filter(n => n.folder === f.id).length;
+    return `<button class="folder-item${curFolder===f.id?' on':''}" onclick="goFolder('${f.id}')">
+      <span>/ ${esc(f.name)}${cnt ? ' <span style="color:var(--dim);font-size:9px">['+cnt+']</span>' : ''}</span>
+      <span class="folder-del" onclick="event.stopPropagation();delFolder('${f.id}')">[×]</span>
+    </button>`;
+  }).join('');
+}
+
+function goFolder(id) {
+  curFolder = curFolder === id ? null : id;
+  // Deselect all tabs visually when a folder is active
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', !curFolder && b.id === 'tab-'+curTab));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', !curFolder ? v.id === 'v-'+curTab : v.id === 'v-folder'));
+  document.getElementById('qcap').style.display = '';
+  document.getElementById('fab').style.display  = '';
+  renderFolders();
+  if (curFolder) renderFolder();
+  else renderAll();
+}
+
+function renderFolder() {
+  const el = document.getElementById('folder-l');
+  if (!el) return;
+  const notes = [...(S.proms||[]), ...(S.idee||[])].filter(n => n.folder === curFolder).sort((a,b) => b.created - a.created);
+  if (!notes.length) { el.innerHTML = '<div class="empty">cartella vuota.<br>assegna note con [folder].</div>'; return; }
+  el.innerHTML = notes.map(n => {
+    const tp = S.proms.find(p => p.id === n.id) ? 'prom' : 'idee';
+    return `<div class="card${clrCls(n.color)}" data-id="${n.id}" data-tp="${tp}">
+      <div class="ptext" onclick="openFocus('${tp}','${n.id}')">${md(n.text)}</div>
+      <div class="cmeta">
+        <span class="cts">${fmtTs(n.created)} · <span style="color:var(--dim)">${tp}</span></span>
+        <div class="cacts">
+          <button class="cact" onclick="openFocus('${tp}','${n.id}')">[edit]</button>
+          <button class="cact del" onclick="unassignFolder('${n.id}','${tp}')">[remove]</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  applyTwemoji(el);
+}
+
+function newFolder() {
+  const name = prompt('Nome cartella:');
+  if (!name || !name.trim()) return;
+  if (!S.folders) S.folders = [];
+  S.folders.push({id: uid(), name: name.trim()});
+  persist(); renderFolders();
+}
+
+function delFolder(id) {
+  if (!confirm('Elimina cartella? Le note non vengono eliminate.')) return;
+  S.folders = (S.folders||[]).filter(f => f.id !== id);
+  // Remove folder assignment from notes
+  [...(S.proms||[]), ...(S.idee||[])].forEach(n => { if (n.folder === id) n.folder = null; });
+  if (curFolder === id) { curFolder = null; goTab(curTab); }
+  persist(); renderFolders();
+}
+
+function assignFolder(id, tp) {
+  const folders = S.folders || [];
+  if (!folders.length) { toast('nessuna cartella. creane una prima.'); return; }
+  const names = folders.map((f,i) => (i+1)+'. '+f.name).join('\n');
+  const choice = prompt('Cartella:\n' + names + '\n0. rimuovi', '');
+  if (choice === null) return;
+  const arr = tp === 'prom' ? S.proms : S.idee;
+  const item = arr.find(i => i.id === id);
+  if (!item) return;
+  if (choice === '0') { item.folder = null; toast('[rimosso dalla cartella]'); }
+  else {
+    const idx = parseInt(choice) - 1;
+    if (idx >= 0 && idx < folders.length) { item.folder = folders[idx].id; toast('[aggiunto a ' + folders[idx].name + ']'); }
+    else return;
+  }
+  persist(); renderAll(); renderFolders();
+}
+
+function unassignFolder(id, tp) {
+  const arr = tp === 'prom' ? S.proms : S.idee;
+  const item = arr.find(i => i.id === id);
+  if (item) { item.folder = null; persist(); renderFolder(); renderFolders(); }
+}
+
 // Re-renderizza tutte e tre le sezioni + aggiorna le statistiche
-function renderAll() { renderProms(); renderIdee(); renderListe(); updateStats(); }
+function renderAll() { renderProms(); renderIdee(); renderListe(); updateStats(); renderFolders(); if (curFolder) renderFolder(); }
 
 // ══════════════════════════════════════════════════════════
 // CRUD GENERICO — pin e delete per tutte le sezioni
@@ -2388,6 +2546,26 @@ setTimeout(() => {
   const s = document.getElementById('splash');
   if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
 }, 1200);
+
+// ══════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS — solo desktop
+// ══════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,textarea,select')) return;
+  if (e.metaKey || e.ctrlKey) return;
+  if (window.innerWidth < 680) return;
+  switch(e.key) {
+    case 'n': case 'N': e.preventDefault(); onFab(); break;
+    case '1': goTab('prom'); break;
+    case '2': goTab('idee'); break;
+    case '3': goTab('liste'); break;
+    case '4': goTab('cestino'); break;
+    case '/': e.preventDefault(); tglSearch(); break;
+    case 'Escape':
+      if (sOpen) tglSearch();
+      break;
+  }
+});
 </script>
 
 <!-- Firebase SDK -->
@@ -2423,7 +2601,7 @@ _fbAuth.onAuthStateChanged(async user => {
   if (user) {
     window._fbUser = user;
     // Always start with empty data — never bleed localStorage into other users
-    S = {name: user.displayName || 'Utente', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}};
+    S = {name: user.displayName || 'Utente', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}, folders:[]};
     // Load data from Firestore
     try {
       const doc = await _fbDb.collection('users').doc(user.uid).get();
@@ -2436,7 +2614,8 @@ _fbAuth.onAuthStateChanged(async user => {
           liste:   d.liste   || [],
           cestino: d.cestino || [],
           theme:   d.theme   || 'dark',
-          secret:  d.secret  || {proms:[], idee:[]}
+          secret:  d.secret  || {proms:[], idee:[]},
+          folders: d.folders || []
         };
       }
     } catch(e) { console.warn('Firestore load error', e); }
