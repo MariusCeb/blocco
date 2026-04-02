@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <!-- Codifica caratteri: permette lettere accentate e simboli -->
+  <meta charset="UTF-8">
+  <!-- Viewport mobile: impedisce lo zoom automatico su iPhone; viewport-fit=cover copre l'intero schermo fisico (notch incluso) -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <!-- Permette di aggiungere l'app alla schermata home come PWA su iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <!-- Stile della barra di stato iPhone: trasparente scuro -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Nome che appare sotto l'icona sulla schermata home -->
+  <meta name="apple-mobile-web-app-title" content="Blocco">
+  <!-- Colore della barra del browser (visibile su Android Chrome) -->
+  <meta name="theme-color" content="#0e0e0e" id="tc-meta">
+  <!-- File manifest PWA: definisce icona, nome, colori dell'app installata -->
+  <link rel="manifest" href="./notes-manifest.json">
+  <!-- Icona per la schermata home iPhone e favicon browser -->
+  <link rel="apple-touch-icon" href="./notes-icon.svg">
+  <link rel="icon" href="./notes-icon.svg" type="image/svg+xml">
+  <title>Blocco — Note</title>
+  <!-- Font monospace IBM Plex Mono da Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <!-- Twemoji: converte le emoji di sistema in SVG neutrali di Twitter -->
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+  <style>
+
+/* ─────────────────────────────────────────────────────────
+   TOKENS — variabili CSS globali
+   Cambiale qui per ridisegnare tutta l'app in un colpo solo.
+   --bg: sfondo principale
+   --s1/s2/s3: livelli di grigio per le superfici (card, modal…)
+   --bd/bd2: colori dei bordi (trasparenze)
+   --text: testo principale  --muted: testo secondario/grigio
+   --dim: testo quasi invisibile (placeholder, bordi sottili)
+   --accent: colore di accento (grigio scuro)
+   --mono: font monospace usato ovunque
+   --r: border-radius (angoli delle card)
+   --st/--sb: safe area iPhone (spazio per notch e barra home)
+───────────────────────────────────────────────────────── */
+:root {
+  --bg:    #0e0e0e;
+  --s1:    #161616;
+  --s2:    #1e1e1e;
+  --s3:    #272727;
+  --bd:    rgba(255,255,255,.07);
+  --bd2:   rgba(255,255,255,.13);
+  --text:  #e8e6e1;
+  --muted: #5e5e5e;
+  --dim:   #333333;
+  --accent:#686868;
+  --mono:  'IBM Plex Mono', monospace;
+  --r:     3px;
+  --st:    env(safe-area-inset-top, 0px);
+  --sb:    env(safe-area-inset-bottom, 0px);
+}
+/* Tema chiaro: sovrascrive solo i colori, tutto il resto rimane uguale */
+html.light {
+  --bg:    #f0eeea;
+  --s1:    #e8e6e2;
+  --s2:    #dddbd7;
+  --s3:    #d2d0cc;
+  --bd:    rgba(0,0,0,.08);
+  --bd2:   rgba(0,0,0,.15);
+  --text:  #111111;
+  --muted: #888888;
+  --dim:   #cccccc;
+  --accent:#444444;
+}
+
+/* ─────────────────────────────────────────────────────────
+   RESET — azzera i margini di default del browser
+   box-sizing:border-box → padding e border sono DENTRO la larghezza
+   -webkit-tap-highlight-color:transparent → rimuove il flash blu su tap mobile
+───────────────────────────────────────────────────────── */
+*,*::before,*::after {
+  margin:0;padding:0;box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+html { background:#0e0e0e;-webkit-text-size-adjust:100%;text-size-adjust:100%;width:100%;height:100%;overflow:hidden }
+html.light { background:#f0eeea }
+body {
+  margin:0;width:100%;background:var(--bg);color:var(--text);font-family:var(--mono);
+  height:100%;overflow:hidden;display:flex;justify-content:center;
+  font-size:14px;transition:background .3s,color .3s;
+}
+/* Contenitore app — occupa tutto su mobile, si centra su desktop */
+.app {
+  width:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  position:relative;
+}
+/* ── Splash screen ─────────────────────────────────────── */
+#splash {
+  position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;transition:opacity .4s ease;pointer-events:none;
+}
+#splash-name { font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--text);
+  animation:splashIn .55s cubic-bezier(.22,.68,0,1.2) both; }
+#splash-name .hl { color:var(--accent) }
+@keyframes splashIn {
+  from { opacity:0; transform:translateY(8px) scale(.96) }
+  to   { opacity:1; transform:translateY(0)   scale(1)   }
+}
+/* ── Desktop ≥ 680px ───────────────────────────────────── */
+@media (min-width:680px) {
+  body {
+    background: var(--s2);
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+
+  /* App = griglia 2 colonne. background:var(--s1) = colore sidebar.
+     La colonna destra (.views) sovrascrive con var(--bg). */
+  .app {
+    max-width: 980px;
+    height: calc(100vh - 56px);
+    max-height: 880px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--s1);
+    box-shadow: 0 0 0 1px var(--bd2), 0 24px 64px rgba(0,0,0,.6);
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  /* ── Sidebar ── */
+  .vhead {
+    grid-column: 1; grid-row: 1;
+    padding: 24px 20px 16px;
+    border-bottom: none;
+    border-right: 1px solid var(--bd);
+  }
+  .vbig { font-size: 16px; }
+
+  .sbar {
+    grid-column: 1; grid-row: 2;
+    border-bottom: none;
+    border-right: 1px solid var(--bd);
+  }
+  .sinp { padding: 10px 18px; font-size: 12px; }
+
+  .tabs {
+    grid-column: 1; grid-row: 3;
+    flex-direction: column;
+    border-bottom: none;
+    border-right: 1px solid var(--bd);
+    background: transparent;
+  }
+  .tab {
+    flex: none;
+    text-align: left;
+    padding: 15px 22px;
+    border-bottom: 1px solid var(--bd);
+    font-size: 11px;
+    transition: background .12s, color .15s;
+  }
+  /* Tab attivo: stesso colore del pannello destro → sembra "selezionato" */
+  .tab.on { background: var(--bg); color: var(--text); }
+  .tab.on::after { display: none; }
+  .tab:hover:not(.on) { background: rgba(255,255,255,.04); color: var(--text); }
+
+  /* qcap incollato al fondo della sidebar */
+  .qcap {
+    grid-column: 1; grid-row: 4;
+    border-right: 1px solid var(--bd);
+    border-bottom: none;
+    border-top: 1px solid var(--bd);
+    align-self: end;
+  }
+  .qinp { padding: 13px 18px; font-size: 12px; }
+  .qadd { padding: 13px 16px; font-size: 14px; }
+
+  /* ── Pannello destro ── */
+  .views {
+    grid-column: 2; grid-row: 1 / -1;
+    background: var(--bg);
+  }
+  .vscroll { padding: 28px 32px 72px; }
+  .stack   { max-width: 520px; }
+
+  /* FAB in basso a destra del pannello destro */
+  .fab {
+    position: absolute;
+    grid-column: 2; grid-row: 1 / -1;
+    bottom: 32px; right: 32px;
+    font-size: 18px;
+  }
+
+  /* ── Hover / interazioni mouse ── */
+  .card { cursor: default; }
+  .card:hover { background: var(--s2); }
+  .cact:hover { color: var(--text); }
+  .hbt:hover  { color: var(--text); }
+  .cact-share { display: inline !important }
+
+  /* ── Scrollbar sottile ── */
+  ::-webkit-scrollbar       { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+}
+/* ── Bottone share: nascosto su mobile (si usa swipe), visibile su desktop */
+.cact-share { display:none }
+
+/* ─────────────────────────────────────────────────────────
+   HEADER — barra in alto con nome, data, bottoni
+   padding-top usa --st per scendere sotto il notch iPhone
+   flex-shrink:0 → non si restringe mai, rimane sempre visibile
+───────────────────────────────────────────────────────── */
+.vhead {
+  padding:calc(var(--st) + 12px) 20px 10px;flex-shrink:0;
+  display:flex;align-items:flex-start;justify-content:space-between;
+  border-bottom:1px solid var(--bd);
+}
+.vbig  {font-size:17px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.vbig .hl {color:var(--accent)}
+.vname {color:var(--text);cursor:pointer;border-bottom:1px dashed var(--dim);padding-bottom:1px}
+.vdate {font-size:9px;color:var(--muted);letter-spacing:.06em;margin-top:3px}
+/* Riga statistiche: [5 prom] [3 idee] ecc. — quasi invisibile */
+/* Gruppo bottoni in alto a destra */
+.hbts  {display:flex;gap:12px;margin-top:2px;align-items:center}
+/* Stile base dei bottoni header: nessun box, solo testo/icona con [ ] */
+.hbt   {
+  background:transparent;border:none;padding:0;
+  cursor:pointer;font-size:10px;color:var(--muted);
+  font-family:var(--mono);letter-spacing:.04em;
+  -webkit-appearance:none;transition:color .15s;
+  display:flex;align-items:center;
+}
+.hbt:active {color:var(--text)}
+/* Emoji Twemoji dentro i bottoni (quando presenti) */
+.hbt img.emoji {width:12px;height:12px;pointer-events:none;margin:0 1px}
+
+/* ─────────────────────────────────────────────────────────
+   BARRA DI RICERCA — si apre/chiude con animazione height
+   max-height:0 = nascosta; max-height:50px = visibile
+   overflow:hidden permette l'animazione senza scatti
+───────────────────────────────────────────────────────── */
+.sbar {
+  border-bottom:1px solid var(--bd);flex-shrink:0;
+  max-height:0;overflow:hidden;transition:max-height .25s ease;
+}
+.sbar.open {max-height:50px}
+.sinp {
+  display:block;width:100%;background:transparent;border:none;
+  padding:9px 20px;color:var(--text);font-family:var(--mono);font-size:12px;
+  outline:none;letter-spacing:.04em;
+}
+.sinp::placeholder {color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+
+/* ─────────────────────────────────────────────────────────
+   TAB — le 4 sezioni (Prom / Idee / Liste / Cestino)
+   flex:1 → ogni tab occupa lo stesso spazio
+   .on::after → la lineetta grigia sotto il tab attivo
+───────────────────────────────────────────────────────── */
+.tabs {display:flex;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--s1)}
+.tab  {
+  flex:1;padding:9px 0;font-size:10px;font-weight:500;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);background:none;border:none;
+  cursor:pointer;font-family:var(--mono);position:relative;transition:color .15s;
+  -webkit-appearance:none;
+}
+.tab.on {color:var(--text)}
+.tab.on::after {
+  content:'';position:absolute;bottom:0;left:25%;right:25%;
+  height:1px;background:var(--text);border-radius:1px;
+}
+.tab-badge {font-size:7px;color:var(--muted);margin-left:3px}
+
+/* ─────────────────────────────────────────────────────────
+   QUICK CAPTURE — barra di input sempre visibile
+   Permette di aggiungere un promemoria veloce senza aprire il modal
+───────────────────────────────────────────────────────── */
+.qcap {
+  display:flex;align-items:center;
+  border-bottom:1px solid var(--bd);flex-shrink:0;
+}
+.qinp {
+  flex:1;background:transparent;border:none;outline:none;
+  padding:9px 20px;color:var(--text);font-family:var(--mono);
+  font-size:12px;letter-spacing:.02em;
+}
+.qinp::placeholder {color:var(--dim);letter-spacing:.06em}
+.qadd {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:14px;padding:9px 18px;
+  letter-spacing:.04em;transition:color .12s;-webkit-appearance:none;
+}
+.qadd:active {color:var(--text)}
+
+/* ─────────────────────────────────────────────────────────
+   VIEWS — contenitore delle 4 viste (Prom/Idee/Liste/Cestino)
+   position:relative sul container + position:absolute sulle viste
+   permette di sovrapporre le viste e mostrarne solo una con display:block
+───────────────────────────────────────────────────────── */
+.views {flex:1;overflow:hidden;position:relative}
+.view  {
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;display:none; /* nascosta di default */
+}
+.view.on  {display:block} /* la vista attiva */
+/* Padding interno: 20px laterali, più spazio in basso per il FAB [+] */
+.vscroll  {padding:12px 16px calc(var(--sb) + 80px)}
+.stack    {display:flex;flex-direction:column;gap:8px}
+
+/* ─────────────────────────────────────────────────────────
+   CARD — il blocco base per ogni nota/promemoria/lista
+   animation fadeIn: ogni nuova card appare con piccolo slide-up
+   .pin-on::after → piccolo triangolino ▲ in alto a destra per le card fissate
+───────────────────────────────────────────────────────── */
+.card-slot { position:relative;border-radius:var(--r); }
+.del-hint {
+  position:absolute;left:0;top:0;bottom:0;width:68px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  pointer-events:none;transition:color .12s;
+}
+.del-hint.hint-on   { color:#e94560 }
+.share-hint {
+  position:absolute;right:0;top:0;bottom:0;width:68px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  pointer-events:none;transition:color .12s;
+}
+.share-hint.hint-on { color:var(--text) }
+.card {
+  background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);
+  overflow:hidden;position:relative;animation:fadeIn .28s cubic-bezier(.22,.68,0,1.2) both;
+  -webkit-user-select:none;user-select:none;
+}
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(10px) scale(.97) }
+  to   { opacity:1; transform:translateY(0)    scale(1)   }
+}
+/* Indicatore visivo "card fissata" — triangolino grigio in alto a destra */
+.card.pin-on::after {
+  content:'▲';position:absolute;top:9px;right:10px;
+  font-size:7px;color:var(--accent);opacity:.8;font-family:var(--mono);
+}
+/* Bordi colorati a sinistra per le etichette colore */
+.clr-red    {border-left:3px solid #f87171!important}
+.clr-orange {border-left:3px solid #fb923c!important}
+.clr-yellow {border-left:3px solid #facc15!important}
+.clr-green  {border-left:3px solid #4ade80!important}
+.clr-blue   {border-left:3px solid #60a5fa!important}
+.clr-purple {border-left:3px solid #a78bfa!important}
+.clr-pink   {border-left:3px solid #f472b6!important}
+.clr-teal   {border-left:3px solid #2dd4bf!important}
+.clr-lime   {border-left:3px solid #a3e635!important}
+
+/* ── Riga inferiore della card (timestamp + azioni) ─────── */
+.cmeta {
+  display:flex;align-items:center;gap:8px;
+  padding:4px 10px 5px;border-top:1px solid var(--bd);
+}
+.cts   {font-size:8px;color:var(--dim);letter-spacing:.05em;flex:1}
+.cacts {display:flex;gap:8px}
+.cact  {
+  font-size:8px;padding:4px 3px;border:none;
+  background:transparent;cursor:pointer;color:var(--muted);font-family:var(--mono);
+  letter-spacing:.05em;-webkit-appearance:none;transition:color .12s;
+}
+.cact:active     {color:var(--text)}
+.cact.del:active {color:#e94560}
+
+/* ─────────────────────────────────────────────────────────
+   PROMEMORIA — riga con cerchietto + testo
+   .pcb = "prompt check button", il cerchio che segna come fatto
+   Tap sul cerchio → animazione slide-out e rimozione
+   Tap sul testo → apre la focus view (lettura)
+───────────────────────────────────────────────────────── */
+.prow  {display:flex;align-items:flex-start;gap:10px;padding:9px 11px 5px}
+.pcb   {
+  width:18px;height:18px;border-radius:50%;border:1.5px solid var(--muted);
+  flex-shrink:0;cursor:pointer;background:transparent;margin-top:2px;
+  transition:border-color .12s;
+}
+.pcb:active {border-color:var(--accent)}
+.ptext {
+  flex:1;font-size:13px;line-height:1.6;word-break:break-word;
+  cursor:pointer;letter-spacing:.01em;
+  overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;
+}
+.ptext b {font-weight:600}
+.ptext i {font-style:italic;color:var(--muted)}
+
+/* ─────────────────────────────────────────────────────────
+   IDEA CARD — titolo opzionale + testo
+   Tap sul body → apre focus view (lettura)
+───────────────────────────────────────────────────────── */
+.cbody  {padding:9px 11px 5px;cursor:pointer}
+.ctitle {font-size:13px;font-weight:600;margin-bottom:3px;letter-spacing:.01em}
+.ctext  {font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;letter-spacing:.01em}
+.ctext b {font-weight:600}
+.ctext i {font-style:italic;color:var(--muted)}
+
+/* ─────────────────────────────────────────────────────────
+   LISTA CARD — header con titolo e progresso (done/tot)
+   ogni .lrow = una voce della lista con checkbox + testo + ×
+   .ladd = riga in fondo per aggiungere nuove voci
+───────────────────────────────────────────────────────── */
+.lhead  {
+  padding:9px 11px 7px;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--bd);
+}
+.ltitle {font-size:13px;font-weight:600;letter-spacing:.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lprog  {font-size:8px;color:var(--dim);flex-shrink:0;letter-spacing:.06em}
+.lrows  {padding:2px 11px 0}
+.lrow   {
+  display:flex;align-items:center;gap:8px;padding:5px 0;
+  border-bottom:1px solid var(--bd);
+}
+.lrow:last-child {border-bottom:none}
+.lck    {
+  width:17px;height:17px;border:1.5px solid var(--muted);border-radius:2px;
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:9px;transition:background .12s,border-color .12s;
+}
+.lck.on {background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.lit    {flex:1;font-size:13px;cursor:pointer;letter-spacing:.01em}
+.lit.done {text-decoration:line-through;color:var(--dim)}
+.ldel   {
+  background:none;border:none;cursor:pointer;color:var(--dim);
+  font-size:14px;line-height:1;padding:0 2px;transition:color .12s;
+}
+.ldel:active {color:#e94560}
+.ladd   {display:flex;gap:8px;padding:6px 11px 9px;border-top:1px solid var(--bd)}
+.laddinp {
+  flex:1;background:transparent;border:none;outline:none;
+  font-size:13px;color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+}
+.laddinp::placeholder {color:var(--dim)}
+.laddbtn {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-size:16px;line-height:1;transition:color .12s;
+}
+.laddbtn:active {color:var(--accent)}
+/* Handle drag voci lista */
+.ldrag {
+  color:var(--dim);font-size:13px;cursor:grab;flex-shrink:0;
+  padding:0 6px 0 0;user-select:none;touch-action:none;line-height:1;
+}
+.ldrag:active {cursor:grabbing}
+/* Ghost voce durante il drag */
+.lrow-ghost {
+  position:fixed;z-index:400;pointer-events:none;
+  background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r);
+  display:flex;align-items:center;gap:8px;padding:5px 0;
+  opacity:.9;transform:scale(1.02);box-shadow:0 8px 28px rgba(0,0,0,.4);
+  padding-left:12px;padding-right:12px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   FAB — pulsante [+] fisso in basso a destra
+   position:fixed → rimane sempre visibile sopra lo scroll
+   bottom usa --sb per stare sopra la barra home iPhone
+   Nessun cerchio: solo testo [+] minimal
+───────────────────────────────────────────────────────── */
+.fab {
+  position:fixed;bottom:calc(var(--sb) + 52px);right:20px;z-index:60;
+  background:transparent;border:none;padding:4px;
+  font-size:20px;cursor:pointer;color:var(--muted);font-family:var(--mono);
+  letter-spacing:.04em;transition:color .15s;-webkit-appearance:none;
+}
+.fab:active {color:var(--text)}
+
+/* ─────────────────────────────────────────────────────────
+   MODAL — pannello che sale dal basso (bottom sheet)
+   .modal-bg: overlay scuro semitrasparente su tutto lo schermo
+   .modal-sheet: il pannello bianco/scuro che sale
+   opacity + pointer-events: quando è chiuso è invisibile e non cliccabile
+   transform:translateY(14px) → parte leggermente sotto, poi sale a 0
+───────────────────────────────────────────────────────── */
+.modal-bg {
+  position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-bg.open {opacity:1;pointer-events:auto}
+.modal-sheet {
+  background:var(--s1);border-top:1px solid var(--bd2);
+  padding:20px 20px calc(var(--sb) + 28px);width:100%;max-width:500px;
+  transform:translateY(14px);transition:transform .25s;
+  max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.modal-bg.open .modal-sheet {transform:translateY(0)}
+/* Titolino in cima alla sheet, tipo "NUOVO PROMEMORIA" */
+.modal-ttl  {font-size:9px;font-weight:600;margin-bottom:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+/* Contenitore di ogni campo del form */
+.m-field    {margin-bottom:9px}
+/* Etichetta del campo, tipo "NOTA" o "TITOLO" */
+.m-lbl      {font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px}
+/* Input e textarea del form */
+.m-inp      {
+  width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:3px;
+  padding:9px 11px;color:var(--text);font-family:var(--mono);font-size:12px;
+  outline:none;-webkit-appearance:none;transition:border-color .15s;resize:none;
+}
+.m-inp:focus {border-color:var(--bd2)}
+.m-inp::placeholder {color:var(--dim)}
+/* Riga con [annulla] + [salva] */
+.m-actions  {display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:4px}
+.m-cancel   {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  -webkit-appearance:none;transition:color .12s;padding:8px 4px;
+}
+.m-cancel:active  {color:var(--text)}
+.m-confirm  {
+  background:none;border:none;cursor:pointer;color:var(--text);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  font-weight:600;-webkit-appearance:none;transition:color .12s;padding:8px 4px;
+}
+.m-confirm:active {opacity:.6}
+
+/* ─────────────────────────────────────────────────────────
+   COLOR PICKER — pallini colorati nel modal
+   .clrdot.sel → bordo bianco/nero quando selezionato
+   .clrnone → il pallino "nessun colore" (grigio tratteggiato)
+───────────────────────────────────────────────────────── */
+.clrpick {display:flex;gap:8px;flex-wrap:wrap;padding:2px 0}
+.clrdot  {
+  width:18px;height:18px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:transform .12s,border-color .12s;
+}
+.clrdot:active {transform:scale(.8)}
+.clrdot.sel    {border-color:var(--text)}
+.clrnone       {background:var(--s3);border:1.5px dashed var(--bd2)}
+
+/* ─────────────────────────────────────────────────────────
+   TOAST — notifica temporanea (tipo "[nel cestino]")
+   Appare in alto al centro, poi scompare dopo 2 secondi
+   transform:translateY(-8px) → parte un po' più in su, poi scende a 0
+───────────────────────────────────────────────────────── */
+.toast {
+  position:fixed;top:calc(var(--st) + 16px);left:50%;
+  transform:translateX(-50%) translateY(-4px);
+  font-size:9px;font-weight:500;letter-spacing:.08em;color:var(--text);
+  z-index:300;opacity:0;transition:all .2s;pointer-events:none;white-space:nowrap;
+}
+.toast.show {opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Messaggio stato vuoto delle sezioni */
+.empty {
+  padding:44px 20px;text-align:center;color:var(--dim);
+  font-size:10px;line-height:1.9;letter-spacing:.06em;
+}
+
+/* ─────────────────────────────────────────────────────────
+   DRAG TO REORDER — stili per il trascinamento card
+   .drag-ghost: copia visiva della card che segue il dito
+   .drag-src: la card originale diventa quasi invisibile
+   .drag-ov: la card su cui stai trascinando riceve un outline
+───────────────────────────────────────────────────────── */
+.drag-ghost {
+  position:fixed;z-index:400;pointer-events:none;opacity:.88;
+  transform:scale(1.03) rotate(.4deg);box-shadow:0 10px 36px rgba(0,0,0,.5);
+  border-radius:var(--r);overflow:hidden;transition:top .04s linear;
+}
+.drag-src {opacity:.15;pointer-events:none;}
+.card-slot {transition:transform .18s ease;}
+
+/* Bottoni nel modal backup */
+.bk-btn {
+  width:100%;padding:11px;background:var(--s2);border:1px solid var(--bd);
+  border-radius:3px;color:var(--text);font-family:var(--mono);font-size:10px;
+  cursor:pointer;letter-spacing:.08em;-webkit-appearance:none;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:background .12s;
+}
+.bk-btn:active {background:var(--s3)}
+.bk-btn img.emoji {width:13px;height:13px;pointer-events:none}
+
+/* ─────────────────────────────────────────────────────────
+   CESTINO — sezione elementi eliminati
+   .cestino-notice: avviso "conservati 30 giorni" in cima
+   .trash-act: bottoni [ripristina] e [elimina] senza box
+───────────────────────────────────────────────────────── */
+.cestino-notice {
+  font-size:8px;color:var(--dim);letter-spacing:.06em;
+  padding:14px 16px 6px;text-align:center;
+}
+.trash-act {
+  font-size:8px;background:none;border:none;cursor:pointer;
+  color:var(--muted);font-family:var(--mono);letter-spacing:.06em;
+  -webkit-appearance:none;padding:5px 4px;transition:color .12s;
+}
+.trash-act:active {color:var(--text)}
+.trash-act.del:active {color:#e94560}
+
+/* ─────────────────────────────────────────────────────────
+   FOCUS — schermata a schermo intero, stile iOS Notes
+   Due modalità: view (lettura) ed edit (modifica)
+   Slide-up dal basso all'apertura
+───────────────────────────────────────────────────────── */
+.focus-bg {
+  position:fixed;inset:0;background:var(--bg);z-index:150;
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transform:translateY(100%);
+  transition:opacity .22s,transform .3s cubic-bezier(.32,.72,0,1);
+}
+.focus-bg.open {opacity:1;pointer-events:auto;transform:translateY(0)}
+/* Barra superiore: [chiudi] a sx, status + pulsante a dx */
+.focus-topbar {
+  padding:calc(var(--st) + 14px) 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bd);flex-shrink:0;
+}
+/* Area lettura: testo renderizzato, scrollabile */
+.focus-view {
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:24px 24px 20px;overscroll-behavior:contain;
+}
+.focus-view-title {
+  font-size:16px;font-weight:600;letter-spacing:-.01em;
+  margin-bottom:14px;color:var(--text);line-height:1.3;
+}
+.focus-view-body {
+  font-size:13px;line-height:1.9;color:var(--text);
+  font-family:var(--mono);letter-spacing:.01em;
+}
+.focus-view-body p { margin:0 0 6px }
+/* Area modifica: textarea occupa tutto lo spazio disponibile */
+.focus-edit {flex:1;display:flex;flex-direction:column;overflow:hidden}
+.focus-ttl-inp {
+  width:100%;background:transparent;border:none;
+  border-bottom:1px solid var(--bd);outline:none;
+  font-size:14px;font-weight:600;font-family:var(--mono);
+  color:var(--text);padding:14px 24px 12px;letter-spacing:-.01em;
+  -webkit-appearance:none;appearance:none;flex-shrink:0;
+}
+.focus-body {
+  flex:1;padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
+  color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+  background:transparent;border:none;outline:none;resize:none;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+/* Barra inferiore */
+.focus-foot {
+  border-top:1px solid var(--bd);flex-shrink:0;
+  padding:8px 20px calc(var(--sb) + 10px);
+  display:flex;align-items:center;gap:10px;
+}
+/* Numeri di riga stile VS Code */
+.focus-lnums {
+  font-size:13px;line-height:1.9;font-family:var(--mono);
+  color:var(--muted);opacity:.35;user-select:none;pointer-events:none;
+  flex-shrink:0;min-width:28px;text-align:right;
+  padding:16px 4px 16px 16px;overflow:hidden;white-space:pre;
+}
+/* Wrapper textarea + numeri riga */
+.focus-editor-wrap {flex:1;display:flex;overflow:hidden}
+.fclose {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  -webkit-appearance:none;appearance:none;transition:color .12s;padding:6px 0;
+}
+.fclose:active {color:var(--text)}
+.fclose.primary {color:var(--text);font-weight:600}
+
+/* ── Idea card: limita altezza con fade ──────────────── */
+.idea-body {
+  max-height:200px;overflow:hidden;position:relative;
+}
+.idea-body.overflows::after {
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:44px;background:linear-gradient(transparent,var(--s1));
+  pointer-events:none;
+}
+
+/* ── Deadline progress bar ───────────────────────────── */
+.deadline-bar {
+  height:3px;background:var(--bd);overflow:hidden;flex-shrink:0;
+}
+.deadline-fill {
+  height:100%;transition:width .5s ease;
+}
+.dl-lbl { color:var(--muted) }
+.dl-lbl.expired { color:#e94560 }
+@keyframes deadlinePulse {
+  0%,100%{opacity:1}50%{opacity:.3}
+}
+.dl-row {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:2px;
+}
+input[type="datetime-local"] { color-scheme:dark }
+html.light input[type="datetime-local"] { color-scheme:light }
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <div id="splash-name">Blocco<span class="hl">.</span></div>
+</div>
+
+<div class="app">
+
+<!-- ══════════════════════════════════════════════════════
+     HEADER — nome, data/ora, statistiche, bottoni
+     ══════════════════════════════════════════════════════ -->
+<div class="vhead">
+  <div>
+    <div class="vbig">
+      <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
+      <span class="vname" id="name-lbl" onclick="editName()">Marius</span><span class="hl">.aaa</span>
+    </div>
+    <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
+    <div class="vdate" id="vdate-lbl"></div>
+  </div>
+  <div class="hbts">
+    <!-- [🔍] apre/chiude la barra di ricerca -->
+    <button class="hbt" id="sbtn" onclick="tglSearch()" title="Cerca">[<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>]</button>
+    <!-- [luna/sole] cambia tema scuro/chiaro; l'icona SVG viene iniettata da applyTheme() -->
+    <button class="hbt" id="theme-btn" onclick="tglTheme()" title="Tema">[<span id="theme-ico"></span>]</button>
+    <!-- [archivio] apre il modal backup esporta/importa JSON -->
+    <button class="hbt" onclick="openModal('m-io')" title="Backup">[<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg>]</button>
+  </div>
+</div>
+
+<!-- Barra di ricerca: nascosta di default, si apre con tglSearch() -->
+<div class="sbar" id="sbar">
+  <input class="sinp" id="sinp" type="search" placeholder="Cerca..." oninput="doSearch(this.value)">
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TAB — navigazione tra le 4 sezioni
+     goTab('prom'|'idee'|'liste'|'cestino') gestisce il cambio
+     ══════════════════════════════════════════════════════ -->
+<div class="tabs">
+  <button class="tab on" id="tab-prom"    onclick="goTab('prom')">prom</button>
+  <button class="tab"    id="tab-idee"    onclick="goTab('idee')">idee</button>
+  <button class="tab"    id="tab-liste"   onclick="goTab('liste')">liste</button>
+  <button class="tab"    id="tab-cestino" onclick="goTab('cestino')">cestino<span class="tab-badge" id="cestino-badge"></span></button>
+</div>
+
+<!-- Quick capture: input sempre visibile per promemoria rapidi.
+     Premi Invio o [+] → qAdd() aggiunge direttamente a S.proms -->
+<div class="qcap" id="qcap">
+  <input class="qinp" id="qinp" placeholder="promemoria rapido..."
+    onkeydown="if(event.key==='Enter')qAdd(this)">
+  <button class="qadd" onclick="qAdd(document.getElementById('qinp'))">[+]</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     VISTE — una per ogni sezione, solo quella .on è visibile
+     Il contenuto viene generato dinamicamente da renderXxx()
+     ══════════════════════════════════════════════════════ -->
+<div class="views">
+  <!-- Vista Promemoria: le card vengono generate da renderProms() -->
+  <div class="view on" id="v-prom">
+    <div class="vscroll"><div class="stack" id="prom-l"></div></div>
+  </div>
+  <!-- Vista Idee: le card vengono generate da renderIdee() -->
+  <div class="view" id="v-idee">
+    <div class="vscroll"><div class="stack" id="idee-l"></div></div>
+  </div>
+  <!-- Vista Liste: le card vengono generate da renderListe() -->
+  <div class="view" id="v-liste">
+    <div class="vscroll"><div class="stack" id="liste-l"></div></div>
+  </div>
+  <!-- Vista Cestino: generata da renderCestino() al cambio tab -->
+  <div class="view" id="v-cestino">
+    <div class="vscroll" id="cestino-wrap"></div>
+  </div>
+</div>
+
+<!-- FAB [+] fisso in basso a destra.
+     onFab() apre il modal giusto in base al tab corrente.
+     Si nasconde automaticamente nel tab Cestino. -->
+<button class="fab" id="fab" onclick="onFab()">[+]</button>
+
+</div><!-- /.app -->
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL: creazione/modifica promemoria o idea
+     Tap sull'overlay scuro chiude il modal (bgClose)
+     ══════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="m-card" onclick="bgClose(event,'m-card')">
+  <div class="modal-sheet">
+    <!-- Titolo dinamico: "Nuovo promemoria" / "Modifica idea" ecc. -->
+    <div class="modal-ttl" id="m-card-ttl">Nuovo</div>
+    <!-- Campo titolo: visibile solo per le Idee, nascosto per i Promemoria -->
+    <div class="m-field" id="m-hd-wrap">
+      <div class="m-lbl">Titolo</div>
+      <input class="m-inp" id="m-card-hd" placeholder="Titolo (opzionale)...">
+    </div>
+    <div class="m-field">
+      <div class="m-lbl">Nota</div>
+      <!-- rows="4" = altezza iniziale della textarea -->
+      <textarea class="m-inp" id="m-card-tx" rows="4" placeholder="Scrivi qui... **grassetto** _corsivo_" onkeydown="autoList(event)"></textarea>
+    </div>
+    <div class="m-field">
+      <div class="m-lbl">Etichetta colore</div>
+      <!-- I pallini colorati vengono generati da buildClrPick() -->
+      <div class="clrpick" id="m-card-clr"></div>
+    </div>
+    <div class="m-field">
+      <div class="dl-row">
+        <div class="m-lbl">Data scadenza</div>
+        <button class="cact" id="m-deadline-toggle" onclick="tglDeadlineField()" style="padding:3px 4px">[off]</button>
+      </div>
+      <input type="datetime-local" class="m-inp" id="m-deadline-inp" style="display:none;margin-top:4px">
+    </div>
+    <div class="m-actions">
+      <button class="m-cancel"  onclick="closeModal('m-card')">[annulla]</button>
+      <button class="m-confirm" onclick="saveCard()">[salva]</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: creazione/rinomina lista -->
+<div class="modal-bg" id="m-lista" onclick="bgClose(event,'m-lista')">
+  <div class="modal-sheet">
+    <div class="modal-ttl" id="m-lista-ttl">Nuova lista</div>
+    <div class="m-field">
+      <div class="m-lbl">Nome lista</div>
+      <input class="m-inp" id="m-lista-nm" placeholder="es. Spesa, Film da vedere...">
+    </div>
+    <div class="m-field">
+      <div class="m-lbl">Etichetta colore</div>
+      <div class="clrpick" id="m-lista-clr"></div>
+    </div>
+    <div class="m-actions">
+      <button class="m-cancel"  onclick="closeModal('m-lista')">[annulla]</button>
+      <button class="m-confirm" onclick="saveLista()">[salva]</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: backup — esporta/importa tutto come file JSON -->
+<div class="modal-bg" id="m-io" onclick="bgClose(event,'m-io')">
+  <div class="modal-sheet">
+    <div class="modal-ttl">Backup dati</div>
+    <div class="m-field">
+      <button class="bk-btn" onclick="doExport()">📤 Esporta JSON</button>
+    </div>
+    <div class="m-field">
+      <!-- Click fittizio sull'input file nascosto -->
+      <button class="bk-btn" onclick="document.getElementById('f-in').click()">📥 Importa JSON</button>
+      <input type="file" id="f-in" accept=".json" style="display:none" onchange="doImport(this)">
+    </div>
+    <div class="m-actions">
+      <button class="m-cancel" onclick="closeModal('m-io')">[chiudi]</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOCUS — schermata a schermo intero stile iOS Notes -->
+<div class="focus-bg" id="focus-modal">
+  <!-- Barra superiore -->
+  <div class="focus-topbar">
+    <button class="fclose" onclick="closeFocus()">[←] chiudi</button>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span id="focus-status" style="font-size:9px;color:var(--dim);letter-spacing:.05em"></span>
+      <button class="fclose" id="focus-edit-btn" onclick="focusEnterEdit()">modifica</button>
+      <button class="fclose primary" id="focus-save-btn" style="display:none" onclick="saveFocus()">salva</button>
+    </div>
+  </div>
+
+  <!-- VIEW MODE: testo renderizzato, grande e comodo -->
+  <div class="focus-view" id="focus-view">
+    <div class="focus-view-title" id="focus-view-title" style="display:none"></div>
+    <div class="focus-view-body" id="focus-view-body"></div>
+    <div id="focus-view-meta" style="margin-top:20px;font-size:9px;color:var(--muted);letter-spacing:.05em"></div>
+  </div>
+
+  <!-- EDIT MODE: textarea a tutto schermo -->
+  <div class="focus-edit" id="focus-edit" style="display:none">
+    <input class="focus-ttl-inp" id="focus-ttl-inp" placeholder="Titolo..." style="display:none">
+    <div class="focus-editor-wrap">
+      <div class="focus-lnums" id="focus-lnums">1</div>
+      <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
+    </div>
+  </div>
+
+  <!-- Barra inferiore -->
+  <div class="focus-foot">
+    <!-- View: mostra colore e scadenza in sola lettura -->
+    <div id="focus-foot-view" style="display:flex;align-items:center;gap:10px;flex:1">
+      <div id="focus-view-clr" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></div>
+      <span id="focus-foot-dl" style="font-size:9px;color:var(--muted)"></span>
+    </div>
+    <!-- Edit: color picker + scadenza -->
+    <div id="focus-foot-edit" style="display:none;flex:1;flex-direction:column;gap:6px">
+      <div class="clrpick" id="focus-clr"></div>
+      <div class="dl-row">
+        <span style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Scadenza</span>
+        <button class="cact" id="focus-deadline-toggle" onclick="tglFocusDeadlineField()" style="padding:3px 4px">[off]</button>
+      </div>
+      <input type="datetime-local" class="m-inp" id="focus-deadline-inp" style="display:none;margin-bottom:2px">
+    </div>
+  </div>
+</div>
+
+<!-- Toast: notifica temporanea in alto al centro -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// COSTANTI
+// CLRS: lista dei nomi dei colori disponibili per le etichette
+// CLRHEX: mappa nome → codice colore hex (per disegnare i pallini)
+// TRASH_TTL: quanto tempo tenere gli elementi nel cestino (30 giorni in ms)
+// ══════════════════════════════════════════════════════════
+const CLRS    = ['red','orange','yellow','green','blue','purple','pink','teal','lime'];
+const CLRHEX  = {red:'#f87171',orange:'#fb923c',yellow:'#facc15',green:'#4ade80',blue:'#60a5fa',purple:'#a78bfa',pink:'#f472b6',teal:'#2dd4bf',lime:'#a3e635'};
+const TRASH_TTL = 30 * 86400e3; // 86400e3 = millisecondi in un giorno
+
+// ══════════════════════════════════════════════════════════
+// STATO GLOBALE — S è l'unico oggetto che contiene tutti i dati
+// Ogni modifica passa da qui e viene salvata con persist()
+// Variabili ausiliarie:
+//   curTab: tab attivo ('prom'|'idee'|'liste'|'cestino')
+//   q: testo della ricerca corrente
+//   eId/eType/ePick: dati temporanei del modal aperto (id, tipo, colore scelto)
+//   dSrcId/dOvId/dGhost: variabili per il drag-and-drop
+// ══════════════════════════════════════════════════════════
+let S = load();
+let curTab = 'prom';
+let q = '';
+let eId = null, eType = null, ePick = null;
+let dSrcId = null, dOvId = null, dGhost = null;
+let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
+let secretMode = false;
+function _focusBgTouchMove(e) {
+  const scrollable = document.getElementById('focus-body');
+  if (scrollable && scrollable.contains(e.target)) return;
+  e.preventDefault();
+}
+
+function curProms() { return secretMode ? S.secret.proms : S.proms; }
+function curIdee()  { return secretMode ? S.secret.idee  : S.idee;  }
+
+function toggleSecretMode() {
+  secretMode = !secretMode;
+  const dot = document.querySelector('.vbig .hl');
+  if (dot) dot.style.color = secretMode ? '#e94560' : '';
+  ['tab-liste','tab-cestino','v-liste','v-cestino'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = secretMode ? 'none' : '';
+  });
+  if (secretMode && (curTab === 'liste' || curTab === 'cestino')) goTab('prom');
+  q = ''; renderAll();
+}
+
+
+// Avvolge il testo selezionato nella textarea con **grassetto**
+function wrapBold() {
+  const ta = document.getElementById('focus-body');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const sel = ta.value.slice(s, e) || 'testo';
+  ta.value = ta.value.slice(0, s) + '**' + sel + '**' + ta.value.slice(e);
+  ta.selectionStart = s + 2; ta.selectionEnd = e + 2;
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
+
+// Carica i dati da localStorage.
+// Se non esistono (primo avvio) o il JSON è corrotto → valori di default.
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('blocco') || '{}');
+    return {
+      name:    d.name    || 'Marius',
+      proms:   d.proms   || [],   // array di promemoria
+      idee:    d.idee    || [],   // array di idee
+      liste:   d.liste   || [],   // array di liste
+      cestino: d.cestino || [],   // array di elementi eliminati
+      theme:   d.theme   || 'dark',
+      secret:  d.secret  || {proms:[], idee:[]}
+    };
+  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark',secret:{proms:[],idee:[]}}; }
+}
+
+// Salva tutto lo stato in localStorage come stringa JSON.
+// Viene chiamata ogni volta che qualcosa cambia.
+function persist() { localStorage.setItem('blocco', JSON.stringify(S)); }
+
+// Genera un ID unico basato sul timestamp + caratteri random.
+// Esempio: "lq3k7abcd" — usato come chiave per ogni nota/lista/voce.
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+// Formatta un timestamp in testo leggibile relativo ("adesso", "3m fa", "2g fa"…)
+// t: timestamp in millisecondi (Date.now())
+function fmtTs(t) {
+  const d    = new Date(t);
+  const time = d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+  const date = d.toLocaleDateString('it-IT',  {day:'2-digit', month:'2-digit', year:'numeric'});
+  return '[' + time + ' · ' + date + ']';
+}
+
+// Calcola quanti giorni mancano alla scadenza di un elemento nel cestino.
+// deletedAt: timestamp di quando è stato eliminato.
+function fmtTrashExp(deletedAt) {
+  const days = Math.ceil((deletedAt + TRASH_TTL - Date.now()) / 86400e3);
+  if (days <= 0) return 'scaduto';
+  if (days === 1) return 'scade domani';
+  return 'scade tra ' + days + 'g';
+}
+
+// Escape HTML: converte i caratteri speciali in entità sicure.
+// Impedisce che il testo dell'utente venga interpretato come HTML (XSS).
+// Usato per titoli e testi dove non vogliamo markdown.
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// Renderer markdown leggero: prima fa escape dell'HTML (sicurezza),
+// poi applica **grassetto** e _corsivo_, poi converte i newline in <br>.
+function md(s) {
+  return (s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')   // **testo** → grassetto
+    .replace(/_(.+?)_/g,'<i>$1</i>')          // _testo_ → corsivo
+    .replace(/\n/g,'<br>');                    // newline → a capo HTML
+}
+
+// Mostra un messaggio temporaneo in alto allo schermo.
+// dur: durata in ms prima che scompaia (default 2 secondi).
+// Usa clearTimeout per resettare il timer se chiamato più volte di seguito.
+function toast(msg, dur=2000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTO-LIST — continua la lista con "- " a capo automatico
+// ══════════════════════════════════════════════════════════
+function autoList(e) {
+  if (e.key !== 'Enter') return;
+  const ta = e.target;
+  if (ta.selectionStart !== ta.selectionEnd) return; // selezione attiva: non interferire
+  const pos = ta.selectionStart;
+  const val = ta.value;
+  const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+  const currentLine = val.substring(lineStart, pos);
+  const m = currentLine.match(/^(\s*- )/);
+  if (!m) return;
+  e.preventDefault();
+  const prefix = m[1];
+  const afterPrefix = currentLine.substring(prefix.length);
+  if (!afterPrefix.trim()) {
+    // Bullet vuoto → rimuovi e torna a riga normale
+    ta.value = val.substring(0, lineStart) + val.substring(pos);
+    ta.selectionStart = ta.selectionEnd = lineStart;
+  } else {
+    // Continua la lista
+    const ins = '\n' + prefix;
+    ta.value = val.substring(0, pos) + ins + val.substring(pos);
+    ta.selectionStart = ta.selectionEnd = pos + ins.length;
+  }
+  ta.dispatchEvent(new Event('input'));
+}
+
+// ══════════════════════════════════════════════════════════
+// NUMERO RIGHE — aggiorna il pannello numeri nel focus editor
+// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// DEADLINE — scadenza con progress bar e countdown
+// ══════════════════════════════════════════════════════════
+function toLocalDatetimeInput(ts) {
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function fmtDeadline(ts) {
+  const diff = ts - Date.now();
+  if (diff <= 0) return 'SCADUTO';
+  const m = Math.floor(diff / 60e3);
+  const h = Math.floor(diff / 3600e3);
+  const d = Math.floor(diff / 86400e3);
+  if (d >= 2) return `↓ ${d}g`;
+  if (d === 1) return '↓ domani';
+  if (h >= 1)  return `↓ ${h}h`;
+  return `↓ ${m}m`;
+}
+function deadlineProgress(item) {
+  if (!item.deadline) return 0;
+  const total = item.deadline - item.created;
+  if (total <= 0) return 1;
+  return Math.max(0, Math.min(1, (Date.now() - item.created) / total));
+}
+function deadlineBar(item) {
+  if (!item.deadline) return '';
+  const p = deadlineProgress(item);
+  const pct = (p * 100).toFixed(1);
+  const col = item.color ? CLRHEX[item.color] : 'var(--accent)';
+  const pulse = p >= 1 ? ';animation:deadlinePulse 1.2s ease-in-out infinite' : '';
+  return `<div class="deadline-bar"><div class="deadline-fill" style="width:${pct}%;background:${col}${pulse}"></div></div>`;
+}
+function deadlineTag(item) {
+  if (!item.deadline) return '';
+  const p = deadlineProgress(item);
+  return ` · <span class="dl-lbl${p >= 1 ? ' expired' : ''}">${fmtDeadline(item.deadline)}</span>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// NOME — tap sul nome apre un prompt nativo per modificarlo
+// ══════════════════════════════════════════════════════════
+function editName() {
+  const n = prompt('Nome:', S.name);
+  if (n && n.trim()) {
+    S.name = n.trim();
+    persist(); // salva subito
+    document.getElementById('name-lbl').textContent = S.name; // aggiorna il DOM
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// DATA E ORA — aggiorna il display nell'header
+// Chiamata all'avvio e poi ogni 30 secondi con setInterval
+// ══════════════════════════════════════════════════════════
+function updateDatetime() {
+  const now = new Date();
+  const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
+  const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+  const el = document.getElementById('vdate-lbl');
+  if (el) el.textContent = d + ' — ' + t;
+}
+
+// ══════════════════════════════════════════════════════════
+// STATISTICHE — aggiorna la riga [N prom] [N idee] ecc.
+// e il badge numerico sul tab Cestino
+// ══════════════════════════════════════════════════════════
+function updateStats() {
+  const badge = document.getElementById('cestino-badge');
+  if (badge) badge.textContent = S.cestino.length ? ' [' + S.cestino.length + ']' : '';
+}
+
+// ══════════════════════════════════════════════════════════
+// TWEMOJI — converte le emoji Unicode in immagini SVG di Twitter
+// Chiamata dopo ogni render per sostituire le emoji nei contenuti utente
+// ══════════════════════════════════════════════════════════
+function applyTwemoji(el) {
+  if (typeof twemoji === 'undefined') return; // libreria non caricata (offline)
+  twemoji.parse(el || document.body, {
+    base:'https://abs.twimg.com/emoji/v2/', folder:'svg', ext:'.svg'
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// TEMA — scuro/chiaro
+// SVG_MOON e SVG_SUN: icone Heroicons inline (nessuna dipendenza esterna)
+// applyTheme(): applica la classe .light all'html, inietta l'icona giusta,
+//               aggiorna il colore della barra del browser
+// ══════════════════════════════════════════════════════════
+const SVG_MOON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>`;
+const SVG_SUN  = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>`;
+
+function applyTheme() {
+  // Aggiunge/rimuove la classe .light sul tag <html>
+  document.documentElement.classList.toggle('light', S.theme === 'light');
+  // In tema chiaro mostra luna (per tornare al buio), in tema scuro mostra sole
+  const ico = document.getElementById('theme-ico');
+  if (ico) ico.innerHTML = S.theme === 'light' ? SVG_MOON : SVG_SUN;
+  // Aggiorna il colore della barra browser su Android/Safari
+  document.getElementById('tc-meta').content = S.theme === 'light' ? '#f0eeea' : '#0e0e0e';
+}
+// Toggle: dark → light → dark…
+function tglTheme() { S.theme = S.theme === 'light' ? 'dark' : 'light'; persist(); applyTheme(); }
+
+// ══════════════════════════════════════════════════════════
+// RICERCA
+// sOpen: stato della barra di ricerca (aperta/chiusa)
+// tglSearch(): apre o chiude la barra, mette il focus sull'input
+// doSearch(): aggiorna q (query) e ri-renderizza tutto
+// matches(): controlla se almeno una delle stringhe contiene la query
+// ══════════════════════════════════════════════════════════
+let sOpen = false;
+function tglSearch() {
+  sOpen = !sOpen;
+  document.getElementById('sbar').classList.toggle('open', sOpen);
+  if (sOpen) setTimeout(() => document.getElementById('sinp').focus(), 260);
+  else { document.getElementById('sinp').value = ''; q = ''; renderAll(); }
+}
+function doSearch(v) {
+  if (v === '...' || v === '…') {
+    toggleSecretMode();
+    document.getElementById('sinp').value = '';
+    document.getElementById('sbar').classList.remove('open');
+    sOpen = false;
+    return;
+  }
+  q = v.toLowerCase().trim(); renderAll();
+}
+// arr: array di stringhe da cercare (es: [titolo, testo])
+function matches(arr) { return !q || arr.some(s => s && s.toLowerCase().includes(q)); }
+
+// ══════════════════════════════════════════════════════════
+// NAVIGAZIONE TAB
+// Aggiorna classe .on sui tab e sulle viste,
+// nasconde quick capture e FAB nella sezione cestino,
+// forza il render del cestino al primo accesso
+// ══════════════════════════════════════════════════════════
+function goTab(t) {
+  curTab = t;
+  // Aggiorna lo stile attivo su tab e viste
+  document.querySelectorAll('.tab').forEach(b  => b.classList.toggle('on', b.id === 'tab-'+t));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-'+t));
+  const isCestino = t === 'cestino';
+  // Nel cestino non ha senso aggiungere note → nascondi quick capture e FAB
+  document.getElementById('qcap').style.display = isCestino ? 'none' : '';
+  document.getElementById('fab').style.display  = isCestino ? 'none' : '';
+  if (isCestino) renderCestino(); // genera il contenuto del cestino
+}
+
+// ══════════════════════════════════════════════════════════
+// COLOR PICKER
+// buildClrPick(): genera i pallini colorati nel modal
+//   elId: id del contenitore div
+//   sel: colore attualmente selezionato
+// pickClr(): aggiorna ePick (colore scelto temporaneamente)
+// ══════════════════════════════════════════════════════════
+function clrCls(c) { return c ? ' clr-'+c : ''; } // classe CSS per il bordo colorato
+function buildClrPick(elId, sel) {
+  document.getElementById(elId).innerHTML = ['none',...CLRS].map(c => `
+    <div class="clrdot${c==='none'?' clrnone':''}${(sel||'none')===c?' sel':''}"
+      style="${c!=='none' ? 'background:'+CLRHEX[c] : ''}"
+      onclick="pickClr('${elId}','${c}')"></div>
+  `).join('');
+}
+function pickClr(elId, c) { ePick = c === 'none' ? null : c; buildClrPick(elId, c); }
+
+// ══════════════════════════════════════════════════════════
+// QUICK CAPTURE — aggiunge un promemoria dalla barra rapida
+// Se non sei già nel tab Promemoria, ci porta automaticamente
+// ══════════════════════════════════════════════════════════
+function qAdd(inp) {
+  const t = inp.value.trim(); if (!t) return;
+  const now = Date.now();
+  // unshift() aggiunge in cima all'array (più recente primo)
+  curProms().unshift({id:uid(), text:t, title:'', color:null, pinned:false, created:now, updated:now});
+  inp.value = ''; persist(); renderAll();
+  toast('[+ prom]');
+  if (curTab !== 'prom') goTab('prom');
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER PROMEMORIA
+// Costruisce l'HTML delle card e lo inietta in #prom-l.
+// Ordine: prima i fissati (pinned), poi per data decrescente.
+// Se c'è una ricerca attiva filtra prima di rendere.
+// ══════════════════════════════════════════════════════════
+function renderProms() {
+  const el = document.getElementById('prom-l');
+  let items = [...curProms()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  if (q) items = items.filter(i => matches([i.text]));
+  if (!items.length) {
+    el.innerHTML = '<div class="empty">nessun promemoria.<br>[ + ] per aggiungerne uno.</div>';
+    return;
+  }
+  el.innerHTML = items.map(i => `
+    <div class="card-slot">
+      <div class="del-hint">[del]</div>
+      <div class="share-hint">[share]</div>
+      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="prom">
+        <div class="prow">
+          <div class="pcb" onclick="chkProm('${i.id}')"></div>
+          <div class="ptext" onclick="openFocus('prom','${i.id}')">${md(i.text)}</div>
+        </div>
+        ${deadlineBar(i)}
+        <div class="cmeta">
+          <span class="cts">${fmtTs(i.created)}${deadlineTag(i)}</span>
+          <div class="cacts">
+            <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
+            <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
+            <button class="cact cact-share" onclick="shareItem('${i.id}','prom')">[share]</button>
+            <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  initDrag(el, 'prom');
+  initMouseDrag(el, 'prom');
+  applyTwemoji(el);
+}
+
+// Segna un promemoria come fatto: anima la card verso destra, poi la rimuove.
+// Non va nel cestino: è un completamento, non una cancellazione.
+function chkProm(id) {
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  const el   = card?.closest('.card-slot') || card;
+  if (!el) return;
+  el.style.transition = 'opacity .28s ease,transform .28s ease';
+  el.style.opacity    = '0';
+  el.style.transform  = 'translateX(44px)';
+  setTimeout(() => {
+    const idx = S.proms.findIndex(i => i.id === id);
+    if (idx !== -1) {
+      S.cestino.unshift({...S.proms[idx], type:'prom', deletedAt:Date.now()});
+      S.proms.splice(idx, 1);
+    }
+    persist(); renderAll();
+  }, 300);
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER IDEE — stessa logica di renderProms
+// Le idee hanno anche un titolo opzionale
+// ══════════════════════════════════════════════════════════
+function renderIdee() {
+  const el = document.getElementById('idee-l');
+  let items = [...curIdee()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  if (q) items = items.filter(i => matches([i.title, i.text]));
+  if (!items.length) {
+    el.innerHTML = '<div class="empty">nessuna idea.<br>[ + ] per aggiungerne una.</div>';
+    return;
+  }
+  el.innerHTML = items.map(i => `
+    <div class="card-slot">
+      <div class="del-hint">[del]</div>
+      <div class="share-hint">[share]</div>
+      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="idee">
+        <div class="cbody idea-body" onclick="openFocus('idee','${i.id}')">
+          ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
+          <div class="ctext">${md(i.text)}</div>
+        </div>
+        ${deadlineBar(i)}
+        <div class="cmeta">
+          <span class="cts">${fmtTs(i.created)}${deadlineTag(i)}</span>
+          <div class="cacts">
+            <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
+            <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
+            <button class="cact cact-share" onclick="shareItem('${i.id}','idee')">[share]</button>
+            <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  // Aggiungi fade gradient alle card con testo lungo
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.idea-body').forEach(b => {
+      b.classList.toggle('overflows', b.scrollHeight > b.clientHeight + 2);
+    });
+  });
+  initDrag(el, 'idee');
+  initMouseDrag(el, 'idee');
+  applyTwemoji(el);
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER LISTE — ogni lista ha header, righe e riga aggiungi
+// done/tot: contatore voci completate per la lista
+// ══════════════════════════════════════════════════════════
+function renderListe() {
+  const el = document.getElementById('liste-l');
+  let items = [...S.liste].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  if (q) items = items.filter(i => matches([i.title, ...i.items.map(r => r.text)]));
+  if (!items.length) {
+    el.innerHTML = '<div class="empty">nessuna lista.<br>[ + ] per crearne una.</div>';
+    return;
+  }
+  el.innerHTML = items.map(lst => {
+    const done = lst.items.filter(r => r.done).length;
+    return `
+      <div class="card-slot">
+      <div class="del-hint">[del]</div>
+      <div class="card${lst.pinned?' pin-on':''}${clrCls(lst.color)}" data-id="${lst.id}" data-tp="liste">
+        <div class="lhead">
+          <span class="ltitle">${esc(lst.title)}</span>
+          <span class="lprog">${done}/${lst.items.length}</span>
+        </div>
+        <div class="lrows">
+          ${lst.items.map(r => `
+            <div class="lrow" data-iid="${r.id}">
+              <div class="ldrag">⠿</div>
+              <div class="lck${r.done?' on':''}" onclick="tglLI('${lst.id}','${r.id}')">${r.done?'✓':''}</div>
+              <span class="lit${r.done?' done':''}" onclick="editLI('${lst.id}','${r.id}')">${esc(r.text)}</span>
+              <button class="ldel" onclick="delLI('${lst.id}','${r.id}')">×</button>
+            </div>
+          `).join('')}
+        </div>
+        <!-- Input in fondo per aggiungere nuove voci: Invio o + -->
+        <div class="ladd">
+          <input class="laddinp" id="ladd-${lst.id}" placeholder="Aggiungi voce..."
+            onkeydown="if(event.key==='Enter')addLI('${lst.id}',this)">
+          <button class="laddbtn" onclick="addLI('${lst.id}',document.getElementById('ladd-${lst.id}'))">+</button>
+        </div>
+        <div class="cmeta">
+          <span class="cts">${fmtTs(lst.created)}</span>
+          <div class="cacts">
+            <button class="cact"     onclick="pinItem('${lst.id}','liste')">[${lst.pinned?'unpin':'pin'}]</button>
+            <button class="cact"     onclick="openListaMod('${lst.id}')">[edit]</button>
+            <button class="cact del" onclick="delItem('${lst.id}','liste')">[del]</button>
+          </div>
+        </div>
+      </div>
+      </div>
+    `;
+  }).join('');
+  initDrag(el, 'liste');
+  initMouseDrag(el, 'liste');
+  items.forEach(lst => initListItemDrag(lst.id));
+  applyTwemoji(el);
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER CESTINO — mostra gli elementi eliminati con scadenza
+// Gli elementi vengono eliminati definitivamente dopo 30 giorni
+// oppure manualmente con [elimina] o [svuota cestino]
+// ══════════════════════════════════════════════════════════
+function renderCestino() {
+  const el = document.getElementById('cestino-wrap');
+  if (!S.cestino.length) {
+    el.innerHTML = '<div class="empty">cestino vuoto.</div>';
+    return;
+  }
+  // Ordina per data eliminazione: i più recenti prima
+  const items = [...S.cestino].sort((a,b) => b.deletedAt - a.deletedAt);
+  const lbl   = {prom:'prom', idee:'idea', liste:'lista'};
+
+  let html = '<div class="cestino-notice">[ elementi conservati 30 giorni ]</div>';
+  html += '<div class="stack" style="margin-top:10px">';
+  html += items.map(i => {
+    // Anteprima del contenuto: testo per prom/idee, voci per liste
+    const preview = i.text
+      ? i.text.slice(0, 80) + (i.text.length > 80 ? '…' : '')
+      : i.items ? i.items.map(x => x.text).join(', ').slice(0, 80) : '';
+    return `
+      <div class="card">
+        <div class="cbody">
+          <!-- Metadati: tipo, quando eliminato, quando scade -->
+          <div style="font-size:8px;color:var(--dim);margin-bottom:6px;letter-spacing:.05em">
+            [${lbl[i.type]||i.type}] · ${fmtTs(i.deletedAt)} · ${fmtTrashExp(i.deletedAt)}
+          </div>
+          ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
+          <div class="ctext" style="opacity:.55">${esc(preview)}</div>
+        </div>
+        <div class="cmeta">
+          <span class="cts">${new Date(i.deletedAt).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</span>
+          <div class="cacts">
+            <!-- [ripristina]: rimette l'elemento nella sua sezione originale -->
+            <button class="trash-act"     onclick="restoreItem('${i.id}')">[ripristina]</button>
+            <!-- [elimina]: cancella definitivamente, senza possibilità di recupero -->
+            <button class="trash-act del" onclick="permaDelete('${i.id}')">[elimina]</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  html += '</div>';
+  html += `<div style="text-align:center;padding:0 16px 20px">
+    <button class="trash-act del" onclick="clearAllTrash()" style="font-size:9px">[svuota cestino]</button>
+  </div>`;
+  el.innerHTML = html;
+  applyTwemoji(el);
+}
+
+// Ripristina un elemento dal cestino alla sua sezione originale (proms/idee/liste)
+function restoreItem(id) {
+  const idx = S.cestino.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const it = {...S.cestino[idx]};
+  const tp = it.type;
+  delete it.type; delete it.deletedAt; // rimuove i campi cestino-specifici
+  S.cestino.splice(idx, 1);
+  const k = tp === 'prom' ? 'proms' : tp;
+  S[k].unshift(it); // aggiunge in cima alla sezione
+  persist(); renderAll(); renderCestino(); updateStats();
+  toast('[ripristinato]');
+}
+
+// Elimina definitivamente un elemento dal cestino (con conferma)
+function permaDelete(id) {
+  if (!confirm('Eliminare definitivamente?')) return;
+  S.cestino = S.cestino.filter(i => i.id !== id);
+  persist(); renderCestino(); updateStats();
+  toast('[eliminato]');
+}
+
+// Svuota l'intero cestino (con conferma)
+function clearAllTrash() {
+  if (!confirm('Svuotare tutto il cestino?')) return;
+  S.cestino = []; persist(); renderCestino(); updateStats();
+  toast('[cestino svuotato]');
+}
+
+// Rimuove automaticamente gli elementi scaduti (> 30 giorni).
+// Chiamata all'avvio dell'app così il cestino si pulisce da solo.
+function purgeTrash() {
+  const before = S.cestino.length;
+  S.cestino = S.cestino.filter(i => (Date.now() - i.deletedAt) < TRASH_TTL);
+  if (S.cestino.length < before) persist(); // salva solo se c'è stato un cambiamento
+}
+
+// ══════════════════════════════════════════════════════════
+// HELPERS LISTA — operazioni sulle voci delle liste
+// lid: id della lista  |  iid: id della voce
+// ══════════════════════════════════════════════════════════
+
+// Inverte lo stato done/non-done di una voce
+function tglLI(lid, iid) {
+  const l = S.liste.find(x => x.id===lid); if (!l) return;
+  const it = l.items.find(x => x.id===iid); if (!it) return;
+  it.done = !it.done; l.updated = Date.now(); persist(); renderListe();
+}
+// Aggiunge una nuova voce alla lista, poi rimette il focus sull'input
+function addLI(lid, inp) {
+  const t = inp.value.trim(); if (!t) return;
+  const l = S.liste.find(x => x.id===lid); if (!l) return;
+  l.items.push({id:uid(), text:t, done:false});
+  l.updated = Date.now(); inp.value = ''; persist(); renderListe();
+  setTimeout(() => { const ni = document.getElementById('ladd-'+lid); if (ni) ni.focus(); }, 50);
+}
+// Rimuove una voce dalla lista
+function delLI(lid, iid) {
+  const l = S.liste.find(x => x.id===lid); if (!l) return;
+  l.items = l.items.filter(i => i.id!==iid); l.updated = Date.now(); persist(); renderListe();
+}
+// Modifica il testo di una voce con un prompt nativo
+function editLI(lid, iid) {
+  const l = S.liste.find(x => x.id===lid); if (!l) return;
+  const it = l.items.find(x => x.id===iid); if (!it) return;
+  const t = prompt('Modifica:', it.text);
+  if (t !== null && t.trim()) { it.text = t.trim(); l.updated = Date.now(); persist(); renderListe(); }
+}
+
+// Re-renderizza tutte e tre le sezioni + aggiorna le statistiche
+function renderAll() { renderProms(); renderIdee(); renderListe(); updateStats(); }
+
+// ══════════════════════════════════════════════════════════
+// CRUD GENERICO — pin e delete per tutte le sezioni
+// ══════════════════════════════════════════════════════════
+
+// Toggle pin: fissa/sfissa una card in cima alla lista
+function pinItem(id, tp) {
+  const arr = tp === 'prom' ? curProms() : curIdee();
+  const it = arr.find(i => i.id===id); if (!it) return;
+  it.pinned = !it.pinned; persist(); renderAll();
+  toast(it.pinned ? '[fissato]' : '[rimosso dai fissati]');
+}
+
+// Elimina (soft delete): sposta l'elemento nel cestino invece di rimuoverlo.
+// Aggiunge i campi type (per sapere da dove veniva) e deletedAt (per la scadenza).
+function delItem(id, tp) {
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  const el   = card?.closest('.card-slot') || card;
+  const commit = () => {
+    if (secretMode && (tp === 'prom' || tp === 'idee')) {
+      const arr = tp === 'prom' ? S.secret.proms : S.secret.idee;
+      const idx = arr.findIndex(i => i.id === id);
+      if (idx !== -1) arr.splice(idx, 1);
+      persist(); renderAll(); toast('[eliminato]');
+    } else {
+      const k   = tp === 'prom' ? 'proms' : tp;
+      const idx = S[k].findIndex(i => i.id === id);
+      if (idx === -1) return;
+      S.cestino.unshift({...S[k][idx], type: tp, deletedAt: Date.now()});
+      S[k].splice(idx, 1);
+      persist(); renderAll(); toast('[nel cestino]');
+    }
+  };
+  if (el) {
+    el.style.transition = 'opacity .22s ease,transform .22s ease';
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateX(28px)';
+    setTimeout(commit, 230);
+  } else { commit(); }
+}
+
+// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// ── Focus mode — view e edit ────────────────────────────
+let _focusIsEdit = false;
+
+function openFocus(tp, id) {
+  const arr = tp === 'prom' ? curProms() : curIdee();
+  const it  = arr.find(i => i.id === id); if (!it) return;
+  focusType = tp; focusId = id; focusColor = it.color || null;
+  const fm = document.getElementById('focus-modal');
+  fm.classList.add('open');
+  fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
+  focusEnterEdit();
+}
+
+function _focusPopulateView(it) {
+  const vTitle = document.getElementById('focus-view-title');
+  const vBody  = document.getElementById('focus-view-body');
+  const vMeta  = document.getElementById('focus-view-meta');
+  const clrDot = document.getElementById('focus-view-clr');
+  const footDl = document.getElementById('focus-foot-dl');
+  if (focusType === 'idee' && it.title) {
+    vTitle.textContent = it.title; vTitle.style.display = '';
+  } else { vTitle.style.display = 'none'; }
+  vBody.innerHTML = md(it.text || '');
+  applyTwemoji(vBody);
+  const metaParts = [];
+  if (it.deadline) metaParts.push(fmtDeadline(it.deadline));
+  metaParts.push(fmtTs(it.created));
+  vMeta.textContent = metaParts.join(' · ');
+  if (it.color) {
+    clrDot.style.background = CLRHEX[it.color];
+    clrDot.style.border = 'none';
+  } else {
+    clrDot.style.background = 'transparent';
+    clrDot.style.border = '1px solid var(--bd2)';
+  }
+  footDl.textContent = it.deadline ? fmtDeadline(it.deadline) : '';
+}
+
+function _updateLineNums() {
+  const ta = document.getElementById('focus-body');
+  const ln = document.getElementById('focus-lnums');
+  if (!ta || !ln) return;
+  const n = ta.value.split('\n').length;
+  ln.textContent = Array.from({length: n}, (_, i) => i + 1).join('\n');
+  ln.scrollTop = ta.scrollTop;
+}
+
+function focusEnterEdit() {
+  const arr = focusType === 'prom' ? curProms() : curIdee();
+  const it  = arr.find(i => i.id === focusId); if (!it) return;
+  _focusIsEdit = true;
+  // Popola textarea e titolo
+  const bodyEl = document.getElementById('focus-body');
+  const ttlInp = document.getElementById('focus-ttl-inp');
+  bodyEl.value = it.text;
+  if (focusType === 'idee') { ttlInp.value = it.title || ''; ttlInp.style.display = ''; }
+  else { ttlInp.style.display = 'none'; }
+  // Auto-save con status nel topbar
+  const schedAutoSave = () => {
+    clearTimeout(autoSaveTimer);
+    const st = document.getElementById('focus-status');
+    if (st) st.textContent = '·';
+    autoSaveTimer = setTimeout(() => {
+      doFocusSave(false);
+      const st2 = document.getElementById('focus-status');
+      if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
+    }, 300);
+  };
+  const upd = () => { _updateLineNums(); schedAutoSave(); };
+  _updateLineNums();
+  bodyEl.oninput = upd;
+  bodyEl.onscroll = () => {
+    const ln = document.getElementById('focus-lnums');
+    if (ln) ln.scrollTop = bodyEl.scrollTop;
+  };
+  if (focusType === 'idee') ttlInp.oninput = schedAutoSave;
+  // Color picker
+  focusColor = it.color || null;
+  document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
+    <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
+      style="${c!=='none'?'background:'+CLRHEX[c]:''}"
+      onclick="pickFocusClr('${c}',this)"></div>
+  `).join('');
+  // Deadline
+  const fdInp = document.getElementById('focus-deadline-inp');
+  const fdBtn = document.getElementById('focus-deadline-toggle');
+  if (it.deadline) {
+    fdInp.value = toLocalDatetimeInput(it.deadline);
+    fdInp.style.display = ''; fdBtn.textContent = '[on]';
+  } else {
+    fdInp.value = ''; fdInp.style.display = 'none'; fdBtn.textContent = '[off]';
+  }
+  _focusShowMode('edit');
+  setTimeout(() => bodyEl.focus(), 60);
+}
+
+function _focusShowMode(mode) {
+  const isEdit = mode === 'edit';
+  document.getElementById('focus-view').style.display      = isEdit ? 'none' : '';
+  document.getElementById('focus-edit').style.display      = isEdit ? 'flex' : 'none';
+  document.getElementById('focus-edit-btn').style.display  = isEdit ? 'none' : '';
+  document.getElementById('focus-save-btn').style.display  = isEdit ? '' : 'none';
+  document.getElementById('focus-foot-view').style.display = isEdit ? 'none' : 'flex';
+  document.getElementById('focus-foot-edit').style.display = isEdit ? 'flex' : 'none';
+}
+
+function doFocusSave(shouldClose) {
+  const arr = focusType === 'prom' ? curProms() : curIdee();
+  const it  = arr.find(i => i.id === focusId); if (!it) return;
+  it.text  = document.getElementById('focus-body').value.trim();
+  if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
+  it.color = focusColor;
+  const fdInp = document.getElementById('focus-deadline-inp');
+  it.deadline = fdInp.style.display !== 'none' && fdInp.value
+    ? new Date(fdInp.value).getTime() : null;
+  it.updated = Date.now();
+  persist(); renderAll();
+  if (shouldClose) { closeFocus(); return; }
+  // Aggiorna anche la view dopo il save
+  _focusPopulateView(it);
+}
+
+function saveFocus() { clearTimeout(autoSaveTimer); doFocusSave(true); }
+
+function closeFocus() {
+  clearTimeout(autoSaveTimer);
+  if (_focusIsEdit) doFocusSave(false);
+  const fm = document.getElementById('focus-modal');
+  fm.classList.remove('open');
+  fm.removeEventListener('touchmove', _focusBgTouchMove);
+  // Dopo l'animazione di chiusura, torna in view mode per la prossima apertura
+  setTimeout(() => { if (!fm.classList.contains('open')) _focusShowMode('view'); }, 320);
+}
+
+// ══════════════════════════════════════════════════════════
+// GESTIONE MODAL
+// openModal(): aggiunge .open al modal → CSS lo rende visibile
+// closeModal(): rimuove .open
+// bgClose(): helper per chiudere cliccando l'overlay scuro
+// ══════════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); applyTwemoji(document.getElementById(id)); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function bgClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+// ══════════════════════════════════════════════════════════
+// MODAL CARD (promemoria / idea)
+// openCardMod(): prepara il modal (titolo, campi, color picker) poi lo apre
+//   tp: 'prom' o 'idee'
+//   id: se presente → modifica; se null → creazione nuova
+// saveCard(): legge i valori dal form, salva in S, chiude il modal
+// ══════════════════════════════════════════════════════════
+function openCardMod(tp, id) {
+  eType = tp; eId = id || null;
+  let ttl, hd = '', tx = '', clr = null;
+  if (id) {
+    // Modalità modifica: carica i dati esistenti
+    const arr = tp === 'prom' ? curProms() : curIdee();
+    const it = arr.find(i => i.id===id); if (!it) return;
+    ttl = tp === 'prom' ? 'Modifica promemoria' : 'Modifica idea';
+    hd = it.title||''; tx = it.text; clr = it.color;
+  } else {
+    // Modalità creazione
+    ttl = tp === 'prom' ? 'Nuovo promemoria' : 'Nuova idea';
+  }
+  ePick = clr || null;
+  document.getElementById('m-card-ttl').textContent = ttl;
+  document.getElementById('m-card-hd').value = hd;
+  // Il campo titolo è visibile solo per le Idee (non per i Promemoria)
+  document.getElementById('m-hd-wrap').style.display = tp === 'prom' ? 'none' : '';
+  document.getElementById('m-card-tx').value = tx;
+  buildClrPick('m-card-clr', ePick || 'none');
+  // Carica/resetta il campo deadline
+  const mdInp = document.getElementById('m-deadline-inp');
+  const mdBtn = document.getElementById('m-deadline-toggle');
+  const deadlineVal = id ? ((() => { const arr = tp==='prom'?curProms():curIdee(); const it=arr.find(i=>i.id===id); return it?.deadline||null; })()) : null;
+  if (deadlineVal) {
+    mdInp.value = toLocalDatetimeInput(deadlineVal);
+    mdInp.style.display = '';
+    mdBtn.textContent = '[on]';
+  } else {
+    mdInp.value = '';
+    mdInp.style.display = 'none';
+    mdBtn.textContent = '[off]';
+  }
+  openModal('m-card');
+  setTimeout(() => document.getElementById('m-card-tx').focus(), 300);
+}
+function saveCard() {
+  const tx = document.getElementById('m-card-tx').value.trim();
+  if (!tx) { document.getElementById('m-card-tx').focus(); return; } // testo obbligatorio
+  const hd  = document.getElementById('m-card-hd').value.trim();
+  const now = Date.now();
+  const mdInp = document.getElementById('m-deadline-inp');
+  const deadline = mdInp.style.display !== 'none' && mdInp.value
+    ? new Date(mdInp.value).getTime() : null;
+  if (eId) {
+    // Aggiorna elemento esistente
+    const arr = eType === 'prom' ? curProms() : curIdee();
+    const it  = arr.find(i => i.id===eId);
+    if (it) { it.text = tx; it.title = hd; it.color = ePick; it.deadline = deadline; it.updated = now; }
+  } else {
+    // Crea nuovo elemento e lo aggiunge in cima
+    const it = {id:uid(), text:tx, title:hd, color:ePick, deadline, pinned:false, created:now, updated:now};
+    if (eType === 'prom') curProms().unshift(it); else curIdee().unshift(it);
+  }
+  persist(); closeModal('m-card'); renderAll();
+}
+
+// ══════════════════════════════════════════════════════════
+// MODAL LISTA
+// openListaMod(): prepara il modal per creare o rinominare una lista
+// saveLista(): salva il nome e il colore della lista
+// ══════════════════════════════════════════════════════════
+function openListaMod(id) {
+  eId = id || null; eType = 'liste';
+  let nm = '', clr = null;
+  if (id) {
+    const l = S.liste.find(x => x.id===id);
+    if (l) { nm = l.title; clr = l.color; }
+    document.getElementById('m-lista-ttl').textContent = 'Rinomina lista';
+  } else {
+    document.getElementById('m-lista-ttl').textContent = 'Nuova lista';
+  }
+  ePick = clr || null;
+  document.getElementById('m-lista-nm').value = nm;
+  buildClrPick('m-lista-clr', ePick || 'none');
+  openModal('m-lista');
+  setTimeout(() => document.getElementById('m-lista-nm').focus(), 300);
+}
+function saveLista() {
+  const nm = document.getElementById('m-lista-nm').value.trim();
+  if (!nm) { document.getElementById('m-lista-nm').focus(); return; }
+  const now = Date.now();
+  if (eId) {
+    const l = S.liste.find(x => x.id===eId);
+    if (l) { l.title = nm; l.color = ePick; l.updated = now; }
+  } else {
+    // Nuova lista: array items vuoto, verrà popolato dall'utente
+    S.liste.unshift({id:uid(), title:nm, items:[], color:ePick, pinned:false, created:now, updated:now});
+  }
+  persist(); closeModal('m-lista'); renderAll();
+}
+
+// ══════════════════════════════════════════════════════════
+// DEADLINE TOGGLE — mostra/nasconde il campo datetime
+// ══════════════════════════════════════════════════════════
+function tglDeadlineField() {
+  const inp = document.getElementById('m-deadline-inp');
+  const btn = document.getElementById('m-deadline-toggle');
+  const isOn = inp.style.display !== 'none';
+  inp.style.display = isOn ? 'none' : '';
+  btn.textContent = isOn ? '[off]' : '[on]';
+  if (!isOn) {
+    if (!inp.value) {
+      inp.value = toLocalDatetimeInput(Date.now() + 86400e3); // default: domani
+    }
+    setTimeout(() => inp.focus(), 50);
+  }
+}
+function tglFocusDeadlineField() {
+  const inp = document.getElementById('focus-deadline-inp');
+  const btn = document.getElementById('focus-deadline-toggle');
+  const isOn = inp.style.display !== 'none';
+  inp.style.display = isOn ? 'none' : '';
+  btn.textContent = isOn ? '[off]' : '[on]';
+  if (!isOn) {
+    if (!inp.value) {
+      inp.value = toLocalDatetimeInput(Date.now() + 86400e3); // default: domani
+    }
+    setTimeout(() => inp.focus(), 50);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// FAB [+] — apre il modal giusto in base al tab corrente
+// Nel cestino non fa nulla (il bottone è nascosto, ma per sicurezza)
+// ══════════════════════════════════════════════════════════
+function onFab() {
+  if (curTab === 'prom')       openCardMod('prom');
+  else if (curTab === 'idee')  openCardMod('idee');
+  else if (curTab === 'liste') openListaMod();
+}
+
+// ══════════════════════════════════════════════════════════
+// EXPORT / IMPORT JSON — backup completo dei dati
+// doExport(): crea un file JSON con tutti i dati e lo scarica
+// doImport(): legge un file JSON e sovrascrive i dati attuali
+// ══════════════════════════════════════════════════════════
+function doExport() {
+  // Crea un Blob (file virtuale) con i dati JSON formattati
+  const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob); // URL temporaneo per il download
+  a.download = 'blocco-' + new Date().toISOString().slice(0,10) + '.json'; // nome file con data
+  a.click();
+  URL.revokeObjectURL(a.href); // libera la memoria
+  closeModal('m-io'); toast('[backup esportato]');
+}
+function doImport(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader(); // API browser per leggere file locali
+  r.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!confirm('Sovrascrivere i dati attuali con questo file?')) return;
+      S = {
+        name:    d.name    || S.name,
+        proms:   d.proms   || [],
+        idee:    d.idee    || [],
+        liste:   d.liste   || [],
+        cestino: d.cestino || [],
+        theme:   d.theme   || 'dark'
+      };
+      document.getElementById('name-lbl').textContent = S.name;
+      persist(); applyTheme(); renderAll(); renderCestino();
+      closeModal('m-io'); toast('[importato]');
+    } catch { alert('File non valido'); }
+  };
+  r.readAsText(f); inp.value = ''; // resetta l'input file per permettere re-import
+}
+
+// ══════════════════════════════════════════════════════════
+// DRAG AND DROP — riordina le card con pressione lunga + trascinamento
+//
+// Come funziona:
+// 1. touchstart: avvia un timer di 420ms
+// 2. Se il dito non si sposta, dopo 420ms → startDrag (prende il controllo)
+// 3. touchmove: sposta il "ghost" (copia visiva) e segna la card sotto come target
+// 4. touchend: endDrag → scambia le posizioni nell'array e ri-renderizza
+//
+// Variabili globali usate:
+//   dSrcId: id della card che stai trascinando
+//   dOvId: id della card su cui stai passando sopra
+//   dGhost: elemento DOM clonato che segue il dito
+// ══════════════════════════════════════════════════════════
+function initDrag(container, tp) {
+  if (window.innerWidth >= 680) return; // swipe e touch-drag solo su mobile
+  const THRESH = 65; // soglia in px per attivare l'azione
+  container.querySelectorAll('.card[data-id]').forEach(card => {
+    const slot      = card.closest('.card-slot');
+    const delHint   = slot?.querySelector('.del-hint');
+    const shareHint = slot?.querySelector('.share-hint');
+    let lt = null, dragging = false, ox = 0, oy = 0, moved = false, swiped = false, didDrag = false, lastDx = 0, threshReached = false;
+    const clearHints = () => {
+      delHint?.classList.remove('hint-on');
+      shareHint?.classList.remove('hint-on');
+    };
+    const snapBack = () => {
+      card.style.transition = 'transform .2s ease';
+      card.style.transform  = 'translateX(0)';
+      clearHints();
+    };
+    card.addEventListener('touchstart', e => {
+      if (e.target.closest('button,input,.lck,.pcb')) return;
+      const t = e.touches[0]; ox = t.clientX; oy = t.clientY;
+      moved = false; swiped = false; didDrag = false; lastDx = 0; threshReached = false;
+      lt = setTimeout(() => { dragging = true; startDrag(card, t); }, 420);
+    }, {passive:true});
+    card.addEventListener('touchmove', e => {
+      const t  = e.touches[0];
+      const dx = t.clientX - ox;
+      const dy = Math.abs(t.clientY - oy);
+      lastDx = dx;
+      if (!moved && (Math.abs(dx) > 9 || dy > 9)) {
+        moved = true;
+        if (lt) { clearTimeout(lt); lt = null; }
+      }
+      if (moved && !dragging && !swiped) {
+        if (dx > 10 && dx > dy * 1.6) {
+          // Swipe destra → [del] con rubber-band dopo la soglia
+          if (e.cancelable) e.preventDefault();
+          const pos = dx < THRESH ? dx : THRESH + (dx - THRESH) * 0.22;
+          card.style.transition = 'none';
+          card.style.transform  = `translateX(${pos}px)`;
+          if (!threshReached && dx >= THRESH) {
+            threshReached = true;
+            if (navigator.vibrate) navigator.vibrate(8);
+            delHint?.classList.add('hint-on');
+          } else if (threshReached && dx < THRESH) {
+            threshReached = false;
+            delHint?.classList.remove('hint-on');
+          }
+        } else if (dx < -10 && Math.abs(dx) > dy * 1.5) {
+          // Swipe sinistra → [share] con rubber-band dopo la soglia
+          if (e.cancelable) e.preventDefault();
+          const absDx = Math.abs(dx);
+          const pos   = absDx < THRESH ? dx : -(THRESH + (absDx - THRESH) * 0.22);
+          card.style.transition = 'none';
+          card.style.transform  = `translateX(${pos}px)`;
+          if (!threshReached && dx <= -THRESH) {
+            threshReached = true;
+            if (navigator.vibrate) navigator.vibrate(8);
+            shareHint?.classList.add('hint-on');
+          } else if (threshReached && dx > -THRESH) {
+            threshReached = false;
+            shareHint?.classList.remove('hint-on');
+          }
+        }
+      }
+      if (dragging) { if (e.cancelable) e.preventDefault(); moveDrag(e.touches[0], container); }
+    }, {passive:false});
+    card.addEventListener('touchend', () => {
+      if (lt) { clearTimeout(lt); lt = null; }
+      if (dragging) { dragging = false; didDrag = true; endDrag(container, tp); return; }
+      if (threshReached && lastDx >= THRESH) {
+        // Soglia destra superata → elimina
+        swiped = true;
+        card.style.transition = 'transform .28s ease,opacity .28s ease';
+        card.style.transform  = 'translateX(110%)';
+        card.style.opacity    = '0';
+        clearHints();
+        setTimeout(() => delItem(card.dataset.id, tp), 280);
+      } else if (threshReached && lastDx <= -THRESH) {
+        // Soglia sinistra superata → share
+        snapBack();
+        shareItem(card.dataset.id, tp);
+      } else {
+        snapBack();
+      }
+    }, {passive:true});
+    card.addEventListener('click', e => { if (didDrag) { didDrag = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    card.addEventListener('touchcancel', () => {
+      if (lt) { clearTimeout(lt); lt = null; }
+      if (dragging) { dragging = false; cancelDrag(); }
+      snapBack();
+    });
+  });
+}
+
+// Condivide il testo di una nota via Web Share API (iOS share sheet) o clipboard
+function shareItem(id, tp) {
+  const arr = tp === 'prom' ? S.proms : S.idee;
+  const it  = arr?.find(i => i.id === id); if (!it) return;
+  const text = (it.title ? it.title + '\n\n' : '') + it.text;
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(text)
+      .then(() => toast('[copiato]'))
+      .catch(() => toast('[errore copia]'));
+  }
+}
+
+// Crea il ghost e segna la card originale come placeholder
+function startDrag(card, t) {
+  dSrcId = card.dataset.id;
+  const r = card.getBoundingClientRect();
+  dGhost = card.cloneNode(true);
+  dGhost.className = 'card drag-ghost';
+  dGhost.style.width  = r.width  + 'px';
+  dGhost.style.height = r.height + 'px';
+  dGhost.style.left   = r.left   + 'px';
+  dGhost.style.top    = (t.clientY - r.height / 2) + 'px';
+  document.body.appendChild(dGhost);
+  card.classList.add('drag-src');
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+
+// Sposta il ghost e riordina le card nel DOM in tempo reale
+function moveDrag(t, container) {
+  if (!dGhost || !dSrcId) return;
+  dGhost.style.top = (t.clientY - parseInt(dGhost.style.height || 60) / 2) + 'px';
+
+  // Trova quale slot è sotto il dito
+  dGhost.style.display = 'none';
+  const hit = document.elementFromPoint(t.clientX, t.clientY);
+  dGhost.style.display = '';
+
+  const targetCard = hit?.closest('.card[data-id]');
+  if (!targetCard || targetCard.dataset.id === dSrcId) return;
+
+  const srcSlot = container.querySelector(`.card[data-id="${dSrcId}"]`)?.closest('.card-slot');
+  const tgtSlot = targetCard.closest('.card-slot');
+  if (!srcSlot || !tgtSlot || srcSlot === tgtSlot) return;
+
+  // Inserisce prima o dopo in base alla posizione verticale del dito
+  const tgtRect = tgtSlot.getBoundingClientRect();
+  if (t.clientY < tgtRect.top + tgtRect.height / 2) {
+    container.insertBefore(srcSlot, tgtSlot);
+  } else {
+    container.insertBefore(srcSlot, tgtSlot.nextSibling);
+  }
+}
+
+// Rilascio: sincronizza l'array con l'ordine del DOM e persiste
+function endDrag(container, tp) {
+  if (dGhost) { dGhost.remove(); dGhost = null; }
+  const srcCard = container.querySelector(`.card[data-id="${dSrcId}"]`);
+  if (srcCard) srcCard.classList.remove('drag-src');
+
+  // Legge il nuovo ordine dal DOM e aggiorna l'array
+  const k = tp === 'prom' ? 'proms' : tp;
+  const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
+  S[k] = newOrder.map(id => S[k].find(i => i.id === id)).filter(Boolean);
+  persist(); updateStats();
+  dSrcId = null; dOvId = null;
+}
+
+// Drag annullato: ripristina visivamente e ri-renderizza
+function cancelDrag() {
+  if (dGhost) { dGhost.remove(); dGhost = null; }
+  document.querySelectorAll('.drag-src').forEach(c => c.classList.remove('drag-src'));
+  dSrcId = null; dOvId = null;
+  renderAll();
+}
+
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER — registra il SW per la modalità offline (PWA)
+// Il file notes-sw.js gestisce la cache e gli aggiornamenti.
+// .catch(() => {}) ignora silenziosamente se il SW non è supportato.
+// ══════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./notes-sw.js').catch(() => {});
+}
+
+// Seleziona colore nel focus sheet
+function pickFocusClr(c, el) {
+  focusColor = c === 'none' ? null : c;
+  el.parentNode.querySelectorAll('.clrdot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+// Drag con mouse su desktop — inizia subito al mousedown + move > 5px
+function initMouseDrag(container, tp) {
+  container.querySelectorAll('.card[data-id]').forEach(card => {
+    card.addEventListener('mousedown', e => {
+      if (e.target.closest('button,input,.lck,.pcb')) return;
+      if (e.button !== 0) return;
+      e.preventDefault();
+      let dragging = false;
+      const sx = e.clientX, sy = e.clientY;
+      const onMove = ev => {
+        if (!dragging && (Math.abs(ev.clientX-sx)>5 || Math.abs(ev.clientY-sy)>5)) {
+          dragging = true;
+          startDrag(card, ev);
+        }
+        if (dragging) moveDrag(ev, container);
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (dragging) endDrag(container, tp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// DRAG VOCI LISTA — riordina le voci dentro una lista
+// Usa un handle ⠿ su ogni riga; touch e mouse supportati.
+// ══════════════════════════════════════════════════════════
+function initListItemDrag(lid) {
+  const lst    = S.liste.find(x => x.id === lid);
+  const lrows  = document.querySelector(`.card[data-id="${lid}"] .lrows`);
+  if (!lst || !lrows) return;
+
+  let srcRow = null, gh = null, oy = 0;
+
+  const doStart = (row, cx, cy) => {
+    srcRow = row;
+    const r = row.getBoundingClientRect();
+    oy = cy - r.top;
+    gh = row.cloneNode(true);
+    gh.className = 'lrow lrow-ghost';
+    gh.style.width = r.width + 'px';
+    gh.style.left  = r.left  + 'px';
+    gh.style.top   = r.top   + 'px';
+    document.body.appendChild(gh);
+    row.style.opacity = '.15';
+  };
+
+  const doMove = (cx, cy) => {
+    if (!gh || !srcRow) return;
+    gh.style.top = (cy - oy) + 'px';
+    gh.style.display = 'none';
+    const hit = document.elementFromPoint(cx, cy);
+    gh.style.display = '';
+    const tgt = hit?.closest('.lrow[data-iid]');
+    if (tgt && tgt !== srcRow && lrows.contains(tgt)) {
+      const tr = tgt.getBoundingClientRect();
+      lrows.insertBefore(srcRow, cy < tr.top + tr.height / 2 ? tgt : tgt.nextSibling);
+    }
+  };
+
+  const doEnd = () => {
+    if (gh) { gh.remove(); gh = null; }
+    if (!srcRow) return;
+    srcRow.style.opacity = '';
+    const newOrder = [...lrows.querySelectorAll('.lrow[data-iid]')].map(r => r.dataset.iid);
+    lst.items = newOrder.map(id => lst.items.find(i => i.id === id)).filter(Boolean);
+    lst.updated = Date.now();
+    persist();
+    srcRow = null;
+  };
+
+  lrows.querySelectorAll('.ldrag').forEach(handle => {
+    const row = handle.closest('.lrow');
+
+    // Mouse
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      doStart(row, e.clientX, e.clientY);
+      const onMove = ev => doMove(ev.clientX, ev.clientY);
+      const onUp   = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); doEnd(); };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // Touch
+    handle.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      doStart(row, t.clientX, t.clientY);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }, {passive: false});
+
+    handle.addEventListener('touchmove', e => {
+      if (!gh) return;
+      if (e.cancelable) e.preventDefault();
+      const t = e.touches[0];
+      doMove(t.clientX, t.clientY);
+    }, {passive: false});
+
+    handle.addEventListener('touchend',    doEnd, {passive: true});
+    handle.addEventListener('touchcancel', doEnd, {passive: true});
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// SWIPE TRA TAB — swipe orizzontale per cambiare sezione
+// Solo su mobile; non interferisce con lo swipe delle card
+// (il tocco sulle .card-slot viene ignorato)
+// ══════════════════════════════════════════════════════════
+function initTabSwipe() {
+  const TAB_ORDER = ['prom','idee','liste','cestino'];
+  const views = document.querySelector('.views');
+  let tx = null, ty = 0, moving = false;
+
+  views.addEventListener('touchstart', e => {
+    // Ignora se il tocco parte su una card o su un elemento interattivo
+    if (e.target.closest('.card-slot,button,input,.lck,.pcb,.ldrag')) {
+      tx = null; return;
+    }
+    const t = e.touches[0];
+    tx = t.clientX; ty = t.clientY; moving = false;
+  }, {passive: true});
+
+  views.addEventListener('touchmove', e => {
+    if (tx === null) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - tx) > 8 || Math.abs(t.clientY - ty) > 8) moving = true;
+  }, {passive: true});
+
+  views.addEventListener('touchend', e => {
+    if (tx === null || !moving) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - tx;
+    const dy = Math.abs(t.clientY - ty);
+    tx = null; moving = false;
+    // Soglia 70px orizzontale, angolo non troppo verticale
+    if (Math.abs(dx) < 70 || dy > Math.abs(dx) * 0.65) return;
+    const idx = TAB_ORDER.indexOf(curTab);
+    if (dx < 0 && idx < TAB_ORDER.length - 1) goTab(TAB_ORDER[idx + 1]); // sinistra → avanti
+    if (dx > 0 && idx > 0)                    goTab(TAB_ORDER[idx - 1]); // destra  → indietro
+  }, {passive: true});
+}
+
+// BOOT
+purgeTrash();
+applyTheme();
+document.getElementById('name-lbl').textContent = S.name;
+updateDatetime();
+setInterval(() => {
+  updateDatetime();
+  // Aggiorna le card se ci sono scadenze attive (countdown che avanza)
+  if ([...S.proms, ...S.idee].some(i => i.deadline)) renderAll();
+}, 30000);
+renderAll();
+initTabSwipe();
+// Nascondi FAB quando la tastiera iOS è aperta (qualsiasi input attivo)
+document.addEventListener('focusin', e => {
+  if (e.target.matches('input,textarea')) {
+    const fab = document.getElementById('fab');
+    if (fab) fab.style.visibility = 'hidden';
+  }
+});
+document.addEventListener('focusout', () => {
+  setTimeout(() => {
+    if (!document.activeElement || !document.activeElement.matches('input,textarea')) {
+      const fab = document.getElementById('fab');
+      if (fab) fab.style.visibility = '';
+    }
+  }, 150);
+});
+// Blocca il bounce/scroll della pagina intera su iOS.
+// Solo i contenitori esplicitamente scrollabili possono ricevere touchmove.
+document.addEventListener('touchmove', e => {
+  if (!e.target.closest('.view, .focus-view, .modal-sheet, textarea')) {
+    e.preventDefault();
+  }
+}, {passive: false});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && secretMode) toggleSecretMode();
+});
+
+// Fix iOS: tastiera copre le ultime righe della textarea.
+// Quando il visual viewport si riduce (tastiera aperta), aggiungo
+// padding-bottom alla textarea pari all'altezza della tastiera,
+// così l'ultima riga può essere scrollata sopra la tastiera.
+if (window.visualViewport) {
+  visualViewport.addEventListener('resize', () => {
+    const ta = document.getElementById('focus-body');
+    if (!ta) return;
+    const kbH = window.innerHeight - visualViewport.height;
+    ta.style.paddingBottom = (kbH > 80 ? kbH + 24 : 16) + 'px';
+  });
+}
+// Swipe destra per chiudere il focus sheet (come iOS Notes)
+(function() {
+  const fm = document.getElementById('focus-modal');
+  let sx = 0, sy = 0, tracking = false, swiping = false, dx = 0;
+
+  fm.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    tracking = true; swiping = false; dx = 0;
+    fm.style.transition = 'none';
+  }, {passive: true});
+
+  fm.addEventListener('touchmove', e => {
+    if (!tracking || e.touches.length !== 1) return;
+    const ddx = e.touches[0].clientX - sx;
+    const ddy = e.touches[0].clientY - sy;
+    if (!swiping) {
+      if (Math.abs(ddx) < 10 && Math.abs(ddy) < 10) return;
+      if (ddx > 0 && Math.abs(ddx) > Math.abs(ddy) * 1.2) {
+        swiping = true; // swipe orizzontale verso destra confermato
+      } else {
+        tracking = false; return; // verticale o verso sinistra: lascia scorrere normalmente
+      }
+    }
+    dx = Math.max(0, ddx);
+    fm.style.transform = `translateX(${dx}px)`;
+    fm.style.opacity = String(1 - dx / window.innerWidth * 0.4);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, {passive: false});
+
+  fm.addEventListener('touchend', () => {
+    if (!swiping) { fm.style.transition = ''; return; }
+    swiping = false; tracking = false;
+    if (dx > window.innerWidth * 0.3) {
+      fm.style.transition = 'transform .28s cubic-bezier(.32,.72,0,1), opacity .28s';
+      fm.style.transform  = `translateX(${window.innerWidth}px)`;
+      fm.style.opacity    = '0';
+      setTimeout(() => {
+        fm.style.transform = '';
+        fm.style.opacity   = '';
+        fm.style.transition = '';
+        closeFocus();
+      }, 280);
+    } else {
+      fm.style.transition = 'transform .22s ease, opacity .22s';
+      fm.style.transform  = '';
+      fm.style.opacity    = '';
+      setTimeout(() => fm.style.transition = '', 220);
+    }
+    dx = 0;
+  }, {passive: true});
+})();
+
+setTimeout(() => {
+  const s = document.getElementById('splash');
+  if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
+}, 1200);
+</script>
+</body>
+</html>
