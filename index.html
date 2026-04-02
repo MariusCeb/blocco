@@ -103,6 +103,15 @@ body {
   to   { opacity:1; transform:translateY(0)   scale(1)   }
 }
 /* ── Desktop ≥ 680px ───────────────────────────────────── */
+/* ── Mobile-only hidden elements (must be before media query) ── */
+.cact-share   { display: none; }
+.new-folder-btn { display: none; }
+.shortcuts-panel { display: none; }
+.folders-sec  { display: none; }
+
+/* ─────────────────────────────────────────────────────────
+   DESKTOP ≥ 680px
+───────────────────────────────────────────────────────── */
 @media (min-width:680px) {
   body {
     background: var(--s2);
@@ -111,37 +120,37 @@ body {
     padding: 20px;
   }
 
-  /* App = griglia 2 colonne. background:var(--s1) = colore sidebar.
-     La colonna destra (.views) sovrascrive con var(--bg). */
+  /* ── App shell: 2-column grid ── */
   .app {
     width: 100%;
-    max-width: 1400px;
+    max-width: 1440px;
     height: calc(100vh - 40px);
-    max-height: 960px;
+    max-height: 980px;
     border-radius: 10px;
     overflow: hidden;
     background: var(--s1);
     box-shadow: 0 0 0 1px var(--bd2), 0 24px 64px rgba(0,0,0,.6);
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 240px 1fr;
+    /* rows: header | search | tabs | new-folder | folders | shortcuts | quick-add */
     grid-template-rows: auto auto auto auto 1fr auto auto;
   }
 
-  /* ── Sidebar ── */
+  /* ── Sidebar: column 1 ── */
   .vhead {
     grid-column: 1; grid-row: 1;
-    padding: 24px 20px 16px;
+    padding: 22px 18px 14px;
     border-bottom: none;
     border-right: 1px solid var(--bd);
   }
-  .vbig { font-size: 16px; }
+  .vbig { font-size: 15px; }
 
   .sbar {
     grid-column: 1; grid-row: 2;
     border-bottom: none;
     border-right: 1px solid var(--bd);
   }
-  .sinp { padding: 10px 18px; font-size: 12px; }
+  .sinp { padding: 9px 16px; font-size: 11px; }
 
   .tabs {
     grid-column: 1; grid-row: 3;
@@ -151,126 +160,116 @@ body {
     background: transparent;
   }
   .tab {
-    flex: none;
-    text-align: left;
-    padding: 15px 22px 15px 26px;
+    flex: none; text-align: left;
+    padding: 13px 16px 13px 20px;
     border-bottom: 1px solid var(--bd);
     font-size: 11px;
+    display: flex; justify-content: space-between; align-items: center;
     transition: background .12s, color .15s;
   }
-  /* Tab attivo: stesso colore del pannello destro → sembra "selezionato" */
   .tab.on { background: var(--bg); color: var(--text); }
   .tab.on::after { display: none; }
   .tab:hover:not(.on) { background: rgba(255,255,255,.04); color: var(--text); }
+  .tab-cnt { color: var(--dim); font-size: 9px; }
 
-  /* qcap incollato al fondo della sidebar */
-  .qcap {
-    grid-column: 1; grid-row: 7;
-    border-right: 1px solid var(--bd);
-    border-bottom: none;
-    border-top: 1px solid var(--bd);
-    align-self: end;
-  }
-  .qinp { padding: 13px 18px; font-size: 12px; }
-  .qadd { padding: 13px 16px; font-size: 14px; }
-
-  /* ── Pannello destro ── */
-  .views {
-    grid-column: 2; grid-row: 1 / -1;
-    background: var(--bg);
-  }
-  .vscroll { padding: 28px 32px 72px; }
-  .stack   { max-width: 520px; }
-
-  /* FAB in basso a destra del pannello destro */
-  .fab {
-    position: absolute;
-    grid-column: 2; grid-row: 1 / -1;
-    bottom: 32px; right: 32px;
-    font-size: 18px;
-  }
-
-  /* ── Hover / interazioni mouse ── */
-  .card { cursor: default; }
-  .card:hover { background: var(--s2); }
-  .cact:hover { color: var(--text); }
-  .hbt:hover  { color: var(--text); }
-  .cact-share { display: inline !important }
-
-  /* ── Scrollbar sottile ── */
-  ::-webkit-scrollbar       { width: 3px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
+  /* ── New folder button: row 4, always visible ── */
   .new-folder-btn {
-    display: block; width: 100%;
+    display: flex; align-items: center; gap: 6px;
+    width: 100%;
     grid-column: 1; grid-row: 4;
     border-right: 1px solid var(--bd);
     border-top: 1px solid var(--bd);
     border-bottom: none; border-left: none;
-    padding: 12px 22px 12px 26px;
+    padding: 11px 16px 11px 20px;
     font-family: inherit; font-size: 10px;
     color: var(--dim); background: none;
     text-align: left; cursor: pointer;
     transition: color .15s, background .12s;
-    letter-spacing: .02em;
   }
   .new-folder-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
-  .shortcuts-panel {
-    grid-column: 1; grid-row: 6;
-    border-right: 1px solid var(--bd);
-    border-top: 1px solid var(--bd);
-    padding: 10px 22px 10px 26px;
-  }
-  .sc-row { display:flex; justify-content:space-between; margin-bottom:5px; }
-  .sc-row:last-child { margin-bottom:0; }
-  .sc-key { font-size:9px; color:var(--accent); letter-spacing:.04em; }
-  .sc-lbl { font-size:9px; color:var(--dim); }
-  .shortcuts-panel { display: block; }
+
+  /* ── Folders list: row 5 (grows to fill space) ── */
   .folders-sec {
     grid-column: 1; grid-row: 5;
     border-right: 1px solid var(--bd);
     overflow-y: auto;
-    display: none;
   }
   .folders-sec.has-folders { display: block; }
   .folder-hdr {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 22px 10px 26px;
-    font-size: 9px; color: var(--dim); letter-spacing: .06em;
+    padding: 9px 16px 9px 20px;
+    font-size: 9px; color: var(--dim); letter-spacing: .08em;
     border-bottom: 1px solid var(--bd);
+    text-transform: uppercase;
   }
-  .folder-add-btn {
-    background: none; border: none; color: var(--dim);
-    font-family: inherit; font-size: 11px; cursor: pointer;
-    padding: 0 2px; line-height: 1;
-  }
-  .folder-add-btn:hover { color: var(--text); }
   .folder-item {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 11px 16px 11px 26px;
-    font-size: 10px; cursor: pointer; color: var(--muted);
+    padding: 11px 14px 11px 20px;
+    font-size: 10px; color: var(--muted);
     border-bottom: 1px solid var(--bd);
     transition: background .12s, color .15s;
     background: none; border-left: none; width: 100%; text-align: left;
-    font-family: inherit;
+    font-family: inherit; cursor: pointer;
   }
   .folder-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
   .folder-item.on { background: var(--bg); color: var(--text); }
   .folder-del {
     background: none; border: none; color: var(--dim); font-family: inherit;
-    font-size: 10px; cursor: pointer; opacity: 0; padding: 0 2px;
-    transition: opacity .15s;
+    font-size: 10px; cursor: pointer; opacity: 0; padding: 2px 4px;
+    transition: opacity .15s; flex-shrink: 0;
   }
   .folder-item:hover .folder-del { opacity: 1; }
   .folder-del:hover { color: var(--accent); }
+
+  /* ── Shortcuts panel: row 6 ── */
+  .shortcuts-panel {
+    display: block;
+    grid-column: 1; grid-row: 6;
+    border-right: 1px solid var(--bd);
+    border-top: 1px solid var(--bd);
+    padding: 10px 16px 10px 20px;
+  }
+  .sc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .sc-row:last-child { margin-bottom: 0; }
+  .sc-key { font-size: 9px; color: var(--accent); letter-spacing: .04em; }
+  .sc-lbl { font-size: 9px; color: var(--dim); }
+
+  /* ── Quick capture: row 7 ── */
+  .qcap {
+    grid-column: 1; grid-row: 7;
+    border-right: 1px solid var(--bd);
+    border-bottom: none;
+    border-top: 1px solid var(--bd);
+  }
+  .qinp { padding: 12px 16px; font-size: 11px; }
+  .qadd { padding: 12px 14px; font-size: 13px; }
+
+  /* ── Right panel: column 2, all rows ── */
+  .views {
+    grid-column: 2; grid-row: 1 / -1;
+    background: var(--bg);
+  }
+  .vscroll { padding: 32px 48px 80px; }
+  .stack   { max-width: 700px; }
+
+  .fab {
+    position: absolute;
+    bottom: 32px; right: 40px;
+    font-size: 18px;
+  }
+
+  /* ── Mouse interactions ── */
+  .card { cursor: default; }
+  .card:hover { background: var(--s2); }
+  .cact:hover { color: var(--text); }
+  .hbt:hover  { color: var(--text); }
+  .cact-share { display: inline !important; }
+
+  /* ── Thin scrollbar ── */
+  ::-webkit-scrollbar       { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 }
-/* ── Bottone share: nascosto su mobile (si usa swipe), visibile su desktop */
-.cact-share { display:none }
-.folders-sec { display: none; } /* hidden on mobile */
-.new-folder-btn { display: none; } /* hidden on mobile */
-.shortcuts-panel { display: none; } /* hidden on mobile */
 
 /* ─────────────────────────────────────────────────────────
    HEADER — barra in alto con nome, data, bottoni
