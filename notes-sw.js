@@ -1,10 +1,10 @@
-const CACHE  = 'blocco-v19';
+const CACHE  = 'blocco-v20';
 const STATIC = ['./notes-manifest.json', './notes-icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c =>
-      Promise.allSettled([...STATIC, './notes.html'].map(a => c.add(a)))
+      Promise.allSettled([...STATIC, './index.html'].map(a => c.add(a)))
     )
   );
   self.skipWaiting();
