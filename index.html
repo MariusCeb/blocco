@@ -2665,25 +2665,24 @@ const _fbAuth = firebase.auth();
 const _fbDb   = firebase.firestore();
 window._fbDb  = _fbDb;
 
-function _isStandalone() {
-  return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-}
-
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  if (_isStandalone()) {
-    _fbAuth.signInWithRedirect(provider);
-  } else {
-    _fbAuth.signInWithPopup(provider).catch(err => console.error(err));
-  }
+  _fbAuth.signInWithPopup(provider).catch(err => {
+    // Popup blocked (common in iOS PWA) — fall back to redirect
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+      _fbAuth.signInWithRedirect(provider);
+    } else {
+      console.error(err);
+    }
+  });
 }
 
 function doSignOut() {
   _fbAuth.signOut();
 }
 
-// Handle redirect result (iOS PWA login)
+// Handle redirect result after signInWithRedirect (iOS PWA fallback)
 _fbAuth.getRedirectResult().catch(err => console.error(err));
 
 _fbAuth.onAuthStateChanged(async user => {

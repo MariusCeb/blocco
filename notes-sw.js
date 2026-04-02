@@ -1,5 +1,11 @@
-const CACHE  = 'blocco-v27';
-const STATIC = ['./notes-manifest.json', './notes-icon.svg'];
+const CACHE  = 'blocco-v28';
+const STATIC = [
+  './notes-manifest.json',
+  './notes-icon.svg',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -24,15 +30,15 @@ self.addEventListener('fetch', e => {
   const url = new URL(request.url);
   if (!url.protocol.startsWith('http')) return;
 
-  // HTML — always network, no cache (so updates show immediately)
+  // HTML — always network, no cache (updates load immediately)
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/blocco')) {
     e.respondWith(
-      fetch(request).catch(() => caches.match('./index.html'))
+      fetch(request).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Static assets — cache first
+  // Everything else — cache first, network fallback
   e.respondWith(
     caches.match(request).then(cached => cached || fetch(request).then(resp => {
       if (resp.ok) {
