@@ -1891,13 +1891,14 @@ function renderFolder() {
   if (q) notes = notes.filter(n => matches([n.title, n.text]));
   if (!notes.length) { el.innerHTML = `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`; return; }
   el.innerHTML = notes.map(n => `
-    <div class="card" data-id="${n.id}">
+    <div class="card${clrCls(n.color)}" data-id="${n.id}">
       <div class="cbody idea-body" onclick="openFolderNote('${n.id}')">
         ${n.title ? `<div class="ctitle">${esc(n.title)}</div>` : ''}
         <div class="ctext">${md(n.text)}</div>
       </div>
+      ${deadlineBar(n)}
       <div class="cmeta">
-        <span class="cts">${fmtTs(n.created)}</span>
+        <span class="cts">${fmtTs(n.created)}${deadlineTag(n)}</span>
         <div class="cacts">
           <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
           <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
@@ -1931,10 +1932,16 @@ function openFolderNote(id) {
   titleEl.oninput = schedAutoSave;
   bodyEl.onscroll = () => { const ln = document.getElementById('focus-lnums'); if (ln) ln.scrollTop = bodyEl.scrollTop; };
   _updateLineNums();
-  document.getElementById('focus-clr').innerHTML = '';
+  focusColor = n.color || null;
+  document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
+    <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
+      style="${c!=='none'?'background:'+CLRHEX[c]:''}"
+      onclick="pickFocusClr('${c}',this)"></div>
+  `).join('');
   const fdInp = document.getElementById('focus-deadline-inp');
   const fdBtn = document.getElementById('focus-deadline-toggle');
-  fdInp.value = ''; fdInp.style.display = 'none'; fdBtn.textContent = '[off]';
+  if (n.deadline) { fdInp.value = toLocalDatetimeInput(n.deadline); fdInp.style.display = ''; fdBtn.textContent = '[on]'; }
+  else { fdInp.value = ''; fdInp.style.display = 'none'; fdBtn.textContent = '[off]'; }
   _focusShowMode('edit');
   const fm = document.getElementById('focus-modal');
   fm.classList.add('open');
@@ -2173,6 +2180,10 @@ function doFocusSave(shouldClose) {
     const it = (S.folderNotes||[]).find(i => i.id === focusId); if (!it) return;
     it.text  = document.getElementById('focus-body').value.trim();
     it.title = document.getElementById('focus-ttl-inp').value.trim();
+    it.color = focusColor;
+    const _fdInp = document.getElementById('focus-deadline-inp');
+    it.deadline = _fdInp.style.display !== 'none' && _fdInp.value
+      ? new Date(_fdInp.value).getTime() : null;
     it.updated = Date.now();
     persist(); renderFolder();
     if (shouldClose) closeFocus();
@@ -2753,7 +2764,7 @@ updateDatetime();
 setInterval(() => {
   updateDatetime();
   // Aggiorna le card se ci sono scadenze attive (countdown che avanza)
-  if ([...S.proms, ...S.idee].some(i => i.deadline)) renderAll();
+  if ([...S.proms, ...S.idee, ...(S.folderNotes||[])].some(i => i.deadline)) renderAll();
 }, 30000);
 renderAll();
 initTabSwipe();
