@@ -6,6 +6,7 @@
   <!-- Viewport mobile: impedisce lo zoom automatico su iPhone; viewport-fit=cover copre l'intero schermo fisico (notch incluso) -->
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <!-- Permette di aggiungere l'app alla schermata home come PWA su iPhone -->
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <!-- Stile della barra di stato iPhone: trasparente scuro -->
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2791,7 +2792,7 @@ const _fbApp = firebase.initializeApp({
 const _fbAuth = firebase.auth();
 const _fbDb   = firebase.firestore();
 window._fbDb  = _fbDb;
-_fbDb.enablePersistence({synchronizeTabs: true}).catch(() => {});
+_fbDb.enablePersistence().catch(() => {});
 
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
