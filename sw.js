@@ -1,6 +1,5 @@
-const CACHE   = 'blocco-v31';
-const VERSION = 30;
-const STATIC  = [
+const CACHE  = 'blocco-v32';
+const STATIC = [
   './notes-manifest.json',
   './notes-icon.svg',
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
@@ -19,11 +18,9 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-      .then(() => self.clients.matchAll({ type: 'window' }))
-      .then(clients => clients.forEach(c => c.navigate(c.url)))
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
 });
 
@@ -34,9 +31,7 @@ self.addEventListener('fetch', e => {
 
   // HTML — always network, no cache
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/blocco')) {
-    e.respondWith(
-      fetch(request).catch(() => caches.match(request))
-    );
+    e.respondWith(fetch(request).catch(() => caches.match(request)));
     return;
   }
 

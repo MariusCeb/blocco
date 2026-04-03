@@ -2427,12 +2427,7 @@ function cancelDrag() {
 // .catch(() => {}) ignora silenziosamente se il SW non è supportato.
 // ══════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  // Kill ALL old service workers unconditionally
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    Promise.all(regs.map(r => r.unregister())).then(() => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
-  });
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
 // Seleziona colore nel focus sheet
