@@ -1177,10 +1177,11 @@ function load() {
       liste:   d.liste   || [],   // array di liste
       cestino: d.cestino || [],   // array di elementi eliminati
       theme:   d.theme   || 'dark',
-      secret:  d.secret  || {proms:[], idee:[]},
-      folders: d.folders || []
+      secret:      d.secret      || {proms:[], idee:[]},
+      folders:     d.folders     || [],
+      folderNotes: d.folderNotes || []
     };
-  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark',secret:{proms:[],idee:[]},folders:[]}; }
+  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark',secret:{proms:[],idee:[]},folders:[],folderNotes:[]}; }
 }
 
 // Salva tutto lo stato in localStorage come stringa JSON.
@@ -1756,7 +1757,7 @@ function renderFolders() {
   const folders = S.folders || [];
   sec.classList.toggle('has-folders', folders.length > 0);
   lst.innerHTML = folders.map(f => {
-    const cnt = [...(S.proms||[]), ...(S.idee||[])].filter(n => n.folder === f.id).length;
+    const cnt = (S.folderNotes||[]).filter(n => n.folder === f.id).length;
     return `<button class="folder-item${curFolder===f.id?' on':''}" onclick="goFolder('${f.id}')">
       <span>/ ${esc(f.name)}${cnt ? ' <span style="color:var(--dim);font-size:9px">['+cnt+']</span>' : ''}</span>
       <span class="folder-del" onclick="event.stopPropagation();delFolder('${f.id}')">[×]</span>
@@ -1779,25 +1780,34 @@ function goFolder(id) {
 function renderFolder() {
   const el = document.getElementById('folder-l');
   if (!el) return;
-  const notes = [...(S.proms||[]), ...(S.idee||[])].filter(n => n.folder === curFolder).sort((a,b) => b.created - a.created);
+  const notes = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => b.created - a.created);
   if (!notes.length) { el.innerHTML = '<div class="empty">nessuna nota.<br>scrivine una qui sopra.</div>'; return; }
-  el.innerHTML = notes.map(n => {
-    const tp = S.proms.find(p => p.id === n.id) ? 'prom' : 'idee';
-    return `<div class="card${clrCls(n.color)}" data-id="${n.id}" data-tp="${tp}">
-      <div class="cbody idea-body" onclick="openFocus('${tp}','${n.id}')">
+  el.innerHTML = notes.map(n => `
+    <div class="card" data-id="${n.id}">
+      <div class="cbody idea-body" onclick="openFolderNote('${n.id}')">
         ${n.title ? `<div class="ctitle">${esc(n.title)}</div>` : ''}
         <div class="ctext">${md(n.text)}</div>
       </div>
       <div class="cmeta">
         <span class="cts">${fmtTs(n.created)}</span>
         <div class="cacts">
-          <button class="cact" onclick="openFocus('${tp}','${n.id}')">[edit]</button>
-          <button class="cact del" onclick="unassignFolder('${n.id}','${tp}');renderFolder()">[remove]</button>
+          <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
+          <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
         </div>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
   applyTwemoji(el);
+}
+
+function openFolderNote(id) {
+  const n = (S.folderNotes||[]).find(x => x.id === id);
+  if (!n) return;
+  openFocus('folder', id);
+}
+
+function delFolderNote(id) {
+  S.folderNotes = (S.folderNotes||[]).filter(n => n.id !== id);
+  persist(); renderFolder(); renderFolders();
 }
 
 function addFolderNote() {
@@ -1805,13 +1815,12 @@ function addFolderNote() {
   const text  = (document.getElementById('fc-body').value  || '').trim();
   if (!text && !title) return;
   const now = Date.now();
-  const note = {id:uid(), title, text: text || title, color:null, pinned:false, created:now, updated:now, folder:curFolder};
-  if (!title) delete note.title;
-  S.idee.unshift(note);
+  const note = {id:uid(), title, text, created:now, updated:now, folder:curFolder};
+  if (!S.folderNotes) S.folderNotes = [];
+  S.folderNotes.unshift(note);
   persist();
   document.getElementById('fc-title').value = '';
   document.getElementById('fc-body').value  = '';
-  document.getElementById('fc-body').style.height = '';
   renderFolder(); renderFolders();
   toast('[nota aggiunta]');
 }
@@ -2764,21 +2773,22 @@ _fbAuth.onAuthStateChanged(async user => {
   if (user) {
     window._fbUser = user;
     // Always start with empty data — never bleed localStorage into other users
-    S = {name: user.displayName || 'Utente', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}, folders:[]};
+    S = {name: user.displayName || 'Utente', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}, folders:[], folderNotes:[]};
     // Load data from Firestore
     try {
       const doc = await _fbDb.collection('users').doc(user.uid).get();
       if (doc.exists) {
         const d = doc.data();
         S = {
-          name:    d.name    || S.name,
-          proms:   d.proms   || [],
-          idee:    d.idee    || [],
-          liste:   d.liste   || [],
-          cestino: d.cestino || [],
-          theme:   d.theme   || 'dark',
-          secret:  d.secret  || {proms:[], idee:[]},
-          folders: d.folders || []
+          name:        d.name        || S.name,
+          proms:       d.proms       || [],
+          idee:        d.idee        || [],
+          liste:       d.liste       || [],
+          cestino:     d.cestino     || [],
+          theme:       d.theme       || 'dark',
+          secret:      d.secret      || {proms:[], idee:[]},
+          folders:     d.folders     || [],
+          folderNotes: d.folderNotes || []
         };
       }
     } catch(e) { console.warn('Firestore load error', e); }
