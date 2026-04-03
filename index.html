@@ -2219,6 +2219,11 @@ function tglFocusDeadlineField() {
 // Nel cestino non fa nulla (il bottone è nascosto, ma per sicurezza)
 // ══════════════════════════════════════════════════════════
 function onFab() {
+  if (curFolder) {
+    const fc = document.getElementById('fc-body');
+    if (fc) { fc.focus(); fc.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+    return;
+  }
   if (curTab === 'prom')       openCardMod('prom');
   else if (curTab === 'idee')  openCardMod('idee');
   else if (curTab === 'liste') openListaMod();
@@ -2761,6 +2766,7 @@ const _fbApp = firebase.initializeApp({
 const _fbAuth = firebase.auth();
 const _fbDb   = firebase.firestore();
 window._fbDb  = _fbDb;
+_fbDb.enablePersistence({synchronizeTabs: true}).catch(() => {});
 
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
