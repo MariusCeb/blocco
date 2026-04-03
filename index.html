@@ -1105,15 +1105,6 @@ html.light input[type="datetime-local"] { color-scheme:light }
 <div class="toast" id="toast"></div>
 
 <script>
-// Force reload if old cached version is running
-(function() {
-  const V = 31;
-  const stored = parseInt(sessionStorage.getItem('bv') || '0');
-  if (stored < V) {
-    sessionStorage.setItem('bv', V);
-    if (stored > 0) { location.reload(true); }
-  }
-})();
 // ══════════════════════════════════════════════════════════
 // COSTANTI
 // CLRS: lista dei nomi dei colori disponibili per le etichette
