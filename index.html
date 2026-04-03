@@ -1805,13 +1805,33 @@ function openFolderNote(id) {
   focusType = 'folder'; focusId = id; focusColor = null;
   const bodyEl  = document.getElementById('focus-body');
   const titleEl = document.getElementById('focus-ttl-inp');
-  if (bodyEl)  bodyEl.value  = n.text  || '';
-  if (titleEl) titleEl.value = n.title || '';
+  bodyEl.value  = n.text  || '';
+  titleEl.value = n.title || '';
+  titleEl.style.display = '';
   _focusIsEdit = true;
+  const schedAutoSave = () => {
+    clearTimeout(autoSaveTimer);
+    const st = document.getElementById('focus-status');
+    if (st) st.textContent = '·';
+    autoSaveTimer = setTimeout(() => {
+      doFocusSave(false);
+      const st2 = document.getElementById('focus-status');
+      if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
+    }, 300);
+  };
+  bodyEl.oninput  = () => { _updateLineNums(); schedAutoSave(); };
+  titleEl.oninput = schedAutoSave;
+  bodyEl.onscroll = () => { const ln = document.getElementById('focus-lnums'); if (ln) ln.scrollTop = bodyEl.scrollTop; };
+  _updateLineNums();
+  document.getElementById('focus-clr').innerHTML = '';
+  const fdInp = document.getElementById('focus-deadline-inp');
+  const fdBtn = document.getElementById('focus-deadline-toggle');
+  fdInp.value = ''; fdInp.style.display = 'none'; fdBtn.textContent = '[off]';
+  _focusShowMode('edit');
   const fm = document.getElementById('focus-modal');
   fm.classList.add('open');
   fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
-  document.getElementById('focus-save-btn').style.display = '';
+  setTimeout(() => bodyEl.focus(), 60);
 }
 
 function delFolderNote(id) {
