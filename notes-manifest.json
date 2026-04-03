@@ -2,7 +2,7 @@
   "name": "Blocco",
   "short_name": "Blocco",
   "description": "Il tuo blocco note personale",
-  "start_url": "./notes.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
