@@ -1105,6 +1105,15 @@ html.light input[type="datetime-local"] { color-scheme:light }
 <div class="toast" id="toast"></div>
 
 <script>
+// Force reload if old cached version is running
+(function() {
+  const V = 31;
+  const stored = parseInt(sessionStorage.getItem('bv') || '0');
+  if (stored < V) {
+    sessionStorage.setItem('bv', V);
+    if (stored > 0) { location.reload(true); }
+  }
+})();
 // ══════════════════════════════════════════════════════════
 // COSTANTI
 // CLRS: lista dei nomi dei colori disponibili per le etichette
@@ -2427,11 +2436,12 @@ function cancelDrag() {
 // .catch(() => {}) ignora silenziosamente se il SW non è supportato.
 // ══════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  // Unregister any old service workers, then register new one
+  // Kill ALL old service workers unconditionally
   navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(r => { if (!r.active?.scriptURL?.endsWith('sw.js')) r.unregister(); });
+    Promise.all(regs.map(r => r.unregister())).then(() => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
   });
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
 // Seleziona colore nel focus sheet
