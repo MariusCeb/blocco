@@ -112,6 +112,91 @@ body {
 .folders-sec  { display: none; }
 .folder-compose { display: none; }
 
+/* ── Mobile folder support ── */
+@media (max-width:679px) {
+  .new-folder-btn {
+    display: flex; align-items: center;
+    width: 100%; border: none;
+    border-bottom: 1px solid var(--bd);
+    padding: 10px 20px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--dim); background: none;
+    text-align: left; cursor: pointer;
+    transition: color .15s;
+  }
+  .new-folder-btn:active { color: var(--text); }
+  .new-folder-form {
+    display: none; align-items: center;
+    border-bottom: 1px solid var(--bd);
+  }
+  .new-folder-form.open { display: flex; }
+  .nfinp {
+    flex: 1; background: none; border: none; outline: none;
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    padding: 10px 0 10px 20px;
+  }
+  .nfinp::placeholder { color: var(--dim); }
+  .nfok {
+    background: none; border: none; font-family: var(--mono); font-size: 12px;
+    color: var(--accent); cursor: pointer; padding: 10px 16px;
+  }
+  .nfcancel {
+    background: none; border: none; font-family: var(--mono); font-size: 12px;
+    color: var(--dim); cursor: pointer; padding: 10px 12px 10px 0;
+  }
+  .folders-sec.has-folders {
+    display: block;
+    max-height: 130px; overflow-y: auto;
+    border-bottom: 1px solid var(--bd);
+  }
+  .folder-hdr {
+    padding: 7px 20px;
+    font-size: 9px; color: var(--dim); letter-spacing: .08em;
+    text-transform: uppercase; border-bottom: 1px solid var(--bd);
+  }
+  .folder-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px 10px 20px;
+    font-size: 12px; color: var(--muted);
+    border-bottom: 1px solid var(--bd);
+    background: none; width: 100%; text-align: left;
+    font-family: var(--mono); cursor: pointer;
+    -webkit-appearance: none;
+  }
+  .folder-item.on { color: var(--text); background: var(--s2); }
+  .folder-del {
+    background: none; border: none; color: var(--dim);
+    font-family: var(--mono); font-size: 11px;
+    cursor: pointer; padding: 2px 4px; flex-shrink: 0;
+  }
+  #v-folder .folder-compose {
+    display: block;
+    border-bottom: 1px solid var(--bd); margin-bottom: 12px;
+  }
+  .fc-title {
+    display: block; width: 100%; background: none; border: none; outline: none;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--text); padding: 14px 16px 6px; letter-spacing: -.01em;
+  }
+  .fc-title::placeholder { color: var(--dim); font-weight: 400; }
+  .fc-body {
+    display: block; width: 100%; background: none; border: none; outline: none;
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    padding: 4px 16px 10px; resize: none; min-height: 60px; line-height: 1.6;
+  }
+  .fc-body::placeholder { color: var(--dim); }
+  .fc-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px 8px 16px; border-top: 1px solid var(--bd);
+  }
+  .fc-hint { font-size: 9px; color: var(--dim); }
+  .fc-save {
+    background: none; border: 1px solid var(--bd2); border-radius: 3px;
+    font-family: var(--mono); font-size: 10px; color: var(--text);
+    padding: 4px 10px; cursor: pointer;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────
    DESKTOP ≥ 680px
 ───────────────────────────────────────────────────────── */
@@ -1779,15 +1864,21 @@ function goFolder(id) {
   document.getElementById('qcap').style.display = '';
   document.getElementById('fab').style.display  = '';
   renderFolders();
-  if (curFolder) renderFolder();
-  else renderAll();
+  if (curFolder) {
+    renderFolder();
+    const isEmpty = !(S.folderNotes||[]).some(n => n.folder === curFolder);
+    if (isEmpty && window.innerWidth >= 680) {
+      setTimeout(() => { const fc = document.getElementById('fc-body'); if (fc) fc.focus(); }, 80);
+    }
+  } else renderAll();
 }
 
 function renderFolder() {
   const el = document.getElementById('folder-l');
   if (!el) return;
-  const notes = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => b.created - a.created);
-  if (!notes.length) { el.innerHTML = '<div class="empty">nessuna nota.<br>scrivine una qui sopra.</div>'; return; }
+  let notes = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => b.created - a.created);
+  if (q) notes = notes.filter(n => matches([n.title, n.text]));
+  if (!notes.length) { el.innerHTML = `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`; return; }
   el.innerHTML = notes.map(n => `
     <div class="card" data-id="${n.id}">
       <div class="cbody idea-body" onclick="openFolderNote('${n.id}')">
@@ -1841,6 +1932,7 @@ function openFolderNote(id) {
 }
 
 function delFolderNote(id) {
+  if (!confirm('Eliminare questa nota?')) return;
   S.folderNotes = (S.folderNotes||[]).filter(n => n.id !== id);
   persist(); renderFolder(); renderFolders();
 }
