@@ -1471,7 +1471,7 @@ function qAdd(inp) {
 // ══════════════════════════════════════════════════════════
 function renderProms() {
   const el = document.getElementById('prom-l');
-  let items = [...curProms()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  let items = [...curProms()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
   if (q) items = items.filter(i => matches([i.text]));
   if (!items.length) {
     el.innerHTML = '<div class="empty">nessun promemoria.<br>[ + ] per aggiungerne uno.</div>';
@@ -1530,7 +1530,7 @@ function chkProm(id) {
 // ══════════════════════════════════════════════════════════
 function renderIdee() {
   const el = document.getElementById('idee-l');
-  let items = [...curIdee()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  let items = [...curIdee()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
   if (q) items = items.filter(i => matches([i.title, i.text]));
   if (!items.length) {
     el.innerHTML = '<div class="empty">nessuna idea.<br>[ + ] per aggiungerne una.</div>';
@@ -1576,7 +1576,7 @@ function renderIdee() {
 // ══════════════════════════════════════════════════════════
 function renderListe() {
   const el = document.getElementById('liste-l');
-  let items = [...S.liste].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  let items = [...S.liste].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
   if (q) items = items.filter(i => matches([i.title, ...i.items.map(r => r.text)]));
   if (!items.length) {
     el.innerHTML = '<div class="empty">nessuna lista.<br>[ + ] per crearne una.</div>';
