@@ -2427,7 +2427,11 @@ function cancelDrag() {
 // .catch(() => {}) ignora silenziosamente se il SW non è supportato.
 // ══════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./notes-sw.js').catch(() => {});
+  // Unregister any old service workers, then register new one
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => { if (!r.active?.scriptURL?.endsWith('sw.js')) r.unregister(); });
+  });
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
 // Seleziona colore nel focus sheet
