@@ -857,6 +857,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
   <div class="login-logo">blocco<span class="hl">.</span></div>
   <div class="login-sub">le tue note, ovunque</div>
   <button class="login-btn" onclick="signInWithGoogle()">[ accedi con Google ]</button>
+  <div id="login-status" style="font-size:9px;color:var(--dim);margin-top:8px;">caricamento...</div>
 </div>
 
 <div class="app" id="app" style="display:none">
@@ -1333,7 +1334,7 @@ function updateDatetime() {
   const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
   const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
   const el = document.getElementById('vdate-lbl');
-  if (el) el.textContent = d + ' — ' + t;
+  if (el) el.textContent = d + ' — ' + t + ' [v30]';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2754,6 +2755,8 @@ function doSignOut() {
 
 // Handle redirect result after signInWithRedirect (iOS PWA fallback)
 _fbAuth.getRedirectResult().catch(err => console.error(err));
+const _loginStatus = document.getElementById('login-status');
+if (_loginStatus) _loginStatus.textContent = 'firebase ok · v30';
 
 _fbAuth.onAuthStateChanged(async user => {
   const overlay = document.getElementById('login-overlay');

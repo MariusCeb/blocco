@@ -1,4 +1,4 @@
-const CACHE   = 'blocco-v30';
+const CACHE   = 'blocco-v31';
 const VERSION = 30;
 const STATIC  = [
   './notes-manifest.json',
