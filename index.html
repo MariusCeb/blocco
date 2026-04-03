@@ -2807,6 +2807,13 @@ _fbAuth.onAuthStateChanged(async user => {
           folders:     d.folders     || [],
           folderNotes: d.folderNotes || []
         };
+        // Migrazione: sposta note con folder da idee → folderNotes
+        const misplaced = S.idee.filter(i => i.folder);
+        if (misplaced.length) {
+          S.idee = S.idee.filter(i => !i.folder);
+          misplaced.forEach(i => { if (!S.folderNotes.find(n => n.id===i.id)) S.folderNotes.push(i); });
+          _fbDb.collection('users').doc(user.uid).set(S).catch(()=>{});
+        }
       }
     } catch(e) { console.warn('Firestore load error', e); }
     overlay.classList.add('hidden');
