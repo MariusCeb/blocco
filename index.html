@@ -114,17 +114,20 @@ body {
 
 /* ── Mobile folder support ── */
 @media (max-width:679px) {
+  /* Slim [+] button — just one short line */
   .new-folder-btn {
-    display: flex; align-items: center;
-    width: 100%; border: none;
-    border-bottom: 1px solid var(--bd);
-    padding: 10px 20px;
-    font-family: var(--mono); font-size: 11px;
-    color: var(--dim); background: none;
-    text-align: left; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; border: none; border-bottom: 1px solid var(--bd);
+    padding: 7px 16px;
+    font-family: var(--mono); font-size: 0; /* hide long text */
+    color: var(--dim); background: none; cursor: pointer;
     transition: color .15s;
   }
+  .new-folder-btn::before { content: 'cartelle'; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; }
+  .new-folder-btn::after  { content: '[+]'; font-size: 10px; }
   .new-folder-btn:active { color: var(--text); }
+
+  /* New-folder inline form */
   .new-folder-form {
     display: none; align-items: center;
     border-bottom: 1px solid var(--bd);
@@ -133,42 +136,50 @@ body {
   .nfinp {
     flex: 1; background: none; border: none; outline: none;
     font-family: var(--mono); font-size: 12px; color: var(--text);
-    padding: 10px 0 10px 20px;
+    padding: 9px 0 9px 16px;
   }
   .nfinp::placeholder { color: var(--dim); }
   .nfok {
-    background: none; border: none; font-family: var(--mono); font-size: 12px;
-    color: var(--accent); cursor: pointer; padding: 10px 16px;
+    background: none; border: none; font-family: var(--mono); font-size: 11px;
+    color: var(--accent); cursor: pointer; padding: 9px 14px;
   }
   .nfcancel {
-    background: none; border: none; font-family: var(--mono); font-size: 12px;
-    color: var(--dim); cursor: pointer; padding: 10px 12px 10px 0;
+    background: none; border: none; font-family: var(--mono); font-size: 11px;
+    color: var(--dim); cursor: pointer; padding: 9px 12px 9px 0;
   }
+
+  /* Folder list — horizontal scrollable chip strip */
   .folders-sec.has-folders {
-    display: block;
-    max-height: 130px; overflow-y: auto;
+    display: flex !important;
+    flex-direction: row; align-items: center;
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
     border-bottom: 1px solid var(--bd);
+    padding: 6px 12px; gap: 6px;
   }
-  .folder-hdr {
-    padding: 7px 20px;
-    font-size: 9px; color: var(--dim); letter-spacing: .08em;
-    text-transform: uppercase; border-bottom: 1px solid var(--bd);
-  }
+  .folders-sec.has-folders::-webkit-scrollbar { display: none; }
+  .folder-hdr { display: none; }
+  #folders-list { display: flex; flex-direction: row; gap: 6px; align-items: center; flex-shrink: 0; }
+
   .folder-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px 10px 20px;
-    font-size: 12px; color: var(--muted);
-    border-bottom: 1px solid var(--bd);
-    background: none; width: 100%; text-align: left;
-    font-family: var(--mono); cursor: pointer;
-    -webkit-appearance: none;
+    display: inline-flex !important; align-items: center;
+    flex-shrink: 0; white-space: nowrap;
+    padding: 4px 12px !important;
+    border-radius: 20px; border: 1px solid var(--bd2) !important; border-left: 1px solid var(--bd2) !important;
+    font-size: 11px; color: var(--muted);
+    background: none; font-family: var(--mono); cursor: pointer;
+    -webkit-appearance: none; width: auto !important;
+    transition: background .12s, color .12s;
   }
-  .folder-item.on { color: var(--text); background: var(--s2); }
-  .folder-del {
-    background: none; border: none; color: var(--dim);
-    font-family: var(--mono); font-size: 11px;
-    cursor: pointer; padding: 2px 4px; flex-shrink: 0;
+  .folder-item.on {
+    background: var(--text) !important; color: var(--bg) !important;
+    border-color: var(--text) !important;
+    padding-left: 12px !important;
   }
+  .folder-del { display: none !important; }
+
+  /* Folder compose area inside v-folder */
   #v-folder .folder-compose {
     display: block;
     border-bottom: 1px solid var(--bd); margin-bottom: 12px;
