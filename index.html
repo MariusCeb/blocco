@@ -1802,7 +1802,16 @@ function renderFolder() {
 function openFolderNote(id) {
   const n = (S.folderNotes||[]).find(x => x.id === id);
   if (!n) return;
-  openFocus('folder', id);
+  focusType = 'folder'; focusId = id; focusColor = null;
+  const bodyEl  = document.getElementById('focus-body');
+  const titleEl = document.getElementById('focus-ttl-inp');
+  if (bodyEl)  bodyEl.value  = n.text  || '';
+  if (titleEl) titleEl.value = n.title || '';
+  _focusIsEdit = true;
+  const fm = document.getElementById('focus-modal');
+  fm.classList.add('open');
+  fm.addEventListener('touchmove', _focusBgTouchMove, {passive: false});
+  document.getElementById('focus-save-btn').style.display = '';
 }
 
 function delFolderNote(id) {
@@ -2031,6 +2040,15 @@ function _focusShowMode(mode) {
 }
 
 function doFocusSave(shouldClose) {
+  if (focusType === 'folder') {
+    const it = (S.folderNotes||[]).find(i => i.id === focusId); if (!it) return;
+    it.text  = document.getElementById('focus-body').value.trim();
+    it.title = document.getElementById('focus-ttl-inp').value.trim();
+    it.updated = Date.now();
+    persist(); renderFolder();
+    if (shouldClose) closeFocus();
+    return;
+  }
   const arr = focusType === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === focusId); if (!it) return;
   it.text  = document.getElementById('focus-body').value.trim();
@@ -2042,7 +2060,6 @@ function doFocusSave(shouldClose) {
   it.updated = Date.now();
   persist(); renderAll();
   if (shouldClose) { closeFocus(); return; }
-  // Aggiorna anche la view dopo il save
   _focusPopulateView(it);
 }
 
