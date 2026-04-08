@@ -901,6 +901,9 @@ body {
   overscroll-behavior:contain;
 }
 .focus-body::placeholder { color:var(--muted); }
+/* Mantieni il testo invisibile anche quando selezionato */
+.focus-body::selection        { color:transparent; background:rgba(255,255,255,.18); }
+.focus-body::-moz-selection   { color:transparent; background:rgba(255,255,255,.18); }
 /* Barra inferiore */
 .focus-foot {
   border-top:1px solid var(--bd);flex-shrink:0;
@@ -976,6 +979,20 @@ body {
   border-radius:50%;
 }
 .fmt-clr-none:hover { transform:scale(1.25); }
+/* ── Slash command dropdown ── */
+#slash-menu {
+  position:fixed;z-index:9000;
+  background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r);
+  overflow:hidden;min-width:210px;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);
+}
+.slash-item {
+  display:flex;align-items:center;gap:12px;
+  padding:7px 14px;cursor:pointer;transition:background .1s;
+}
+.slash-item.sel, .slash-item:hover { background:var(--s3); }
+.slash-cmd  { font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);min-width:82px; }
+.slash-desc { font-family:var(--mono);font-size:10px;color:var(--muted); }
 /* Elenco slash commands nel pannello formato */
 .fmt-cmds {
   display:flex;flex-direction:column;gap:3px;margin-top:2px;
@@ -1335,6 +1352,9 @@ html.light input[type="datetime-local"] { color-scheme:light }
   </div>
 </div>
 
+<!-- Slash command dropdown -->
+<div id="slash-menu" style="display:none"></div>
+
 <!-- Toast: notifica temporanea in alto al centro -->
 <div class="toast" id="toast"></div>
 
@@ -1544,10 +1564,109 @@ function updateMirror() {
 }
 
 // ══════════════════════════════════════════════════════════
+// SLASH COMMAND DROPDOWN
+// ══════════════════════════════════════════════════════════
+const SLASH_DEFS = [
+  { cmd:'/title',    hint:'titolo principale'  },
+  { cmd:'/subtitle', hint:'sottotitolo  1.0'   },
+  { cmd:'/section',  hint:'sezione  1.1'       },
+  { cmd:'/hr',       hint:'separatore  ────'   },
+  { cmd:'/todo',     hint:'checkbox  [ ]'      },
+  { cmd:'/big',      hint:'testo grande'       },
+  { cmd:'/small',    hint:'testo piccolo'      },
+];
+let _slashOpen  = false;
+let _slashIdx   = 0;
+let _slashItems = [];
+
+function checkSlashTrigger() {
+  const ta = document.getElementById('focus-body');
+  if (!ta) return;
+  const pos    = ta.selectionStart;
+  const before = ta.value.substring(0, pos);
+  const word   = before.substring(before.lastIndexOf('\n') + 1);
+  if (word.startsWith('/') && !word.includes(' ')) {
+    const q = word.toLowerCase();
+    _slashItems = SLASH_DEFS.filter(d => d.cmd.startsWith(q));
+    if (_slashItems.length) { _slashIdx = 0; _renderSlashMenu(ta); return; }
+  }
+  closeSlashMenu();
+}
+
+function _renderSlashMenu(ta) {
+  const menu = document.getElementById('slash-menu');
+  if (!menu) return;
+  const rect  = ta.getBoundingClientRect();
+  const lineH = 13 * 1.9;
+  const lineN = ta.value.substring(0, ta.selectionStart).split('\n').length;
+  const menuH = _slashItems.length * 34;
+  let top  = rect.top + 16 + lineN * lineH - ta.scrollTop;
+  const left = rect.left + 36;
+  if (top + menuH > window.innerHeight - 8) top -= menuH + lineH + 8;
+  menu.style.top  = Math.max(8, top) + 'px';
+  menu.style.left = left + 'px';
+  menu.innerHTML  = _slashItems.map((d, i) =>
+    `<div class="slash-item${i===_slashIdx?' sel':''}" data-i="${i}"
+       onmousedown="event.preventDefault();applySlashCmd('${d.cmd}')">
+       <span class="slash-cmd">${d.cmd}</span><span class="slash-desc">${d.hint}</span>
+     </div>`).join('');
+  menu.style.display = '';
+  _slashOpen = true;
+}
+
+function closeSlashMenu() {
+  const menu = document.getElementById('slash-menu');
+  if (menu) menu.style.display = 'none';
+  _slashOpen = false; _slashItems = []; _slashIdx = 0;
+}
+
+function applySlashCmd(cmd) {
+  const ta = document.getElementById('focus-body');
+  if (!ta) return;
+  const pos       = ta.selectionStart;
+  const val       = ta.value;
+  const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+  const MAP = {
+    '/title':    ['# ',         2],
+    '/subtitle': ['## ',        3],
+    '/section':  ['### ',       4],
+    '/hr':       ['---',        3],
+    '/big':      ['{big}{/}',   5],
+    '/small':    ['{small}{/}', 7],
+    '/todo':     ['[ ] ',       4],
+  };
+  const entry = MAP[cmd]; if (!entry) { closeSlashMenu(); return; }
+  const [repl, off] = entry;
+  ta.value = val.substring(0, lineStart) + repl + val.substring(pos);
+  ta.selectionStart = ta.selectionEnd = lineStart + off;
+  ta.dispatchEvent(new Event('input'));
+  ta.focus();
+  closeSlashMenu();
+}
+
+// ══════════════════════════════════════════════════════════
 // AUTO-LIST — continua la lista con "- " a capo automatico
 // ══════════════════════════════════════════════════════════
 function autoList(e) {
   const ta = e.target;
+  // Slash menu navigation
+  if (_slashOpen && _slashItems.length) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _slashIdx = (_slashIdx + 1) % _slashItems.length;
+      _renderSlashMenu(ta); return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _slashIdx = (_slashIdx - 1 + _slashItems.length) % _slashItems.length;
+      _renderSlashMenu(ta); return;
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      applySlashCmd(_slashItems[_slashIdx].cmd); return;
+    }
+    if (e.key === 'Escape') { closeSlashMenu(); return; }
+  }
   // Tab → inserisci 2 spazi invece di saltare al campo successivo
   if (e.key === 'Tab') {
     e.preventDefault();
@@ -2154,7 +2273,7 @@ function openFolderNote(id) {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  bodyEl.oninput  = () => { updateMirror(); schedAutoSave(); };
+  bodyEl.oninput  = () => { updateMirror(); schedAutoSave(); checkSlashTrigger(); };
   titleEl.oninput = schedAutoSave;
   bodyEl.onscroll = () => {
     const ln     = document.getElementById('focus-lnums');
@@ -2374,7 +2493,7 @@ function focusEnterEdit() {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  const upd = () => { updateMirror(); schedAutoSave(); };
+  const upd = () => { updateMirror(); schedAutoSave(); checkSlashTrigger(); };
   updateMirror();
   bodyEl.oninput = upd;
   bodyEl.onscroll = () => {
@@ -2526,6 +2645,7 @@ function applyFmt(type, arg) {
 }
 
 function closeFocus() {
+  closeSlashMenu();
   clearTimeout(autoSaveTimer);
   if (_focusIsEdit) doFocusSave(false);
   const fm = document.getElementById('focus-modal');
