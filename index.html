@@ -883,14 +883,14 @@ body {
   white-space:pre-wrap;word-break:break-word;overflow:hidden;
   pointer-events:none;
 }
-/* Stili headings nel mirror */
-.mh1 { font-size:20px;font-weight:600;letter-spacing:-.02em;display:block; }
-.mh2 { font-size:16px;font-weight:600;display:block; }
-.mh3 { font-size:14px;font-weight:500;display:block; }
-.mhnum { color:var(--muted);font-size:.82em;margin-right:4px; }
-.mhr { display:block;height:0;border-top:1px solid var(--bd2);margin:2px 0; }
-.mbig { font-size:16px; }
-.msmall { font-size:10px;color:var(--muted); }
+/* Stili headings nel mirror — stessa font-size per non rompere l'allineamento */
+.mh1 { font-weight:600;letter-spacing:.05em;text-transform:uppercase; }
+.mh2 { font-weight:600; }
+.mh3 { font-weight:500;color:var(--muted); }
+.mhnum { color:var(--dim);margin-right:2px; }
+.mhr { color:var(--dim); }
+.mbig { font-weight:500;letter-spacing:.02em; }
+.msmall { opacity:.45; }
 /* Textarea sopra il mirror: testo trasparente, solo cursore visibile */
 .focus-body {
   position:absolute;inset:0;z-index:1;
@@ -1516,7 +1516,7 @@ function mdMirror(s) {
       h3++;
       return `<span class="mh3"><span class="mhnum">${h2}.${h3}</span>${applyInlineFmt(line.slice(4))}</span>`;
     }
-    if (line === '---') return `<span class="mhr"></span>`;
+    if (line === '---') return `<span class="mhr">────────────────────────────────</span>`;
     return applyInlineFmt(line);
   }).join('\n');
 }
