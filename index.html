@@ -871,13 +871,36 @@ body {
   color:var(--text);padding:14px 24px 12px;letter-spacing:-.01em;
   -webkit-appearance:none;appearance:none;flex-shrink:0;
 }
-.focus-body {
-  flex:1;padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
+/* Wrapper relativo che contiene mirror + textarea */
+.focus-body-wrap {
+  position:relative;flex:1;overflow:hidden;
+}
+/* Mirror: div sovrapposto che mostra il testo formattato */
+.focus-body-mirror {
+  position:absolute;inset:0;z-index:0;
+  padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
   color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+  white-space:pre-wrap;word-break:break-word;overflow:hidden;
+  pointer-events:none;
+}
+/* Stili headings nel mirror */
+.mh1 { font-size:20px;font-weight:600;letter-spacing:-.02em;display:block; }
+.mh2 { font-size:16px;font-weight:600;display:block; }
+.mh3 { font-size:14px;font-weight:500;display:block; }
+.mhnum { color:var(--muted);font-size:.82em;margin-right:4px; }
+.mhr { display:block;height:0;border-top:1px solid var(--bd2);margin:2px 0; }
+.mbig { font-size:16px; }
+.msmall { font-size:10px;color:var(--muted); }
+/* Textarea sopra il mirror: testo trasparente, solo cursore visibile */
+.focus-body {
+  position:absolute;inset:0;z-index:1;
+  padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
+  color:transparent;caret-color:var(--text);font-family:var(--mono);letter-spacing:.01em;
   background:transparent;border:none;outline:none;resize:none;
   overflow-y:auto;-webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
 }
+.focus-body::placeholder { color:var(--muted); }
 /* Barra inferiore */
 .focus-foot {
   border-top:1px solid var(--bd);flex-shrink:0;
@@ -953,9 +976,19 @@ body {
   border-radius:50%;
 }
 .fmt-clr-none:hover { transform:scale(1.25); }
+/* Elenco slash commands nel pannello formato */
+.fmt-cmds {
+  display:flex;flex-direction:column;gap:3px;margin-top:2px;
+}
+.fmt-cmd {
+  font-size:9px;color:var(--dim);font-family:var(--mono);
+  letter-spacing:.02em;padding:1px 0;cursor:default;
+  transition:color .12s;
+}
+.fmt-cmd:hover { color:var(--muted); }
 @media (min-width:680px) {
   .fmt-panel { display:flex; }
-  .fmt-panel.open { width:158px; }
+  .fmt-panel.open { width:175px; }
 }
 .fclose {
   background:none;border:none;cursor:pointer;color:var(--muted);
@@ -1247,7 +1280,10 @@ html.light input[type="datetime-local"] { color-scheme:light }
     <input class="focus-ttl-inp" id="focus-ttl-inp" placeholder="Titolo..." style="display:none">
     <div class="focus-editor-wrap">
       <div class="focus-lnums" id="focus-lnums">1</div>
-      <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
+      <div class="focus-body-wrap">
+        <div class="focus-body-mirror" id="focus-body-mirror" aria-hidden="true"></div>
+        <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
+      </div>
       <!-- Format panel — desktop only, right side -->
       <div class="fmt-panel" id="fmt-panel">
         <button class="fmt-toggle" id="fmt-toggle" onclick="toggleFmtPanel()" title="Formattazione">‹</button>
@@ -1258,8 +1294,23 @@ html.light input[type="datetime-local"] { color-scheme:light }
             <button class="fmt-btn" onclick="applyFmt('italic')"    title="Corsivo"><i>I</i></button>
             <button class="fmt-btn" onclick="applyFmt('clear')"     title="Rimuovi formattazione">×</button>
           </div>
-          <div class="fmt-section-lbl" style="margin-top:14px">colore testo</div>
+          <div class="fmt-section-lbl" style="margin-top:12px">dimensione</div>
+          <div class="fmt-row">
+            <button class="fmt-btn" onclick="applyFmt('big')"   title="Testo grande">[big]</button>
+            <button class="fmt-btn" onclick="applyFmt('small')" title="Testo piccolo">[sm]</button>
+          </div>
+          <div class="fmt-section-lbl" style="margin-top:12px">colore testo</div>
           <div class="fmt-clrs" id="fmt-clrs"></div>
+          <div class="fmt-section-lbl" style="margin-top:12px">slash cmd</div>
+          <div class="fmt-cmds">
+            <div class="fmt-cmd">/title</div>
+            <div class="fmt-cmd">/subtitle</div>
+            <div class="fmt-cmd">/section</div>
+            <div class="fmt-cmd">/hr</div>
+            <div class="fmt-cmd">/todo</div>
+            <div class="fmt-cmd">/big</div>
+            <div class="fmt-cmd">/small</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1414,6 +1465,8 @@ function md(s) {
     .replace(/_(.+?)_/g,'<i>$1</i>')
     .replace(/\{(red|orange|yellow|green|blue|purple|pink|teal|lime)\}([\s\S]*?)\{\/\}/g,
       (_,c,t) => `<span style="color:${CLRHEX[c]}">${t}</span>`)
+    .replace(/\{big\}([\s\S]*?)\{\/\}/g,'<span class="mbig">$1</span>')
+    .replace(/\{small\}([\s\S]*?)\{\/\}/g,'<span class="msmall">$1</span>')
     .replace(/(^|\n)\[x\] /g,'$1<span class="cb cb-done">✓</span> ')
     .replace(/(^|\n)\[ \] /g,'$1<span class="cb cb-open">○</span> ')
     .replace(/\n/g,'<br>');
@@ -1428,6 +1481,53 @@ function toast(msg, dur=2000) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ══════════════════════════════════════════════════════════
+// WYSIWYG MIRROR — sovrappone testo formattato alla textarea
+// ══════════════════════════════════════════════════════════
+function applyInlineFmt(rawLine) {
+  // Escape HTML prima di applicare i marcatori
+  let s = rawLine.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s = s
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/_(.+?)_/g,'<i>$1</i>')
+    .replace(/\{(red|orange|yellow|green|blue|purple|pink|teal|lime)\}([\s\S]*?)\{\/\}/g,
+      (_,c,t) => `<span style="color:${CLRHEX[c]}">${t}</span>`)
+    .replace(/\{big\}([\s\S]*?)\{\/\}/g,'<span class="mbig">$1</span>')
+    .replace(/\{small\}([\s\S]*?)\{\/\}/g,'<span class="msmall">$1</span>')
+    .replace(/^\[x\] /,'<span class="cb cb-done">✓</span> ')
+    .replace(/^\[ \] /,'<span class="cb cb-open">○</span> ');
+  return s;
+}
+
+function mdMirror(s) {
+  let h2 = 0, h3 = 0;
+  return (s || '').split('\n').map(line => {
+    if (/^# /.test(line)) {
+      h2 = 0; h3 = 0;
+      return `<span class="mh1">${applyInlineFmt(line.slice(2))}</span>`;
+    }
+    if (/^## /.test(line)) {
+      h2++; h3 = 0;
+      return `<span class="mh2"><span class="mhnum">${h2}.0</span>${applyInlineFmt(line.slice(3))}</span>`;
+    }
+    if (/^### /.test(line)) {
+      h3++;
+      return `<span class="mh3"><span class="mhnum">${h2}.${h3}</span>${applyInlineFmt(line.slice(4))}</span>`;
+    }
+    if (line === '---') return `<span class="mhr"></span>`;
+    return applyInlineFmt(line);
+  }).join('\n');
+}
+
+function updateMirror() {
+  const ta     = document.getElementById('focus-body');
+  const mirror = document.getElementById('focus-body-mirror');
+  if (!ta || !mirror) return;
+  mirror.innerHTML = mdMirror(ta.value) + '\n';
+  mirror.scrollTop = ta.scrollTop;
+  _updateLineNums();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1450,12 +1550,22 @@ function autoList(e) {
   const val = ta.value;
   const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
   const currentLine = val.substring(lineStart, pos);
-  // /todo → converti riga in checkbox
-  if (currentLine.trimStart() === '/todo') {
+  // Slash commands — sostituisce l'intera riga con il marcatore
+  const SLASH_CMDS = {
+    '/title':    ['# ',         2],
+    '/subtitle': ['## ',        3],
+    '/section':  ['### ',       4],
+    '/hr':       ['---',        3],
+    '/big':      ['{big}{/}',   5],
+    '/small':    ['{small}{/}', 7],
+    '/todo':     ['[ ] ',       4],
+  };
+  const slashKey = currentLine.trimStart();
+  if (SLASH_CMDS[slashKey]) {
     e.preventDefault();
-    ta.value = val.substring(0, lineStart) + '[ ] ' + val.substring(pos);
-    const newPos = lineStart + 4;
-    ta.selectionStart = ta.selectionEnd = newPos;
+    const [repl, curOff] = SLASH_CMDS[slashKey];
+    ta.value = val.substring(0, lineStart) + repl + val.substring(pos);
+    ta.selectionStart = ta.selectionEnd = lineStart + curOff;
     ta.dispatchEvent(new Event('input'));
     return;
   }
@@ -2031,10 +2141,15 @@ function openFolderNote(id) {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  bodyEl.oninput  = () => { _updateLineNums(); schedAutoSave(); };
+  bodyEl.oninput  = () => { updateMirror(); schedAutoSave(); };
   titleEl.oninput = schedAutoSave;
-  bodyEl.onscroll = () => { const ln = document.getElementById('focus-lnums'); if (ln) ln.scrollTop = bodyEl.scrollTop; };
-  _updateLineNums();
+  bodyEl.onscroll = () => {
+    const ln     = document.getElementById('focus-lnums');
+    const mirror = document.getElementById('focus-body-mirror');
+    if (ln)     ln.scrollTop     = bodyEl.scrollTop;
+    if (mirror) mirror.scrollTop = bodyEl.scrollTop;
+  };
+  updateMirror();
   focusColor = n.color || null;
   document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
     <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
@@ -2246,12 +2361,14 @@ function focusEnterEdit() {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  const upd = () => { _updateLineNums(); schedAutoSave(); };
-  _updateLineNums();
+  const upd = () => { updateMirror(); schedAutoSave(); };
+  updateMirror();
   bodyEl.oninput = upd;
   bodyEl.onscroll = () => {
-    const ln = document.getElementById('focus-lnums');
-    if (ln) ln.scrollTop = bodyEl.scrollTop;
+    const ln     = document.getElementById('focus-lnums');
+    const mirror = document.getElementById('focus-body-mirror');
+    if (ln)     ln.scrollTop     = bodyEl.scrollTop;
+    if (mirror) mirror.scrollTop = bodyEl.scrollTop;
   };
   if (focusType === 'idee') ttlInp.oninput = schedAutoSave;
   // Color picker
@@ -2369,7 +2486,17 @@ function applyFmt(type, arg) {
         cur = [s + arg.length + 2, s + arg.length + 2];
       }
       break;
-    case 'clear':
+    case 'big':
+      ins = `{big}${sel || 'testo'}{/}`;
+      ta.value = v.substring(0, s) + ins + v.substring(e);
+      cur = [s + 5, s + 5 + (sel || 'testo').length];
+      break;
+    case 'small':
+      ins = `{small}${sel || 'testo'}{/}`;
+      ta.value = v.substring(0, s) + ins + v.substring(e);
+      cur = [s + 7, s + 7 + (sel || 'testo').length];
+      break;
+    case 'clear': {
       const c2 = (sel || v)
         .replace(/\*\*(.+?)\*\*/g,'$1')
         .replace(/_(.+?)_/g,'$1')
@@ -2377,6 +2504,7 @@ function applyFmt(type, arg) {
       if (sel) { ta.value = v.substring(0, s) + c2 + v.substring(e); cur = [s, s + c2.length]; }
       else     { ta.value = c2; cur = [Math.min(s, c2.length), Math.min(s, c2.length)]; }
       break;
+    }
     default: return;
   }
   if (cur) { ta.selectionStart = cur[0]; ta.selectionEnd = cur[1]; }
