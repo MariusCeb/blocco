@@ -871,39 +871,29 @@ body {
   color:var(--text);padding:14px 24px 12px;letter-spacing:-.01em;
   -webkit-appearance:none;appearance:none;flex-shrink:0;
 }
-/* Wrapper relativo che contiene mirror + textarea */
-.focus-body-wrap {
-  position:relative;flex:1;overflow:hidden;
-}
-/* Mirror: div sovrapposto che mostra il testo formattato */
-.focus-body-mirror {
-  position:absolute;inset:0;z-index:0;
-  padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
-  color:var(--text);font-family:var(--mono);letter-spacing:.01em;
-  white-space:pre-wrap;word-break:break-word;overflow:hidden;
-  pointer-events:none;
-}
-/* Stili headings nel mirror — stessa font-size per non rompere l'allineamento */
-.mh1 { font-weight:600;letter-spacing:.05em;text-transform:uppercase; }
-.mh2 { font-weight:600; }
-.mh3 { font-weight:500;color:var(--muted); }
-.mhnum { color:var(--dim);margin-right:2px; }
-.mhr { color:var(--dim); }
-.mbig { font-weight:500;letter-spacing:.02em; }
-.msmall { opacity:.45; }
-/* Textarea sopra il mirror: testo trasparente, solo cursore visibile */
+/* Editor contenteditable — mostra direttamente il testo formattato */
 .focus-body {
-  position:absolute;inset:0;z-index:1;
-  padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
-  color:transparent;caret-color:var(--text);font-family:var(--mono);letter-spacing:.01em;
-  background:transparent;border:none;outline:none;resize:none;
-  overflow-y:auto;-webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;
+  flex:1;padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
+  color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+  background:transparent;border:none;outline:none;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  white-space:pre-wrap;word-break:break-word;
 }
-.focus-body::placeholder { color:var(--muted); }
-/* Mantieni il testo invisibile anche quando selezionato */
-.focus-body::selection        { color:transparent; background:rgba(255,255,255,.18); }
-.focus-body::-moz-selection   { color:transparent; background:rgba(255,255,255,.18); }
+.focus-body:empty::before { content:attr(data-ph);color:var(--muted);pointer-events:none;display:block; }
+/* Headings con auto-numerazione via CSS counter */
+.focus-body { counter-reset:subtitle 0 section 0; }
+.focus-body h1 { counter-reset:subtitle 0 section 0;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
+.focus-body h2 { counter-increment:subtitle;counter-reset:section 0;font-weight:600;
+  font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
+.focus-body h2::before { content:counter(subtitle)'.0  ';color:var(--muted);font-size:.82em; }
+.focus-body h3 { counter-increment:section;font-weight:500;color:var(--muted);
+  font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
+.focus-body h3::before { content:counter(subtitle)'.'counter(section)'  ';color:var(--dim);font-size:.82em; }
+.focus-body hr { border:none;border-top:1px solid var(--bd2);margin:4px 0; }
+/* usati anche nelle card in sola lettura */
+.mbig { font-size:15px; }
+.msmall { font-size:10px;opacity:.5; }
 /* Barra inferiore */
 .focus-foot {
   border-top:1px solid var(--bd);flex-shrink:0;
@@ -1297,10 +1287,8 @@ html.light input[type="datetime-local"] { color-scheme:light }
     <input class="focus-ttl-inp" id="focus-ttl-inp" placeholder="Titolo..." style="display:none">
     <div class="focus-editor-wrap">
       <div class="focus-lnums" id="focus-lnums">1</div>
-      <div class="focus-body-wrap">
-        <div class="focus-body-mirror" id="focus-body-mirror" aria-hidden="true"></div>
-        <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
-      </div>
+      <div class="focus-body" id="focus-body" contenteditable="true" spellcheck="false"
+           data-ph="Scrivi qui..." onkeydown="autoList(event)"></div>
       <!-- Format panel — desktop only, right side -->
       <div class="fmt-panel" id="fmt-panel">
         <button class="fmt-toggle" id="fmt-toggle" onclick="toggleFmtPanel()" title="Formattazione">‹</button>
@@ -1409,14 +1397,26 @@ function toggleSecretMode() {
 
 
 // Avvolge il testo selezionato nella textarea con **grassetto**
-function wrapBold() {
-  const ta = document.getElementById('focus-body');
-  const s = ta.selectionStart, e = ta.selectionEnd;
-  const sel = ta.value.slice(s, e) || 'testo';
-  ta.value = ta.value.slice(0, s) + '**' + sel + '**' + ta.value.slice(e);
-  ta.selectionStart = s + 2; ta.selectionEnd = e + 2;
-  ta.focus();
-  ta.dispatchEvent(new Event('input'));
+// ── Contenteditable helpers ──
+// Testo prima del cursore nell'editor (con \n per le interruzioni di riga)
+function getTextBeforeCursor() {
+  const el  = document.getElementById('focus-body');
+  const sel = window.getSelection();
+  if (!el || !sel.rangeCount || !el.contains(sel.focusNode)) return '';
+  const range = document.createRange();
+  range.setStart(el, 0);
+  range.setEnd(sel.focusNode, sel.focusOffset);
+  return range.toString();
+}
+// Avvolge la selezione in uno span; usa extractContents se surroundContents fallisce
+function _wrapSelectionWith(fn) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  const span  = document.createElement('span');
+  fn(span);
+  try { range.surroundContents(span); }
+  catch(_) { span.appendChild(range.extractContents()); range.insertNode(span); }
 }
 
 // Carica i dati da localStorage.
@@ -1479,7 +1479,11 @@ function esc(s) {
 // Renderer markdown leggero: prima fa escape dell'HTML (sicurezza),
 // poi applica **grassetto** e _corsivo_, poi converte i newline in <br>.
 function md(s) {
-  return (s||'')
+  if (!s) return '';
+  // Contenuto HTML (da contenteditable) — usalo direttamente
+  if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(s)) return s;
+  // Vecchio formato con marcatori testuali
+  return s
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
     .replace(/_(.+?)_/g,'<i>$1</i>')
@@ -1503,65 +1507,6 @@ function toast(msg, dur=2000) {
   el._t = setTimeout(() => el.classList.remove('show'), dur);
 }
 
-// ══════════════════════════════════════════════════════════
-// WYSIWYG MIRROR — sovrappone testo formattato alla textarea
-// ══════════════════════════════════════════════════════════
-function applyInlineFmt(rawLine) {
-  // Escape HTML prima di applicare i marcatori
-  let s = rawLine.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  s = s
-    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
-    .replace(/_(.+?)_/g,'<i>$1</i>')
-    .replace(/\{(red|orange|yellow|green|blue|purple|pink|teal|lime)\}([\s\S]*?)\{\/\}/g,
-      (_,c,t) => `<span style="color:${CLRHEX[c]}">${t}</span>`)
-    .replace(/\{big\}([\s\S]*?)\{\/\}/g,'<span class="mbig">$1</span>')
-    .replace(/\{small\}([\s\S]*?)\{\/\}/g,'<span class="msmall">$1</span>')
-    .replace(/^\[x\] /,'<span class="cb cb-done">✓</span> ')
-    .replace(/^\[ \] /,'<span class="cb cb-open">○</span> ');
-  return s;
-}
-
-// Se un tag colore/dimensione copre più righe, lo divide in tag per-riga
-// così applyInlineFmt (che lavora riga per riga) li cattura sempre
-function normalizeSpans(s) {
-  const tags = 'red|orange|yellow|green|blue|purple|pink|teal|lime|big|small';
-  return s.replace(new RegExp(`\\{(${tags})\\}([\\s\\S]*?)\\{/\\}`, 'g'),
-    (_, tag, content) => {
-      const lines = content.split('\n');
-      if (lines.length === 1) return `{${tag}}${content}{/}`;
-      return lines.map(l => l ? `{${tag}}${l}{/}` : '').join('\n');
-    }
-  );
-}
-
-function mdMirror(s) {
-  let h2 = 0, h3 = 0;
-  return normalizeSpans(s || '').split('\n').map(line => {
-    if (/^# /.test(line)) {
-      h2 = 0; h3 = 0;
-      return `<span class="mh1">${applyInlineFmt(line.slice(2))}</span>`;
-    }
-    if (/^## /.test(line)) {
-      h2++; h3 = 0;
-      return `<span class="mh2"><span class="mhnum">${h2}.0</span>${applyInlineFmt(line.slice(3))}</span>`;
-    }
-    if (/^### /.test(line)) {
-      h3++;
-      return `<span class="mh3"><span class="mhnum">${h2}.${h3}</span>${applyInlineFmt(line.slice(4))}</span>`;
-    }
-    if (line === '---') return `<span class="mhr">────────────────────────────────</span>`;
-    return applyInlineFmt(line);
-  }).join('\n');
-}
-
-function updateMirror() {
-  const ta     = document.getElementById('focus-body');
-  const mirror = document.getElementById('focus-body-mirror');
-  if (!ta || !mirror) return;
-  mirror.innerHTML = mdMirror(ta.value) + '\n';
-  mirror.scrollTop = ta.scrollTop;
-  _updateLineNums();
-}
 
 // ══════════════════════════════════════════════════════════
 // SLASH COMMAND DROPDOWN
@@ -1570,25 +1515,21 @@ const SLASH_DEFS = [
   { cmd:'/title',    hint:'titolo principale'  },
   { cmd:'/subtitle', hint:'sottotitolo  1.0'   },
   { cmd:'/section',  hint:'sezione  1.1'       },
-  { cmd:'/hr',       hint:'separatore  ────'   },
+  { cmd:'/hr',       hint:'separatore'         },
   { cmd:'/todo',     hint:'checkbox  [ ]'      },
-  { cmd:'/big',      hint:'testo grande'       },
-  { cmd:'/small',    hint:'testo piccolo'      },
 ];
 let _slashOpen  = false;
 let _slashIdx   = 0;
 let _slashItems = [];
 
 function checkSlashTrigger() {
-  const ta = document.getElementById('focus-body');
-  if (!ta) return;
-  const pos    = ta.selectionStart;
-  const before = ta.value.substring(0, pos);
-  const word   = before.substring(before.lastIndexOf('\n') + 1);
-  if (word.startsWith('/') && !word.includes(' ')) {
+  const el   = document.getElementById('focus-body');
+  if (!el) return;
+  const word = getTextBeforeCursor().split('\n').pop() || '';
+  if (word.startsWith('/') && !word.includes(' ') && word.length <= 12) {
     const q = word.toLowerCase();
     _slashItems = SLASH_DEFS.filter(d => d.cmd.startsWith(q));
-    if (_slashItems.length) { _slashIdx = 0; _renderSlashMenu(ta); return; }
+    if (_slashItems.length) { _slashIdx = 0; _renderSlashMenu(el); return; }
   }
   closeSlashMenu();
 }
@@ -1621,101 +1562,74 @@ function closeSlashMenu() {
 }
 
 function applySlashCmd(cmd) {
-  const ta = document.getElementById('focus-body');
-  if (!ta) return;
-  const pos       = ta.selectionStart;
-  const val       = ta.value;
-  const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
-  const MAP = {
-    '/title':    ['# ',         2],
-    '/subtitle': ['## ',        3],
-    '/section':  ['### ',       4],
-    '/hr':       ['---',        3],
-    '/big':      ['{big}{/}',   5],
-    '/small':    ['{small}{/}', 7],
-    '/todo':     ['[ ] ',       4],
-  };
-  const entry = MAP[cmd]; if (!entry) { closeSlashMenu(); return; }
-  const [repl, off] = entry;
-  ta.value = val.substring(0, lineStart) + repl + val.substring(pos);
-  ta.selectionStart = ta.selectionEnd = lineStart + off;
-  ta.dispatchEvent(new Event('input'));
-  ta.focus();
-  closeSlashMenu();
+  const el = document.getElementById('focus-body');
+  if (!el) return;
+  // Cancella il testo slash corrente (/title, /hr …)
+  const word = getTextBeforeCursor().split('\n').pop() || '';
+  for (let i = 0; i < word.length; i++) document.execCommand('delete');
+  switch (cmd) {
+    case '/title':    document.execCommand('formatBlock', false, 'h1'); break;
+    case '/subtitle': document.execCommand('formatBlock', false, 'h2'); break;
+    case '/section':  document.execCommand('formatBlock', false, 'h3'); break;
+    case '/hr':
+      document.execCommand('insertHTML', false, '<hr>');
+      document.execCommand('insertLineBreak');
+      break;
+    case '/todo': document.execCommand('insertText', false, '[ ] '); break;
+  }
+  el.focus(); closeSlashMenu(); _updateLineNums();
 }
 
 // ══════════════════════════════════════════════════════════
-// AUTO-LIST — continua la lista con "- " a capo automatico
+// AUTO-LIST — gestione tasti speciali nel contenteditable
 // ══════════════════════════════════════════════════════════
 function autoList(e) {
-  const ta = e.target;
+  const el = document.getElementById('focus-body');
   // Slash menu navigation
   if (_slashOpen && _slashItems.length) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      _slashIdx = (_slashIdx + 1) % _slashItems.length;
-      _renderSlashMenu(ta); return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      _slashIdx = (_slashIdx - 1 + _slashItems.length) % _slashItems.length;
-      _renderSlashMenu(ta); return;
-    }
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault();
-      applySlashCmd(_slashItems[_slashIdx].cmd); return;
-    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); _slashIdx=(_slashIdx+1)%_slashItems.length; _renderSlashMenu(el); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); _slashIdx=(_slashIdx-1+_slashItems.length)%_slashItems.length; _renderSlashMenu(el); return; }
+    if (e.key==='Enter'||e.key==='Tab') { e.preventDefault(); applySlashCmd(_slashItems[_slashIdx].cmd); return; }
     if (e.key === 'Escape') { closeSlashMenu(); return; }
   }
-  // Tab → inserisci 2 spazi invece di saltare al campo successivo
   if (e.key === 'Tab') {
     e.preventDefault();
-    const pos = ta.selectionStart, val = ta.value;
-    ta.value = val.substring(0, pos) + '  ' + val.substring(ta.selectionEnd);
-    ta.selectionStart = ta.selectionEnd = pos + 2;
-    ta.dispatchEvent(new Event('input'));
+    document.execCommand('insertText', false, '  ');
     return;
   }
   if (e.key !== 'Enter') return;
-  if (ta.selectionStart !== ta.selectionEnd) return;
-  const pos = ta.selectionStart;
-  const val = ta.value;
-  const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
-  const currentLine = val.substring(lineStart, pos);
-  // Slash commands — sostituisce l'intera riga con il marcatore
-  const SLASH_CMDS = {
-    '/title':    ['# ',         2],
-    '/subtitle': ['## ',        3],
-    '/section':  ['### ',       4],
-    '/hr':       ['---',        3],
-    '/big':      ['{big}{/}',   5],
-    '/small':    ['{small}{/}', 7],
-    '/todo':     ['[ ] ',       4],
-  };
-  const slashKey = currentLine.trimStart();
-  if (SLASH_CMDS[slashKey]) {
-    e.preventDefault();
-    const [repl, curOff] = SLASH_CMDS[slashKey];
-    ta.value = val.substring(0, lineStart) + repl + val.substring(pos);
-    ta.selectionStart = ta.selectionEnd = lineStart + curOff;
-    ta.dispatchEvent(new Event('input'));
-    return;
+  if (!el) return;
+  // Esci da heading con Enter
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) {
+    let node = sel.focusNode;
+    while (node && node !== el) {
+      if (node.nodeType===1 && /^H[123]$/.test(node.nodeName)) {
+        e.preventDefault();
+        const br = document.createElement('br');
+        node.after(br);
+        const r = document.createRange();
+        r.setStartAfter(br); r.setEndAfter(br);
+        sel.removeAllRanges(); sel.addRange(r);
+        _updateLineNums(); return;
+      }
+      node = node.parentNode;
+    }
   }
-  // Continua lista bullet "- " o checkbox "[ ] " / "[x] "
+  // Continua bullet/checkbox
+  const currentLine = getTextBeforeCursor().split('\n').pop() || '';
   const m = currentLine.match(/^(\s*(?:- |\[ \] |\[x\] ))/);
-  if (!m) return;
-  e.preventDefault();
-  const prefix = m[1].replace(/\[x\] /, '[ ] '); // nuovo item sempre non spuntato
-  const afterPrefix = currentLine.substring(m[1].length);
-  if (!afterPrefix.trim()) {
-    ta.value = val.substring(0, lineStart) + val.substring(pos);
-    ta.selectionStart = ta.selectionEnd = lineStart;
-  } else {
-    const ins = '\n' + prefix;
-    ta.value = val.substring(0, pos) + ins + val.substring(pos);
-    ta.selectionStart = ta.selectionEnd = pos + ins.length;
+  if (m) {
+    e.preventDefault();
+    const prefix = m[1].replace('[x] ', '[ ] ');
+    if (!currentLine.slice(m[1].length).trim()) {
+      for (let i = 0; i < m[1].length; i++) document.execCommand('delete');
+    } else {
+      document.execCommand('insertText', false, '\n' + prefix);
+    }
+    _updateLineNums();
   }
-  ta.dispatchEvent(new Event('input'));
+  // default Enter: browser gestisce (inserisce <br> o <div>)
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2259,7 +2173,7 @@ function openFolderNote(id) {
   focusType = 'folder'; focusId = id; focusColor = null;
   const bodyEl  = document.getElementById('focus-body');
   const titleEl = document.getElementById('focus-ttl-inp');
-  bodyEl.value  = n.text  || '';
+  bodyEl.innerHTML = md(n.text || '');
   titleEl.value = n.title || '';
   titleEl.style.display = '';
   _focusIsEdit = true;
@@ -2273,15 +2187,10 @@ function openFolderNote(id) {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  bodyEl.oninput  = () => { updateMirror(); schedAutoSave(); checkSlashTrigger(); };
+  bodyEl.oninput  = () => { _updateLineNums(); schedAutoSave(); checkSlashTrigger(); };
   titleEl.oninput = schedAutoSave;
-  bodyEl.onscroll = () => {
-    const ln     = document.getElementById('focus-lnums');
-    const mirror = document.getElementById('focus-body-mirror');
-    if (ln)     ln.scrollTop     = bodyEl.scrollTop;
-    if (mirror) mirror.scrollTop = bodyEl.scrollTop;
-  };
-  updateMirror();
+  bodyEl.onscroll = () => { const ln = document.getElementById('focus-lnums'); if (ln) ln.scrollTop = bodyEl.scrollTop; };
+  _updateLineNums();
   focusColor = n.color || null;
   document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
     <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
@@ -2464,25 +2373,23 @@ function _focusPopulateView(it) {
 }
 
 function _updateLineNums() {
-  const ta = document.getElementById('focus-body');
+  const el = document.getElementById('focus-body');
   const ln = document.getElementById('focus-lnums');
-  if (!ta || !ln) return;
-  const n = ta.value.split('\n').length;
+  if (!el || !ln) return;
+  const n = Math.max(1, (el.innerText || '').split('\n').length);
   ln.textContent = Array.from({length: n}, (_, i) => i + 1).join('\n');
-  ln.scrollTop = ta.scrollTop;
+  ln.scrollTop = el.scrollTop;
 }
 
 function focusEnterEdit() {
   const arr = focusType === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === focusId); if (!it) return;
   _focusIsEdit = true;
-  // Popola textarea e titolo
   const bodyEl = document.getElementById('focus-body');
   const ttlInp = document.getElementById('focus-ttl-inp');
-  bodyEl.value = it.text;
+  bodyEl.innerHTML = md(it.text); // md() gestisce sia vecchio formato che HTML
   if (focusType === 'idee') { ttlInp.value = it.title || ''; ttlInp.style.display = ''; }
   else { ttlInp.style.display = 'none'; }
-  // Auto-save con status nel topbar
   const schedAutoSave = () => {
     clearTimeout(autoSaveTimer);
     const st = document.getElementById('focus-status');
@@ -2493,15 +2400,10 @@ function focusEnterEdit() {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  const upd = () => { updateMirror(); schedAutoSave(); checkSlashTrigger(); };
-  updateMirror();
+  const upd = () => { _updateLineNums(); schedAutoSave(); checkSlashTrigger(); };
+  _updateLineNums();
   bodyEl.oninput = upd;
-  bodyEl.onscroll = () => {
-    const ln     = document.getElementById('focus-lnums');
-    const mirror = document.getElementById('focus-body-mirror');
-    if (ln)     ln.scrollTop     = bodyEl.scrollTop;
-    if (mirror) mirror.scrollTop = bodyEl.scrollTop;
-  };
+  bodyEl.onscroll = () => { const ln = document.getElementById('focus-lnums'); if (ln) ln.scrollTop = bodyEl.scrollTop; };
   if (focusType === 'idee') ttlInp.oninput = schedAutoSave;
   // Color picker
   focusColor = it.color || null;
@@ -2536,7 +2438,7 @@ function _focusShowMode(mode) {
 function doFocusSave(shouldClose) {
   if (focusType === 'folder') {
     const it = (S.folderNotes||[]).find(i => i.id === focusId); if (!it) return;
-    it.text  = document.getElementById('focus-body').value.trim();
+    it.text  = document.getElementById('focus-body').innerHTML;
     it.title = document.getElementById('focus-ttl-inp').value.trim();
     it.color = focusColor;
     const _fdInp = document.getElementById('focus-deadline-inp');
@@ -2549,7 +2451,7 @@ function doFocusSave(shouldClose) {
   }
   const arr = focusType === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === focusId); if (!it) return;
-  it.text  = document.getElementById('focus-body').value.trim();
+  it.text  = document.getElementById('focus-body').innerHTML;
   if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
   it.color = focusColor;
   const fdInp = document.getElementById('focus-deadline-inp');
@@ -2585,63 +2487,29 @@ function toggleFmtPanel() {
 }
 
 function applyFmt(type, arg) {
-  const ta = document.getElementById('focus-body');
-  if (!ta) return;
-  const s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
-  const sel = v.substring(s, e);
-  let ins, cur;
+  const el = document.getElementById('focus-body');
+  if (!el) return;
+  el.focus();
   switch (type) {
-    case 'bold':
-      ins = `**${sel || 'testo'}**`;
-      ta.value = v.substring(0, s) + ins + v.substring(e);
-      cur = [s + 2, s + 2 + (sel || 'testo').length];
-      break;
-    case 'italic':
-      ins = `_${sel || 'testo'}_`;
-      ta.value = v.substring(0, s) + ins + v.substring(e);
-      cur = [s + 1, s + 1 + (sel || 'testo').length];
-      break;
+    case 'bold':   document.execCommand('bold');   break;
+    case 'italic': document.execCommand('italic'); break;
     case 'color':
-      if (!arg) {
-        // rimuovi colore dalla selezione
-        const cleaned = sel.replace(/\{[a-z]+\}([\s\S]*?)\{\/\}/g, '$1');
-        ta.value = v.substring(0, s) + cleaned + v.substring(e);
-        cur = [s, s + cleaned.length];
-      } else if (sel) {
-        ins = `{${arg}}${sel}{/}`;
-        ta.value = v.substring(0, s) + ins + v.substring(e);
-        cur = [s, s + ins.length];
-      } else {
-        // nessuna selezione: inserisci marcatore, cursore dentro
-        ins = `{${arg}}{/}`;
-        ta.value = v.substring(0, s) + ins + v.substring(e);
-        cur = [s + arg.length + 2, s + arg.length + 2];
-      }
+      if (!arg) { document.execCommand('removeFormat'); }
+      else { _wrapSelectionWith(s => { s.style.color = CLRHEX[arg]; }); }
       break;
     case 'big':
-      ins = `{big}${sel || 'testo'}{/}`;
-      ta.value = v.substring(0, s) + ins + v.substring(e);
-      cur = [s + 5, s + 5 + (sel || 'testo').length];
+      _wrapSelectionWith(s => { s.className = 'mbig'; });
       break;
     case 'small':
-      ins = `{small}${sel || 'testo'}{/}`;
-      ta.value = v.substring(0, s) + ins + v.substring(e);
-      cur = [s + 7, s + 7 + (sel || 'testo').length];
+      _wrapSelectionWith(s => { s.className = 'msmall'; });
       break;
-    case 'clear': {
-      const c2 = (sel || v)
-        .replace(/\*\*(.+?)\*\*/g,'$1')
-        .replace(/_(.+?)_/g,'$1')
-        .replace(/\{[a-z]+\}([\s\S]*?)\{\/\}/g,'$1');
-      if (sel) { ta.value = v.substring(0, s) + c2 + v.substring(e); cur = [s, s + c2.length]; }
-      else     { ta.value = c2; cur = [Math.min(s, c2.length), Math.min(s, c2.length)]; }
+    case 'clear':
+      document.execCommand('removeFormat');
       break;
-    }
     default: return;
   }
-  if (cur) { ta.selectionStart = cur[0]; ta.selectionEnd = cur[1]; }
-  ta.focus();
-  ta.dispatchEvent(new Event('input'));
+  _updateLineNums();
+  el.dispatchEvent(new Event('input'));
 }
 
 function closeFocus() {
@@ -3243,10 +3111,10 @@ document.addEventListener('visibilitychange', () => {
 // così l'ultima riga può essere scrollata sopra la tastiera.
 if (window.visualViewport) {
   visualViewport.addEventListener('resize', () => {
-    const ta = document.getElementById('focus-body');
-    if (!ta) return;
+    const el = document.getElementById('focus-body');
+    if (!el) return;
     const kbH = window.innerHeight - visualViewport.height;
-    ta.style.paddingBottom = (kbH > 80 ? kbH + 24 : 16) + 'px';
+    el.style.paddingBottom = (kbH > 80 ? kbH + 24 : 16) + 'px';
   });
 }
 // Swipe destra per chiudere il focus sheet (come iOS Notes)
