@@ -632,6 +632,9 @@ body {
 .ctext  {font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;letter-spacing:.01em}
 .ctext b {font-weight:600}
 .ctext i {font-style:italic;color:var(--muted)}
+.cb { font-style:normal; font-size:11px; letter-spacing:0; }
+.cb-open { color:var(--muted); }
+.cb-done { color:#4ade80; }
 
 /* ─────────────────────────────────────────────────────────
    LISTA CARD — header con titolo e progresso (done/tot)
@@ -1064,7 +1067,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
         <input  class="fc-title" id="fc-title" placeholder="Titolo (opzionale)..." maxlength="100"
           onkeydown="if(event.key==='Tab'){event.preventDefault();document.getElementById('fc-body').focus()}">
         <textarea class="fc-body" id="fc-body" placeholder="Testo nota..."
-          onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))addFolderNote()"></textarea>
+          onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))addFolderNote();else autoList(event)"></textarea>
         <div class="fc-footer">
           <span class="fc-hint">ctrl+enter per salvare</span>
           <button class="fc-save" onclick="addFolderNote()">[+ salva]</button>
@@ -1329,9 +1332,11 @@ function esc(s) {
 function md(s) {
   return (s||'')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')   // **testo** → grassetto
-    .replace(/_(.+?)_/g,'<i>$1</i>')          // _testo_ → corsivo
-    .replace(/\n/g,'<br>');                    // newline → a capo HTML
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/_(.+?)_/g,'<i>$1</i>')
+    .replace(/(^|\n)\[x\] /g,'$1<span class="cb cb-done">✓</span> ')
+    .replace(/(^|\n)\[ \] /g,'$1<span class="cb cb-open">○</span> ')
+    .replace(/\n/g,'<br>');
 }
 
 // Mostra un messaggio temporaneo in alto allo schermo.
@@ -1349,24 +1354,41 @@ function toast(msg, dur=2000) {
 // AUTO-LIST — continua la lista con "- " a capo automatico
 // ══════════════════════════════════════════════════════════
 function autoList(e) {
-  if (e.key !== 'Enter') return;
   const ta = e.target;
-  if (ta.selectionStart !== ta.selectionEnd) return; // selezione attiva: non interferire
+  // Tab → inserisci 2 spazi invece di saltare al campo successivo
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const pos = ta.selectionStart, val = ta.value;
+    ta.value = val.substring(0, pos) + '  ' + val.substring(ta.selectionEnd);
+    ta.selectionStart = ta.selectionEnd = pos + 2;
+    ta.dispatchEvent(new Event('input'));
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  if (ta.selectionStart !== ta.selectionEnd) return;
   const pos = ta.selectionStart;
   const val = ta.value;
   const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
   const currentLine = val.substring(lineStart, pos);
-  const m = currentLine.match(/^(\s*- )/);
+  // /todo → converti riga in checkbox
+  if (currentLine.trimStart() === '/todo') {
+    e.preventDefault();
+    ta.value = val.substring(0, lineStart) + '[ ] ' + val.substring(pos);
+    const newPos = lineStart + 4;
+    ta.selectionStart = ta.selectionEnd = newPos;
+    ta.dispatchEvent(new Event('input'));
+    return;
+  }
+  // Continua lista bullet "- " o checkbox "[ ] " / "[x] "
+  const m = currentLine.match(/^(\s*(?:- |\[ \] |\[x\] ))/);
   if (!m) return;
   e.preventDefault();
-  const prefix = m[1];
-  const afterPrefix = currentLine.substring(prefix.length);
+  const prefix = m[1].replace(/\[x\] /, '[ ] '); // nuovo item sempre non spuntato
+  const afterPrefix = currentLine.substring(m[1].length);
   if (!afterPrefix.trim()) {
-    // Bullet vuoto → rimuovi e torna a riga normale
     ta.value = val.substring(0, lineStart) + val.substring(pos);
     ta.selectionStart = ta.selectionEnd = lineStart;
   } else {
-    // Continua la lista
     const ins = '\n' + prefix;
     ta.value = val.substring(0, pos) + ins + val.substring(pos);
     ta.selectionStart = ta.selectionEnd = pos + ins.length;
@@ -1887,11 +1909,11 @@ function goFolder(id) {
 function renderFolder() {
   const el = document.getElementById('folder-l');
   if (!el) return;
-  let notes = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => b.created - a.created);
+  let notes = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) notes = notes.filter(n => matches([n.title, n.text]));
   if (!notes.length) { el.innerHTML = `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`; return; }
   el.innerHTML = notes.map(n => `
-    <div class="card${clrCls(n.color)}" data-id="${n.id}">
+    <div class="card${n.pinned?' pin-on':''}${clrCls(n.color)}" data-id="${n.id}">
       <div class="cbody idea-body" onclick="openFolderNote('${n.id}')">
         ${n.title ? `<div class="ctitle">${esc(n.title)}</div>` : ''}
         <div class="ctext">${md(n.text)}</div>
@@ -1900,6 +1922,7 @@ function renderFolder() {
       <div class="cmeta">
         <span class="cts">${fmtTs(n.created)}${deadlineTag(n)}</span>
         <div class="cacts">
+          <button class="cact" onclick="pinFolderNote('${n.id}')">[${n.pinned?'unpin':'pin'}]</button>
           <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
           <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
         </div>
@@ -1949,6 +1972,12 @@ function openFolderNote(id) {
   setTimeout(() => bodyEl.focus(), 60);
 }
 
+function pinFolderNote(id) {
+  const it = (S.folderNotes||[]).find(n => n.id === id); if (!it) return;
+  it.pinned = !it.pinned; persist(); renderFolder();
+  toast(it.pinned ? '[fissato]' : '[rimosso dai fissati]');
+}
+
 function delFolderNote(id) {
   if (!confirm('Eliminare questa nota?')) return;
   S.folderNotes = (S.folderNotes||[]).filter(n => n.id !== id);
@@ -1960,7 +1989,7 @@ function addFolderNote() {
   const text  = (document.getElementById('fc-body').value  || '').trim();
   if (!text && !title) return;
   const now = Date.now();
-  const note = {id:uid(), title, text, created:now, updated:now, folder:curFolder};
+  const note = {id:uid(), title, text, created:now, updated:now, folder:curFolder, pinned:false};
   if (!S.folderNotes) S.folderNotes = [];
   S.folderNotes.unshift(note);
   persist();
