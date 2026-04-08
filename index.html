@@ -1501,9 +1501,22 @@ function applyInlineFmt(rawLine) {
   return s;
 }
 
+// Se un tag colore/dimensione copre più righe, lo divide in tag per-riga
+// così applyInlineFmt (che lavora riga per riga) li cattura sempre
+function normalizeSpans(s) {
+  const tags = 'red|orange|yellow|green|blue|purple|pink|teal|lime|big|small';
+  return s.replace(new RegExp(`\\{(${tags})\\}([\\s\\S]*?)\\{/\\}`, 'g'),
+    (_, tag, content) => {
+      const lines = content.split('\n');
+      if (lines.length === 1) return `{${tag}}${content}{/}`;
+      return lines.map(l => l ? `{${tag}}${l}{/}` : '').join('\n');
+    }
+  );
+}
+
 function mdMirror(s) {
   let h2 = 0, h3 = 0;
-  return (s || '').split('\n').map(line => {
+  return normalizeSpans(s || '').split('\n').map(line => {
     if (/^# /.test(line)) {
       h2 = 0; h3 = 0;
       return `<span class="mh1">${applyInlineFmt(line.slice(2))}</span>`;
