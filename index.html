@@ -892,7 +892,71 @@ body {
   padding:16px 4px 16px 16px;overflow:hidden;white-space:pre;
 }
 /* Wrapper textarea + numeri riga */
-.focus-editor-wrap {flex:1;display:flex;overflow:hidden}
+.focus-editor-wrap {flex:1;display:flex;overflow:hidden;position:relative}
+/* ── Format panel — hidden on mobile ── */
+.fmt-panel {
+  display:none;
+  flex-direction:row;flex-shrink:0;
+  border-left:1px solid var(--bd);
+  background:var(--s1);
+  overflow:hidden;
+  width:26px;
+  transition:width .22s cubic-bezier(.4,0,.2,1);
+}
+.fmt-toggle {
+  width:26px;flex-shrink:0;height:100%;
+  background:none;border:none;border-right:1px solid transparent;
+  color:var(--dim);font-family:var(--mono);font-size:13px;
+  cursor:pointer;transition:color .15s, border-color .15s;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-appearance:none;appearance:none;
+}
+.fmt-toggle:hover { color:var(--text); }
+.fmt-panel.open .fmt-toggle { border-right-color:var(--bd); }
+.fmt-body {
+  flex:1;min-width:0;overflow:hidden;
+  padding:16px 12px;
+  display:flex;flex-direction:column;
+  opacity:0;transition:opacity .18s;pointer-events:none;
+}
+.fmt-panel.open .fmt-body { opacity:1;pointer-events:auto; }
+.fmt-section-lbl {
+  font-size:9px;color:var(--dim);letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:8px;
+}
+.fmt-row { display:flex;gap:6px;flex-wrap:wrap; }
+.fmt-btn {
+  background:none;border:1px solid var(--bd2);border-radius:3px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  padding:4px 8px;cursor:pointer;transition:color .12s,background .12s;
+  -webkit-appearance:none;appearance:none;min-width:28px;text-align:center;
+}
+.fmt-btn:hover { color:var(--text);background:var(--s2); }
+.fmt-clrs {
+  display:flex;flex-wrap:wrap;gap:7px;margin-top:2px;
+}
+.fmt-clr-dot {
+  width:14px;height:14px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:border-color .12s,transform .1s;
+  flex-shrink:0;
+}
+.fmt-clr-dot:hover { transform:scale(1.25); }
+.fmt-clr-dot.sel { border-color:var(--text); }
+.fmt-clr-none {
+  width:14px;height:14px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--bd2);transition:border-color .12s,transform .1s;
+  flex-shrink:0;position:relative;
+}
+.fmt-clr-none::after {
+  content:'';position:absolute;inset:0;
+  background: linear-gradient(135deg, transparent 45%, var(--muted) 45%, var(--muted) 55%, transparent 55%);
+  border-radius:50%;
+}
+.fmt-clr-none:hover { transform:scale(1.25); }
+@media (min-width:680px) {
+  .fmt-panel { display:flex; }
+  .fmt-panel.open { width:158px; }
+}
 .fclose {
   background:none;border:none;cursor:pointer;color:var(--muted);
   font-family:var(--mono);font-size:10px;letter-spacing:.06em;
@@ -1184,6 +1248,20 @@ html.light input[type="datetime-local"] { color-scheme:light }
     <div class="focus-editor-wrap">
       <div class="focus-lnums" id="focus-lnums">1</div>
       <textarea class="focus-body" id="focus-body" placeholder="Scrivi qui..." onkeydown="autoList(event)"></textarea>
+      <!-- Format panel — desktop only, right side -->
+      <div class="fmt-panel" id="fmt-panel">
+        <button class="fmt-toggle" id="fmt-toggle" onclick="toggleFmtPanel()" title="Formattazione">‹</button>
+        <div class="fmt-body" id="fmt-body">
+          <div class="fmt-section-lbl">stile</div>
+          <div class="fmt-row">
+            <button class="fmt-btn" onclick="applyFmt('bold')"      title="Grassetto"><b>B</b></button>
+            <button class="fmt-btn" onclick="applyFmt('italic')"    title="Corsivo"><i>I</i></button>
+            <button class="fmt-btn" onclick="applyFmt('clear')"     title="Rimuovi formattazione">×</button>
+          </div>
+          <div class="fmt-section-lbl" style="margin-top:14px">colore testo</div>
+          <div class="fmt-clrs" id="fmt-clrs"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1334,6 +1412,8 @@ function md(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
     .replace(/_(.+?)_/g,'<i>$1</i>')
+    .replace(/\{(red|orange|yellow|green|blue|purple|pink|teal|lime)\}([\s\S]*?)\{\/\}/g,
+      (_,c,t) => `<span style="color:${CLRHEX[c]}">${t}</span>`)
     .replace(/(^|\n)\[x\] /g,'$1<span class="cb cb-done">✓</span> ')
     .replace(/(^|\n)\[ \] /g,'$1<span class="cb cb-open">○</span> ')
     .replace(/\n/g,'<br>');
@@ -2233,6 +2313,76 @@ function doFocusSave(shouldClose) {
 }
 
 function saveFocus() { clearTimeout(autoSaveTimer); doFocusSave(true); }
+
+// ══════════════════════════════════════════════════════════
+// FORMAT PANEL — pannello formattazione testo (solo desktop)
+// ══════════════════════════════════════════════════════════
+let _fmtOpen = false;
+
+function buildFmtColors() {
+  const el = document.getElementById('fmt-clrs');
+  if (!el || el.childElementCount) return; // già costruito
+  el.innerHTML = `<div class="fmt-clr-none" title="nessun colore" onclick="applyFmt('color','')"></div>` +
+    CLRS.map(c => `<div class="fmt-clr-dot" style="background:${CLRHEX[c]}" title="${c}" onclick="applyFmt('color','${c}')"></div>`).join('');
+}
+
+function toggleFmtPanel() {
+  _fmtOpen = !_fmtOpen;
+  const panel  = document.getElementById('fmt-panel');
+  const toggle = document.getElementById('fmt-toggle');
+  panel.classList.toggle('open', _fmtOpen);
+  toggle.textContent = _fmtOpen ? '›' : '‹';
+  if (_fmtOpen) buildFmtColors();
+}
+
+function applyFmt(type, arg) {
+  const ta = document.getElementById('focus-body');
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
+  const sel = v.substring(s, e);
+  let ins, cur;
+  switch (type) {
+    case 'bold':
+      ins = `**${sel || 'testo'}**`;
+      ta.value = v.substring(0, s) + ins + v.substring(e);
+      cur = [s + 2, s + 2 + (sel || 'testo').length];
+      break;
+    case 'italic':
+      ins = `_${sel || 'testo'}_`;
+      ta.value = v.substring(0, s) + ins + v.substring(e);
+      cur = [s + 1, s + 1 + (sel || 'testo').length];
+      break;
+    case 'color':
+      if (!arg) {
+        // rimuovi colore dalla selezione
+        const cleaned = sel.replace(/\{[a-z]+\}([\s\S]*?)\{\/\}/g, '$1');
+        ta.value = v.substring(0, s) + cleaned + v.substring(e);
+        cur = [s, s + cleaned.length];
+      } else if (sel) {
+        ins = `{${arg}}${sel}{/}`;
+        ta.value = v.substring(0, s) + ins + v.substring(e);
+        cur = [s, s + ins.length];
+      } else {
+        // nessuna selezione: inserisci marcatore, cursore dentro
+        ins = `{${arg}}{/}`;
+        ta.value = v.substring(0, s) + ins + v.substring(e);
+        cur = [s + arg.length + 2, s + arg.length + 2];
+      }
+      break;
+    case 'clear':
+      const c2 = (sel || v)
+        .replace(/\*\*(.+?)\*\*/g,'$1')
+        .replace(/_(.+?)_/g,'$1')
+        .replace(/\{[a-z]+\}([\s\S]*?)\{\/\}/g,'$1');
+      if (sel) { ta.value = v.substring(0, s) + c2 + v.substring(e); cur = [s, s + c2.length]; }
+      else     { ta.value = c2; cur = [Math.min(s, c2.length), Math.min(s, c2.length)]; }
+      break;
+    default: return;
+  }
+  if (cur) { ta.selectionStart = cur[0]; ta.selectionEnd = cur[1]; }
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
 
 function closeFocus() {
   clearTimeout(autoSaveTimer);
