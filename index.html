@@ -1637,7 +1637,8 @@ function applySlashCmd(cmd) {
   if (!el) return;
   el.focus();
   // Cancella il testo slash corrente (/title, /hr …) — solo se presente
-  const word = getTextBeforeCursor().split('\n').pop() || '';
+  // Usa _getCurrentLineBeforeCursor per non leggere il testo dei blocchi precedenti
+  const word = _getCurrentLineBeforeCursor();
   if (word.startsWith('/')) {
     for (let i = 0; i < word.length; i++) document.execCommand('delete');
   }
@@ -1657,6 +1658,26 @@ function applySlashCmd(cmd) {
 // ══════════════════════════════════════════════════════════
 // AUTO-LIST — gestione tasti speciali nel contenteditable
 // ══════════════════════════════════════════════════════════
+
+// Returns only the text of the CURRENT block (div/h1/p/…) before the cursor.
+// Unlike getTextBeforeCursor(), this never bleeds text from previous blocks
+// because range.toString() produces no \n at block boundaries.
+function _getCurrentLineBeforeCursor() {
+  const el  = document.getElementById('focus-body');
+  const sel = window.getSelection();
+  if (!el || !sel || !sel.rangeCount || !el.contains(sel.anchorNode)) return '';
+  let block = sel.anchorNode;
+  while (block && block !== el) {
+    if (block.nodeType === 1 && /^(DIV|P|H[1-6]|LI|BLOCKQUOTE|PRE)$/.test(block.nodeName)) break;
+    block = block.parentNode;
+  }
+  if (!block || block === el) block = el;
+  const range = document.createRange();
+  try { range.setStart(block, 0); range.setEnd(sel.anchorNode, sel.anchorOffset); }
+  catch (_) { return ''; }
+  return range.toString();
+}
+
 function autoList(e) {
   const el = document.getElementById('focus-body');
   // Slash menu navigation
@@ -1690,13 +1711,16 @@ function autoList(e) {
       node = node.parentNode;
     }
   }
-  // Continua bullet/checkbox
-  const currentLine = getTextBeforeCursor().split('\n').pop() || '';
+  // Continua bullet/checkbox — usa solo il testo del blocco corrente
+  // così se l'utente ha cancellato il prefisso "- " la riga risulta vuota
+  // e non eredita il pattern dal blocco precedente.
+  const currentLine = _getCurrentLineBeforeCursor();
   const m = currentLine.match(/^(\s*(?:- |\[ \] |\[x\] ))/);
   if (m) {
     e.preventDefault();
     const prefix = m[1].replace('[x] ', '[ ] ');
     if (!currentLine.slice(m[1].length).trim()) {
+      // Riga vuota con solo il prefisso → esci dalla lista
       for (let i = 0; i < m[1].length; i++) document.execCommand('delete');
     } else {
       document.execCommand('insertText', false, '\n' + prefix);
