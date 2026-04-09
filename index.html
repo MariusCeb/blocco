@@ -1317,7 +1317,6 @@ html.light input[type="datetime-local"] { color-scheme:light }
           <div class="fmt-clrs" id="fmt-clrs"></div>
           <div class="fmt-section-lbl" style="margin-top:14px">slash</div>
           <div class="fmt-cmds">
-            <div class="fmt-cmd" onclick="applySlashCmd('/title')">/title</div>
             <div class="fmt-cmd" onclick="applySlashCmd('/subtitle')">/subtitle</div>
             <div class="fmt-cmd" onclick="applySlashCmd('/section')">/section</div>
             <div class="fmt-cmd" onclick="applySlashCmd('/hr')">/hr</div>
@@ -1562,7 +1561,6 @@ function toast(msg, dur=2000) {
 // SLASH COMMAND DROPDOWN
 // ══════════════════════════════════════════════════════════
 const SLASH_DEFS = [
-  { cmd:'/title',    hint:'titolo principale'    },
   { cmd:'/subtitle', hint:'sottotitolo  1.0'     },
   { cmd:'/section',  hint:'sezione  1.1'         },
   { cmd:'/hr',       hint:'separatore'           },
@@ -1651,7 +1649,6 @@ function applySlashCmd(cmd) {
     for (let i = 0; i < word.length; i++) document.execCommand('delete');
   }
   switch (cmd) {
-    case '/title':    document.execCommand('formatBlock', false, 'h1'); break;
     case '/subtitle': document.execCommand('formatBlock', false, 'h2'); break;
     case '/section':  document.execCommand('formatBlock', false, 'h3'); break;
     case '/quote':    document.execCommand('formatBlock', false, 'blockquote'); break;
