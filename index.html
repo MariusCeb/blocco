@@ -996,10 +996,10 @@ body {
 }
 .fmt-cmd {
   font-size:9px;color:var(--dim);font-family:var(--mono);
-  letter-spacing:.02em;padding:1px 0;cursor:default;
-  transition:color .12s;
+  letter-spacing:.02em;padding:2px 4px;cursor:pointer;
+  border-radius:2px;transition:color .12s,background .1s;
 }
-.fmt-cmd:hover { color:var(--muted); }
+.fmt-cmd:hover { color:var(--text);background:var(--s3); }
 @media (min-width:680px) {
   .fmt-panel { display:flex; }
   .fmt-panel.open { width:175px; }
@@ -1305,26 +1305,19 @@ html.light input[type="datetime-local"] { color-scheme:light }
         <div class="fmt-body" id="fmt-body">
           <div class="fmt-section-lbl">stile</div>
           <div class="fmt-row">
-            <button class="fmt-btn" onclick="applyFmt('bold')"      title="Grassetto"><b>B</b></button>
-            <button class="fmt-btn" onclick="applyFmt('italic')"    title="Corsivo"><i>I</i></button>
-            <button class="fmt-btn" onclick="applyFmt('clear')"     title="Rimuovi formattazione">×</button>
+            <button class="fmt-btn" onclick="applyFmt('bold')"   title="Grassetto"><b>B</b></button>
+            <button class="fmt-btn" onclick="applyFmt('italic')" title="Corsivo"><i>I</i></button>
+            <button class="fmt-btn" onclick="applyFmt('clear')"  title="Rimuovi tutta la formattazione">×</button>
           </div>
-          <div class="fmt-section-lbl" style="margin-top:12px">dimensione</div>
-          <div class="fmt-row">
-            <button class="fmt-btn" onclick="applyFmt('big')"   title="Testo grande">[big]</button>
-            <button class="fmt-btn" onclick="applyFmt('small')" title="Testo piccolo">[sm]</button>
-          </div>
-          <div class="fmt-section-lbl" style="margin-top:12px">colore testo</div>
+          <div class="fmt-section-lbl" style="margin-top:14px">colore</div>
           <div class="fmt-clrs" id="fmt-clrs"></div>
-          <div class="fmt-section-lbl" style="margin-top:12px">slash cmd</div>
+          <div class="fmt-section-lbl" style="margin-top:14px">slash</div>
           <div class="fmt-cmds">
-            <div class="fmt-cmd">/title</div>
-            <div class="fmt-cmd">/subtitle</div>
-            <div class="fmt-cmd">/section</div>
-            <div class="fmt-cmd">/hr</div>
-            <div class="fmt-cmd">/todo</div>
-            <div class="fmt-cmd">/big</div>
-            <div class="fmt-cmd">/small</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/title')">/title</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/subtitle')">/subtitle</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/section')">/section</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/hr')">/hr</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/todo')">/todo</div>
           </div>
         </div>
       </div>
@@ -1574,9 +1567,27 @@ let _slashIdx   = 0;
 let _slashItems = [];
 
 function checkSlashTrigger() {
-  const el   = document.getElementById('focus-body');
+  const el  = document.getElementById('focus-body');
   if (!el) return;
-  const word = getTextBeforeCursor().split('\n').pop() || '';
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount || !el.contains(sel.anchorNode)) { closeSlashMenu(); return; }
+
+  // Find the block-level ancestor of the cursor (div, h1-h6, p, li…)
+  // so range.toString() only covers the current visual line, not the whole note.
+  let block = sel.anchorNode;
+  while (block && block !== el) {
+    if (block.nodeType === 1 && /^(DIV|P|H[1-6]|LI|BLOCKQUOTE|PRE)$/.test(block.nodeName)) break;
+    block = block.parentNode;
+  }
+  if (!block || block === el) block = el;
+
+  const range = document.createRange();
+  try { range.setStart(block, 0); range.setEnd(sel.anchorNode, sel.anchorOffset); }
+  catch(_) { closeSlashMenu(); return; }
+
+  const lineText = range.toString();
+  const word = lineText.split('\n').pop() || lineText;
+
   if (word.startsWith('/') && !word.includes(' ') && word.length <= 12) {
     const q = word.toLowerCase();
     _slashItems = SLASH_DEFS.filter(d => d.cmd.startsWith(q));
@@ -1624,9 +1635,12 @@ function closeSlashMenu() {
 function applySlashCmd(cmd) {
   const el = document.getElementById('focus-body');
   if (!el) return;
-  // Cancella il testo slash corrente (/title, /hr …)
+  el.focus();
+  // Cancella il testo slash corrente (/title, /hr …) — solo se presente
   const word = getTextBeforeCursor().split('\n').pop() || '';
-  for (let i = 0; i < word.length; i++) document.execCommand('delete');
+  if (word.startsWith('/')) {
+    for (let i = 0; i < word.length; i++) document.execCommand('delete');
+  }
   switch (cmd) {
     case '/title':    document.execCommand('formatBlock', false, 'h1'); break;
     case '/subtitle': document.execCommand('formatBlock', false, 'h2'); break;
@@ -2565,8 +2579,15 @@ function applyFmt(type, arg) {
     case 'bold':   document.execCommand('bold');   break;
     case 'italic': document.execCommand('italic'); break;
     case 'color':
-      if (!arg) { document.execCommand('removeFormat'); }
-      else { _wrapSelectionWith(s => { s.style.color = CLRHEX[arg]; }); }
+      // styleWithCSS produces <span style="color:…"> instead of <font> — undo-able via Ctrl+Z
+      document.execCommand('styleWithCSS', false, true);
+      if (!arg) {
+        // Reset color only — do NOT call removeFormat (that strips bold/italic too)
+        document.execCommand('foreColor', false, 'inherit');
+      } else {
+        document.execCommand('foreColor', false, CLRHEX[arg]);
+      }
+      document.execCommand('styleWithCSS', false, false);
       break;
     case 'big':
       _wrapSelectionWith(s => { s.className = 'mbig'; });
