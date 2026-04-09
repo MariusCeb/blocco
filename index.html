@@ -2516,13 +2516,17 @@ function _updateLineNums() {
     return true;
   }
 
-  // Count non-placeholder <br>s inside a block (recurses into inline elements).
-  function countBrsIn(node) {
+  // Count line breaks inside a node: non-placeholder <br>s + \n chars in text nodes.
+  // autoList inserts literal \n via insertText (not <br>), so we must count both.
+  function countBreaksIn(node) {
     let x = 0;
     for (const c of node.childNodes) {
-      if (c.nodeType !== 1) continue;
-      if (c.nodeName.toUpperCase() === 'BR') { if (!isPlaceholderBr(c)) x++; }
-      else x += countBrsIn(c);
+      if (c.nodeType === 3) {
+        x += (c.textContent.match(/\n/g) || []).length;
+      } else if (c.nodeType === 1) {
+        if (c.nodeName.toUpperCase() === 'BR') { if (!isPlaceholderBr(c)) x++; }
+        else x += countBreaksIn(c);
+      }
     }
     return x;
   }
@@ -2534,16 +2538,19 @@ function _updateLineNums() {
   if (topBlocks.length > 0) {
     // Chrome-normalised structure: each top-level block = one base line.
     n = topBlocks.length;
-    for (const b of topBlocks) n += countBrsIn(b);
+    for (const b of topBlocks) n += countBreaksIn(b);
     // Top-level bare <br> (inserted by heading-escape code between blocks).
     for (const c of el.childNodes) {
       if (c.nodeType === 1 && c.nodeName.toUpperCase() === 'BR') n++;
     }
   } else {
-    // Flat structure from md() — text nodes + <br>s with no block wrappers.
-    // Every <br> is a real line break here (no block-boundary double-counting).
-    n = 1 + [...el.childNodes].filter(c =>
-      c.nodeType === 1 && c.nodeName.toUpperCase() === 'BR').length;
+    // Flat structure: count <br> elements + literal \n in text nodes.
+    let breaks = 0;
+    for (const c of el.childNodes) {
+      if (c.nodeType === 3) breaks += (c.textContent.match(/\n/g) || []).length;
+      else if (c.nodeType === 1 && c.nodeName.toUpperCase() === 'BR') breaks++;
+    }
+    n = 1 + breaks;
   }
 
   n = Math.max(1, n);
