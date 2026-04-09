@@ -1590,7 +1590,7 @@ function _renderSlashMenu(ta) {
   if (!menu) return;
   const rect  = ta.getBoundingClientRect();
   const lineH = 13 * 1.9;
-  const lineN = ta.value.substring(0, ta.selectionStart).split('\n').length;
+  const lineN = getTextBeforeCursor().split('\n').length;
   const menuH = _slashItems.length * 34;
   let top  = rect.top + 16 + lineN * lineH - ta.scrollTop;
   const left = rect.left + 36;
@@ -1641,7 +1641,7 @@ function autoList(e) {
     if (e.key === 'ArrowDown') { e.preventDefault(); _slashIdx=(_slashIdx+1)%_slashItems.length; _renderSlashMenu(el); return; }
     if (e.key === 'ArrowUp')   { e.preventDefault(); _slashIdx=(_slashIdx-1+_slashItems.length)%_slashItems.length; _renderSlashMenu(el); return; }
     if (e.key==='Enter'||e.key==='Tab') { e.preventDefault(); applySlashCmd(_slashItems[_slashIdx].cmd); return; }
-    if (e.key === 'Escape') { closeSlashMenu(); return; }
+    if (e.key === 'Escape') { e.stopPropagation(); closeSlashMenu(); return; }
   }
   if (e.key === 'Tab') {
     e.preventDefault();
