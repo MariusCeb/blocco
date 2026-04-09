@@ -1588,21 +1588,30 @@ function checkSlashTrigger() {
 function _renderSlashMenu(ta) {
   const menu = document.getElementById('slash-menu');
   if (!menu) return;
-  const rect  = ta.getBoundingClientRect();
-  const lineH = 13 * 1.9;
-  const lineN = getTextBeforeCursor().split('\n').length;
+  // Position at the cursor using Selection API — works for any contenteditable layout
+  let top, left;
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) {
+    const r    = sel.getRangeAt(0).cloneRange();
+    r.collapse(true);
+    const caret = r.getBoundingClientRect();
+    top  = caret.bottom + 6;
+    left = caret.left;
+  } else {
+    const r2 = ta.getBoundingClientRect();
+    top  = r2.top + 40;
+    left = r2.left + 36;
+  }
   const menuH = _slashItems.length * 34;
-  let top  = rect.top + 16 + lineN * lineH - ta.scrollTop;
-  const left = rect.left + 36;
-  if (top + menuH > window.innerHeight - 8) top -= menuH + lineH + 8;
-  menu.style.top  = Math.max(8, top) + 'px';
+  if (top + menuH > window.innerHeight - 8) top = Math.max(8, top - menuH - 28);
+  menu.style.top  = top  + 'px';
   menu.style.left = left + 'px';
   menu.innerHTML  = _slashItems.map((d, i) =>
     `<div class="slash-item${i===_slashIdx?' sel':''}" data-i="${i}"
        onmousedown="event.preventDefault();applySlashCmd('${d.cmd}')">
        <span class="slash-cmd">${d.cmd}</span><span class="slash-desc">${d.hint}</span>
      </div>`).join('');
-  menu.style.display = '';
+  menu.style.display = 'block';
   _slashOpen = true;
 }
 
