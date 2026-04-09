@@ -178,6 +178,7 @@ body {
     padding-left: 12px !important;
   }
   .folder-del { display: none !important; }
+  .folder-clr { display: none !important; }
 
   /* Folder compose area inside v-folder */
   #v-folder .folder-compose {
@@ -347,6 +348,12 @@ body {
   }
   .folder-item:hover .folder-del { opacity: 1; }
   .folder-del:hover { color: var(--accent); }
+  .folder-clr {
+    background: none; border: none; font-family: inherit;
+    font-size: 11px; cursor: pointer; opacity: 0; padding: 2px 4px;
+    transition: opacity .15s; flex-shrink: 0;
+  }
+  .folder-item:hover .folder-clr { opacity: 1; }
 
   /* ── Shortcuts panel: row 6 ── */
   .shortcuts-panel {
@@ -1253,6 +1260,9 @@ html.light input[type="datetime-local"] { color-scheme:light }
       <button class="bk-btn" onclick="doExport()">📤 Esporta JSON</button>
     </div>
     <div class="m-field">
+      <button class="bk-btn" onclick="doExportText()">📄 Esporta testo</button>
+    </div>
+    <div class="m-field">
       <!-- Click fittizio sull'input file nascosto -->
       <button class="bk-btn" onclick="document.getElementById('f-in').click()">📥 Importa JSON</button>
       <input type="file" id="f-in" accept=".json" style="display:none" onchange="doImport(this)">
@@ -1290,7 +1300,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
       <div class="focus-body" id="focus-body" contenteditable="true" spellcheck="false"
            data-ph="Scrivi qui..." onkeydown="autoList(event)"></div>
       <!-- Format panel — desktop only, right side -->
-      <div class="fmt-panel" id="fmt-panel">
+      <div class="fmt-panel" id="fmt-panel" onmousedown="event.preventDefault()">
         <button class="fmt-toggle" id="fmt-toggle" onclick="toggleFmtPanel()" title="Formattazione">‹</button>
         <div class="fmt-body" id="fmt-body">
           <div class="fmt-section-lbl">stile</div>
@@ -1480,8 +1490,12 @@ function esc(s) {
 // poi applica **grassetto** e _corsivo_, poi converte i newline in <br>.
 function md(s) {
   if (!s) return '';
-  // Contenuto HTML (da contenteditable) — usalo direttamente
-  if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(s)) return s;
+  // Contenuto HTML (da contenteditable) — converti solo le checkbox rimaste come testo
+  if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(s)) {
+    return s
+      .replace(/\[ \] /g, '<span class="cb cb-open">○</span> ')
+      .replace(/\[x\] /g,  '<span class="cb cb-done">✓</span> ');
+  }
   // Vecchio formato con marcatori testuali
   return s
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -1494,6 +1508,43 @@ function md(s) {
     .replace(/(^|\n)\[x\] /g,'$1<span class="cb cb-done">✓</span> ')
     .replace(/(^|\n)\[ \] /g,'$1<span class="cb cb-open">○</span> ')
     .replace(/\n/g,'<br>');
+}
+
+// mdCard: like md() but checkboxes get onclick handlers so they're clickable in cards.
+function mdCard(text, id, tp) {
+  if (!text) return '';
+  let n = 0;
+  if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(text)) {
+    return text.replace(/\[([ x])\] /g, (_, c) =>
+      `<span class="cb ${c===' '?'cb-open':'cb-done'}" onclick="event.stopPropagation();toggleCb('${id}','${tp}',${n++})">${c===' '?'○':'✓'}</span> `);
+  }
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/_(.+?)_/g,'<i>$1</i>')
+    .replace(/\{(red|orange|yellow|green|blue|purple|pink|teal|lime)\}([\s\S]*?)\{\/\}/g,
+      (_,c,t) => `<span style="color:${CLRHEX[c]}">${t}</span>`)
+    .replace(/\{big\}([\s\S]*?)\{\/\}/g,'<span class="mbig">$1</span>')
+    .replace(/\{small\}([\s\S]*?)\{\/\}/g,'<span class="msmall">$1</span>')
+    .replace(/(^|\n)\[([ x])\] /g, (_, pre, c) =>
+      `${pre}<span class="cb ${c===' '?'cb-open':'cb-done'}" onclick="event.stopPropagation();toggleCb('${id}','${tp}',${n++})">${c===' '?'○':'✓'}</span> `)
+    .replace(/\n/g,'<br>');
+}
+
+// toggleCb: flip the n-th checkbox in a card's stored text.
+function toggleCb(id, tp, idx) {
+  let arr;
+  if      (tp === 'prom')   arr = S.proms;
+  else if (tp === 'idee')   arr = S.idee;
+  else if (tp === 'folder') arr = S.folderNotes;
+  else return;
+  const it = arr.find(x => x.id === id); if (!it) return;
+  let n = 0;
+  it.text = it.text.replace(/\[([ x])\] /g, (m, c) => n++ === idx ? (c === ' ' ? '[x] ' : '[ ] ') : m);
+  persist();
+  if      (tp === 'prom')   renderProms();
+  else if (tp === 'idee')   renderIdee();
+  else                      renderFolder();
 }
 
 // Mostra un messaggio temporaneo in alto allo schermo.
@@ -1844,7 +1895,7 @@ function renderProms() {
       <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="prom">
         <div class="prow">
           <div class="pcb" onclick="chkProm('${i.id}')"></div>
-          <div class="ptext" onclick="openFocus('prom','${i.id}')">${md(i.text)}</div>
+          <div class="ptext" onclick="openFocus('prom','${i.id}')">${mdCard(i.text, i.id, 'prom')}</div>
         </div>
         ${deadlineBar(i)}
         <div class="cmeta">
@@ -1903,7 +1954,7 @@ function renderIdee() {
       <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="idee">
         <div class="cbody idea-body" onclick="openFocus('idee','${i.id}')">
           ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
-          <div class="ctext">${md(i.text)}</div>
+          <div class="ctext">${mdCard(i.text, i.id, 'idee')}</div>
         </div>
         ${deadlineBar(i)}
         <div class="cmeta">
@@ -2118,9 +2169,13 @@ function renderFolders() {
   sec.classList.toggle('has-folders', folders.length > 0);
   lst.innerHTML = folders.map(f => {
     const cnt = (S.folderNotes||[]).filter(n => n.folder === f.id).length;
+    const dot = f.color ? `<span style="width:5px;height:5px;border-radius:50%;background:${CLRHEX[f.color]};display:inline-block;flex-shrink:0"></span>` : '';
     return `<button class="folder-item${curFolder===f.id?' on':''}" onclick="goFolder('${f.id}')">
-      <span>/ ${esc(f.name)}${cnt ? ' <span style="color:var(--dim);font-size:9px">['+cnt+']</span>' : ''}</span>
-      <span class="folder-del" onclick="event.stopPropagation();delFolder('${f.id}')">[×]</span>
+      <span style="display:flex;align-items:center;gap:5px">${dot}/ ${esc(f.name)}${cnt ? ' <span style="color:var(--dim);font-size:9px">['+cnt+']</span>' : ''}</span>
+      <span style="display:flex;align-items:center;gap:2px">
+        <span class="folder-clr" onclick="event.stopPropagation();pickFolderColor('${f.id}')" style="color:${f.color?CLRHEX[f.color]:'var(--dim)'}">[·]</span>
+        <span class="folder-del" onclick="event.stopPropagation();delFolder('${f.id}')">[×]</span>
+      </span>
     </button>`;
   }).join('');
 }
@@ -2152,7 +2207,7 @@ function renderFolder() {
     <div class="card${n.pinned?' pin-on':''}${clrCls(n.color)}" data-id="${n.id}">
       <div class="cbody idea-body" onclick="openFolderNote('${n.id}')">
         ${n.title ? `<div class="ctitle">${esc(n.title)}</div>` : ''}
-        <div class="ctext">${md(n.text)}</div>
+        <div class="ctext">${mdCard(n.text, n.id, 'folder')}</div>
       </div>
       ${deadlineBar(n)}
       <div class="cmeta">
@@ -2262,6 +2317,13 @@ function delFolder(id) {
   // Remove folder assignment from notes
   [...(S.proms||[]), ...(S.idee||[])].forEach(n => { if (n.folder === id) n.folder = null; });
   if (curFolder === id) { curFolder = null; goTab(curTab); }
+  persist(); renderFolders();
+}
+
+function pickFolderColor(id) {
+  const f = (S.folders||[]).find(x => x.id === id); if (!f) return;
+  const idx = CLRS.indexOf(f.color);
+  f.color = idx === -1 ? CLRS[0] : (idx < CLRS.length - 1 ? CLRS[idx + 1] : null);
   persist(); renderFolders();
 }
 
@@ -2692,6 +2754,44 @@ function doExport() {
   URL.revokeObjectURL(a.href); // libera la memoria
   closeModal('m-io'); toast('[backup esportato]');
 }
+function doExportText() {
+  function htmlToText(html) {
+    if (!html) return '';
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(?:p|div|h[1-6])>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ')
+      .trim();
+  }
+  const lines = [`BLOCCO — ${S.name||''} — ${new Date().toLocaleDateString('it-IT')}`, ''];
+  if (S.proms?.length) {
+    lines.push('═══ PROMEMORIA ═══');
+    S.proms.forEach(i => lines.push('· ' + htmlToText(i.text)));
+    lines.push('');
+  }
+  if (S.idee?.length) {
+    lines.push('═══ IDEE ═══');
+    S.idee.forEach(i => { if (i.title) lines.push('# ' + i.title); lines.push(htmlToText(i.text)); lines.push(''); });
+  }
+  if (S.folders?.length) {
+    lines.push('═══ NOTE ═══');
+    S.folders.forEach(f => {
+      const notes = (S.folderNotes||[]).filter(n => n.folder === f.id);
+      if (!notes.length) return;
+      lines.push(`/ ${f.name}`);
+      notes.forEach(n => { if (n.title) lines.push('# ' + n.title); lines.push(htmlToText(n.text)); lines.push(''); });
+    });
+  }
+  const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'blocco-' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  closeModal('m-io'); toast('[testo esportato]');
+}
+
 function doImport(inp) {
   const f = inp.files[0]; if (!f) return;
   const r = new FileReader(); // API browser per leggere file locali
@@ -3181,7 +3281,31 @@ setTimeout(() => {
 // KEYBOARD SHORTCUTS — solo desktop
 // ══════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
-  if (e.target.matches('input,textarea,select')) return;
+  const inInput = e.target.matches('input,textarea,select') || e.target.isContentEditable;
+
+  // Cmd/Ctrl+F — focus search (works everywhere)
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+    e.preventDefault();
+    if (!sOpen) tglSearch();
+    setTimeout(() => document.getElementById('sinp')?.focus(), 60);
+    return;
+  }
+  // Cmd/Ctrl+Enter — save & close focus modal
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    const fm = document.getElementById('focus-modal');
+    if (fm?.classList.contains('open')) { e.preventDefault(); doFocusSave(true); }
+    return;
+  }
+  // Esc — close: slash menu → focus modal → search
+  if (e.key === 'Escape') {
+    if (_slashOpen) { closeSlashMenu(); return; }
+    const fm = document.getElementById('focus-modal');
+    if (fm?.classList.contains('open')) { closeFocus(); return; }
+    if (sOpen) { tglSearch(); return; }
+    return;
+  }
+
+  if (inInput) return;
   if (e.metaKey || e.ctrlKey) return;
   if (window.innerWidth < 680) return;
   switch(e.key) {
@@ -3191,9 +3315,6 @@ document.addEventListener('keydown', e => {
     case '3': goTab('liste'); break;
     case '4': goTab('cestino'); break;
     case '/': e.preventDefault(); tglSearch(); break;
-    case 'Escape':
-      if (sOpen) tglSearch();
-      break;
   }
 });
 </script>
@@ -3238,20 +3359,21 @@ _fbAuth.getRedirectResult().catch(err => console.error(err));
 const _loginStatus = document.getElementById('login-status');
 if (_loginStatus) _loginStatus.textContent = 'firebase ok · v30';
 
-_fbAuth.onAuthStateChanged(async user => {
+let _fbUnsub = null; // active onSnapshot unsubscribe
+
+_fbAuth.onAuthStateChanged(user => {
   const overlay = document.getElementById('login-overlay');
   const appEl   = document.getElementById('app');
+  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   if (user) {
     window._fbUser = user;
-    // Always start with empty data — never bleed localStorage into other users
     S = {name: user.displayName || 'Utente', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}, folders:[], folderNotes:[]};
-    // Load data from Firestore
-    try {
-      const doc = await _fbDb.collection('users').doc(user.uid).get();
+    let firstLoad = true;
+    _fbUnsub = _fbDb.collection('users').doc(user.uid).onSnapshot(doc => {
       if (doc.exists) {
         const d = doc.data();
-        S = {
-          name:        d.name        || S.name,
+        const fresh = {
+          name:        d.name        || (user.displayName || 'Utente'),
           proms:       d.proms       || [],
           idee:        d.idee        || [],
           liste:       d.liste       || [],
@@ -3261,21 +3383,44 @@ _fbAuth.onAuthStateChanged(async user => {
           folders:     d.folders     || [],
           folderNotes: d.folderNotes || []
         };
-        // Migrazione: sposta note con folder da idee → folderNotes
-        const misplaced = S.idee.filter(i => i.folder);
-        if (misplaced.length) {
-          S.idee = S.idee.filter(i => !i.folder);
-          misplaced.forEach(i => { if (!S.folderNotes.find(n => n.id===i.id)) S.folderNotes.push(i); });
-          _fbDb.collection('users').doc(user.uid).set(S).catch(()=>{});
+        if (firstLoad) {
+          S = fresh;
+          // Migrazione: sposta note con folder da idee → folderNotes
+          const misplaced = S.idee.filter(i => i.folder);
+          if (misplaced.length) {
+            S.idee = S.idee.filter(i => !i.folder);
+            misplaced.forEach(i => { if (!S.folderNotes.find(n => n.id===i.id)) S.folderNotes.push(i); });
+            _fbDb.collection('users').doc(user.uid).set(S).catch(()=>{});
+          }
+          firstLoad = false;
+          overlay.classList.add('hidden');
+          appEl.style.display = '';
+          initApp();
+        } else if (!doc.metadata.hasPendingWrites) {
+          // Data from another device — skip if focus editor is open
+          const fm = document.getElementById('focus-modal');
+          if (fm?.classList.contains('open')) return;
+          S = fresh;
+          applyTheme(); renderAll(); renderCestino();
+          toast('[sync ↓]', 1500);
         }
+      } else if (firstLoad) {
+        firstLoad = false;
+        overlay.classList.add('hidden');
+        appEl.style.display = '';
+        initApp();
       }
-    } catch(e) { console.warn('Firestore load error', e); }
-    overlay.classList.add('hidden');
-    appEl.style.display = '';
-    initApp();
+    }, err => {
+      console.warn('Firestore onSnapshot error', err);
+      if (firstLoad) {
+        firstLoad = false;
+        overlay.classList.add('hidden');
+        appEl.style.display = '';
+        initApp();
+      }
+    });
   } else {
     window._fbUser = null;
-    // Clear localStorage so next user starts fresh
     localStorage.removeItem('blocco');
     S = {name:'', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}};
     appEl.style.display = 'none';
