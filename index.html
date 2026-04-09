@@ -898,6 +898,10 @@ body {
   font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
 .focus-body h3::before { content:counter(subtitle)'.'counter(section)'  ';color:var(--dim);font-size:.82em; }
 .focus-body hr { border:none;border-top:1px solid var(--bd2);margin:4px 0; }
+.focus-body blockquote {
+  border-left:2px solid var(--dim);margin:0;padding-left:12px;
+  color:var(--muted);font-style:italic;line-height:1.9;
+}
 /* usati anche nelle card in sola lettura */
 .mbig { font-size:15px; }
 .msmall { font-size:10px;opacity:.5; }
@@ -1318,6 +1322,8 @@ html.light input[type="datetime-local"] { color-scheme:light }
             <div class="fmt-cmd" onclick="applySlashCmd('/section')">/section</div>
             <div class="fmt-cmd" onclick="applySlashCmd('/hr')">/hr</div>
             <div class="fmt-cmd" onclick="applySlashCmd('/todo')">/todo</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/quote')">/quote</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/datetime')">/datetime</div>
           </div>
         </div>
       </div>
@@ -1556,11 +1562,13 @@ function toast(msg, dur=2000) {
 // SLASH COMMAND DROPDOWN
 // ══════════════════════════════════════════════════════════
 const SLASH_DEFS = [
-  { cmd:'/title',    hint:'titolo principale'  },
-  { cmd:'/subtitle', hint:'sottotitolo  1.0'   },
-  { cmd:'/section',  hint:'sezione  1.1'       },
-  { cmd:'/hr',       hint:'separatore'         },
-  { cmd:'/todo',     hint:'checkbox  [ ]'      },
+  { cmd:'/title',    hint:'titolo principale'    },
+  { cmd:'/subtitle', hint:'sottotitolo  1.0'     },
+  { cmd:'/section',  hint:'sezione  1.1'         },
+  { cmd:'/hr',       hint:'separatore'           },
+  { cmd:'/todo',     hint:'checkbox  [ ]'        },
+  { cmd:'/datetime', hint:'data e ora correnti'  },
+  { cmd:'/quote',    hint:'citazione rientrata'  },
 ];
 let _slashOpen  = false;
 let _slashIdx   = 0;
@@ -1646,11 +1654,19 @@ function applySlashCmd(cmd) {
     case '/title':    document.execCommand('formatBlock', false, 'h1'); break;
     case '/subtitle': document.execCommand('formatBlock', false, 'h2'); break;
     case '/section':  document.execCommand('formatBlock', false, 'h3'); break;
+    case '/quote':    document.execCommand('formatBlock', false, 'blockquote'); break;
     case '/hr':
       document.execCommand('insertHTML', false, '<hr>');
       document.execCommand('insertLineBreak');
       break;
     case '/todo': document.execCommand('insertText', false, '[ ] '); break;
+    case '/datetime': {
+      const now = new Date();
+      const p = n => String(n).padStart(2, '0');
+      const dt = `${p(now.getDate())}/${p(now.getMonth()+1)}/${now.getFullYear()} · ${p(now.getHours())}:${p(now.getMinutes())}`;
+      document.execCommand('insertText', false, dt);
+      break;
+    }
   }
   el.focus(); closeSlashMenu(); _updateLineNums();
 }
@@ -2485,7 +2501,55 @@ function _updateLineNums() {
   const el = document.getElementById('focus-body');
   const ln = document.getElementById('focus-lnums');
   if (!el || !ln) return;
-  const n = Math.max(1, (el.innerText || '').split('\n').length);
+
+  // innerText is unreliable: it emits \n for BOTH a trailing <br> inside a <div>
+  // AND the block boundary between adjacent <div>s — causing double-counting.
+  // Instead walk the DOM directly.
+  const BLOCK = /^(DIV|P|H[1-6]|BLOCKQUOTE|PRE|LI|HR)$/;
+
+  // A <br> is a "placeholder" (cursor anchor in an empty block) if nothing
+  // meaningful follows it in the same parent — it adds no extra visual line.
+  function isPlaceholderBr(br) {
+    let s = br.nextSibling;
+    while (s) {
+      if (s.nodeType === 3 && s.textContent) return false;
+      if (s.nodeType === 1 && s.nodeName.toUpperCase() !== 'BR') return false;
+      s = s.nextSibling;
+    }
+    return true;
+  }
+
+  // Count non-placeholder <br>s inside a block (recurses into inline elements).
+  function countBrsIn(node) {
+    let x = 0;
+    for (const c of node.childNodes) {
+      if (c.nodeType !== 1) continue;
+      if (c.nodeName.toUpperCase() === 'BR') { if (!isPlaceholderBr(c)) x++; }
+      else x += countBrsIn(c);
+    }
+    return x;
+  }
+
+  const topBlocks = [...el.childNodes].filter(c =>
+    c.nodeType === 1 && BLOCK.test(c.nodeName.toUpperCase()));
+
+  let n;
+  if (topBlocks.length > 0) {
+    // Chrome-normalised structure: each top-level block = one base line.
+    n = topBlocks.length;
+    for (const b of topBlocks) n += countBrsIn(b);
+    // Top-level bare <br> (inserted by heading-escape code between blocks).
+    for (const c of el.childNodes) {
+      if (c.nodeType === 1 && c.nodeName.toUpperCase() === 'BR') n++;
+    }
+  } else {
+    // Flat structure from md() — text nodes + <br>s with no block wrappers.
+    // Every <br> is a real line break here (no block-boundary double-counting).
+    n = 1 + [...el.childNodes].filter(c =>
+      c.nodeType === 1 && c.nodeName.toUpperCase() === 'BR').length;
+  }
+
+  n = Math.max(1, n);
   ln.textContent = Array.from({length: n}, (_, i) => i + 1).join('\n');
   ln.scrollTop = el.scrollTop;
 }
