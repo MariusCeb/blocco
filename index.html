@@ -320,8 +320,10 @@ body {
     grid-column: 1; grid-row: 5;
     border-right: 1px solid var(--bd);
     overflow-y: auto;
+    scrollbar-width: none;
     background: var(--s1);
   }
+  .folders-sec::-webkit-scrollbar { display: none; }
   .folders-sec.has-folders { display: block; }
   .folder-hdr {
     padding: 10px 16px 10px 24px;
