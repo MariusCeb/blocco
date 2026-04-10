@@ -68,6 +68,19 @@ html.light {
   --dim:   #cccccc;
   --accent:#444444;
 }
+/* Tema Gruvbox Dark Soft */
+html.gruvbox {
+  --bg:    #32302f;
+  --s1:    #3c3836;
+  --s2:    #504945;
+  --s3:    #665c54;
+  --bd:    rgba(235,219,178,.08);
+  --bd2:   rgba(235,219,178,.16);
+  --text:  #ebdbb2;
+  --muted: #a89984;
+  --dim:   #665c54;
+  --accent:#d79921;
+}
 
 /* ─────────────────────────────────────────────────────────
    RESET — azzera i margini di default del browser
@@ -80,6 +93,7 @@ html.light {
 }
 html { background:#0e0e0e;-webkit-text-size-adjust:100%;text-size-adjust:100%;width:100%;height:100%;overflow:hidden }
 html.light { background:#f0eeea }
+html.gruvbox { background:#32302f }
 body {
   margin:0;width:100%;background:var(--bg);color:var(--text);font-family:var(--mono);
   height:100%;overflow:hidden;display:flex;justify-content:center;
@@ -547,8 +561,9 @@ body {
 }
 .view.on  {display:block} /* la vista attiva */
 /* Padding interno: 20px laterali, più spazio in basso per il FAB [+] */
-.vscroll  {padding:18px 14px calc(var(--sb) + 80px)}
-.stack    {display:flex;flex-direction:column;gap:12px}
+.vscroll  {padding:18px 16px calc(var(--sb) + 80px)}
+.stack    {display:flex;flex-direction:column;gap:18px}
+#folder-l {display:flex;flex-direction:column;gap:18px}
 
 /* ─────────────────────────────────────────────────────────
    CARD — il blocco base per ogni nota/promemoria/lista
@@ -1843,20 +1858,33 @@ function applyTwemoji(el) {
 // applyTheme(): applica la classe .light all'html, inietta l'icona giusta,
 //               aggiorna il colore della barra del browser
 // ══════════════════════════════════════════════════════════
-const SVG_MOON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>`;
-const SVG_SUN  = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>`;
+const SVG_MOON    = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>`;
+const SVG_SUN     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>`;
+const SVG_GRUVBOX = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"/></svg>`;
 
 function applyTheme() {
-  // Aggiunge/rimuove la classe .light sul tag <html>
-  document.documentElement.classList.toggle('light', S.theme === 'light');
-  // In tema chiaro mostra luna (per tornare al buio), in tema scuro mostra sole
+  // Rimuove tutte le classi tema e applica quella corrente
+  document.documentElement.classList.remove('light', 'gruvbox');
+  if (S.theme === 'light')   document.documentElement.classList.add('light');
+  if (S.theme === 'gruvbox') document.documentElement.classList.add('gruvbox');
+  // Icona: mostra l'icona del tema SUCCESSIVO nel ciclo
   const ico = document.getElementById('theme-ico');
-  if (ico) ico.innerHTML = S.theme === 'light' ? SVG_MOON : SVG_SUN;
+  if (ico) {
+    if (S.theme === 'light')   ico.innerHTML = SVG_MOON;
+    else if (S.theme === 'gruvbox') ico.innerHTML = SVG_SUN;
+    else                       ico.innerHTML = SVG_GRUVBOX;
+  }
   // Aggiorna il colore della barra browser su Android/Safari
-  document.getElementById('tc-meta').content = S.theme === 'light' ? '#f0eeea' : '#0e0e0e';
+  const bgMap = { dark: '#0e0e0e', light: '#f0eeea', gruvbox: '#32302f' };
+  document.getElementById('tc-meta').content = bgMap[S.theme] || '#0e0e0e';
 }
-// Toggle: dark → light → dark…
-function tglTheme() { S.theme = S.theme === 'light' ? 'dark' : 'light'; persist(); applyTheme(); }
+// Toggle: dark → gruvbox → light → dark…
+function tglTheme() {
+  const order = ['dark', 'gruvbox', 'light'];
+  const idx = order.indexOf(S.theme);
+  S.theme = order[(idx + 1) % order.length];
+  persist(); applyTheme();
+}
 
 // ══════════════════════════════════════════════════════════
 // RICERCA
@@ -3320,7 +3348,7 @@ document.addEventListener('focusout', () => {
 // Blocca il bounce/scroll della pagina intera su iOS.
 // Solo i contenitori esplicitamente scrollabili possono ricevere touchmove.
 document.addEventListener('touchmove', e => {
-  if (!e.target.closest('.view, .focus-view, .modal-sheet, textarea')) {
+  if (!e.target.closest('.view, .focus-view, .focus-body, .modal-sheet, textarea')) {
     e.preventDefault();
   }
 }, {passive: false});
