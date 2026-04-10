@@ -868,6 +868,62 @@ body {
   transition:opacity .22s,transform .3s cubic-bezier(.32,.72,0,1);
 }
 .focus-bg.open {opacity:1;pointer-events:auto;transform:translateY(0)}
+
+/* ── Zen mode ── */
+.zen-exit {
+  display:none;position:fixed;top:calc(var(--st) + 10px);left:14px;
+  background:none;border:none;color:var(--dim);font-size:17px;
+  cursor:pointer;z-index:200;padding:6px;line-height:1;transition:color .15s;
+}
+.zen-exit:hover { color:var(--text); }
+.focus-bg.zen .zen-exit { display:block; }
+.focus-bg.zen .focus-topbar {
+  opacity:0;pointer-events:none;
+  transform:translateY(-100%);transition:opacity .25s,transform .25s;
+}
+.focus-bg.zen .focus-foot { display:none; }
+.focus-bg.zen .focus-lnums { display:none !important; }
+.focus-bg.zen .fmt-panel   { display:none !important; }
+.focus-bg.zen .focus-editor-wrap { justify-content:center;padding:40px 20px; }
+.focus-bg.zen .focus-body  { max-width:680px;width:100%; }
+.focus-bg.zen .focus-view  { max-width:680px;width:100%;margin:0 auto;padding:40px 20px; }
+
+/* ── Command palette ── */
+.cmdpal {
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.45);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding-top:72px;
+}
+.cmdpal-box {
+  width:560px;max-width:92vw;
+  background:var(--s2);border:1px solid var(--bd2);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.35);
+}
+.cmdpal-inp {
+  width:100%;padding:14px 18px;background:none;border:none;
+  border-bottom:1px solid var(--bd);outline:none;
+  font-family:var(--mono);font-size:13px;color:var(--text);
+  box-sizing:border-box;
+}
+.cmdpal-inp::placeholder { color:var(--dim); }
+.cmdpal-list { max-height:340px;overflow-y:auto;scrollbar-width:none; }
+.cmdpal-list::-webkit-scrollbar { display:none; }
+.cmdpal-row {
+  padding:9px 18px;cursor:pointer;
+  display:flex;align-items:center;gap:10px;
+  font-size:11px;color:var(--text);
+  border-bottom:1px solid var(--bd);
+  transition:background .1s;
+}
+.cmdpal-row:last-child { border-bottom:none; }
+.cmdpal-row.sel,.cmdpal-row:hover { background:var(--s1); }
+.cmdpal-tag  { font-size:9px;color:var(--dim);letter-spacing:.06em;flex-shrink:0;min-width:32px; }
+.cmdpal-name { flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.cmdpal-sub  { font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;flex-shrink:0; }
+.cmdpal-empty { padding:18px;font-size:11px;color:var(--dim);text-align:center; }
+
 /* Barra superiore: [chiudi] a sx, status + pulsante a dx */
 .focus-topbar {
   padding:calc(var(--st) + 14px) 20px 12px;
@@ -1163,6 +1219,8 @@ html.light input[type="datetime-local"] { color-scheme:light }
   <div class="sc-row"><span class="sc-key">n</span><span class="sc-lbl">nuova nota</span></div>
   <div class="sc-row"><span class="sc-key">1-4</span><span class="sc-lbl">cambia tab</span></div>
   <div class="sc-row"><span class="sc-key">/</span><span class="sc-lbl">cerca</span></div>
+  <div class="sc-row"><span class="sc-key">ctrl+k</span><span class="sc-lbl">cerca tutto</span></div>
+  <div class="sc-row"><span class="sc-key">alt+c</span><span class="sc-lbl">zen mode</span></div>
 </div>
 
 <!-- Quick capture: input sempre visibile per promemoria rapidi.
@@ -1218,6 +1276,16 @@ html.light input[type="datetime-local"] { color-scheme:light }
 <button class="fab" id="fab" onclick="onFab()">[+]</button>
 
 </div><!-- /.app -->
+
+<!-- Command palette — Ctrl+K -->
+<div class="cmdpal" id="cmdpal" style="display:none" onclick="if(event.target===this)_closeCmdPal()">
+  <div class="cmdpal-box">
+    <input class="cmdpal-inp" id="cmdpal-inp" placeholder="cerca note o comandi..."
+      autocomplete="off" spellcheck="false"
+      oninput="renderCmdPal()" onkeydown="cmdPalKey(event)">
+    <div class="cmdpal-list" id="cmdpal-list"></div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════
      MODAL: creazione/modifica promemoria o idea
@@ -1298,11 +1366,15 @@ html.light input[type="datetime-local"] { color-scheme:light }
 
 <!-- FOCUS — schermata a schermo intero stile iOS Notes -->
 <div class="focus-bg" id="focus-modal">
+  <!-- Zen exit — visible only in zen mode, top-left -->
+  <button class="zen-exit" onclick="toggleZen()" title="esci dal zen">⊟</button>
+
   <!-- Barra superiore -->
   <div class="focus-topbar">
     <button class="fclose" onclick="closeFocus()">[←] chiudi</button>
     <div style="display:flex;align-items:center;gap:16px">
       <span id="focus-status" style="font-size:9px;color:var(--dim);letter-spacing:.05em"></span>
+      <button class="fclose" id="fzen-btn" onclick="toggleZen()" title="zen mode">⊡</button>
       <button class="fclose" id="focus-edit-btn" onclick="focusEnterEdit()">modifica</button>
       <button class="fclose primary" id="focus-save-btn" style="display:none" onclick="saveFocus()">salva</button>
     </div>
@@ -2735,6 +2807,8 @@ function closeFocus() {
   const fm = document.getElementById('focus-modal');
   fm.classList.remove('open');
   fm.removeEventListener('touchmove', _focusBgTouchMove);
+  // Reset zen mode on close
+  if (_zenMode) { _zenMode = false; fm.classList.remove('zen'); }
   // Dopo l'animazione di chiusura, torna in view mode per la prossima apertura
   setTimeout(() => { if (!fm.classList.contains('open')) _focusShowMode('view'); }, 320);
 }
@@ -3432,11 +3506,112 @@ setTimeout(() => {
 }, 1200);
 
 // ══════════════════════════════════════════════════════════
+// ZEN MODE — modalità scrittura senza distrazioni
+// ══════════════════════════════════════════════════════════
+let _zenMode = false;
+function toggleZen() {
+  const fm = document.getElementById('focus-modal');
+  if (!fm) return;
+  _zenMode = !_zenMode;
+  fm.classList.toggle('zen', _zenMode);
+}
+
+// ══════════════════════════════════════════════════════════
+// COMMAND PALETTE — Ctrl+K: cerca note e comandi
+// ══════════════════════════════════════════════════════════
+let _palOpen = false, _palIdx = 0, _palItems = [];
+
+function openCmdPal() {
+  _palOpen = true; _palIdx = 0;
+  const el = document.getElementById('cmdpal');
+  if (!el) return;
+  el.style.display = 'flex';
+  const inp = document.getElementById('cmdpal-inp');
+  if (inp) { inp.value = ''; inp.focus(); }
+  renderCmdPal();
+}
+function _closeCmdPal() {
+  _palOpen = false;
+  const el = document.getElementById('cmdpal');
+  if (el) el.style.display = 'none';
+}
+function renderCmdPal() {
+  const q = (document.getElementById('cmdpal-inp')?.value || '').toLowerCase().trim();
+  const lst = document.getElementById('cmdpal-list');
+  if (!lst) return;
+  _palItems = [];
+
+  // Notes from all sections
+  const sections = [
+    { arr: curProms(),           label: 'prom'  },
+    { arr: curIdee(),            label: 'idea'  },
+    { arr: S.folderNotes || [], label: 'nota'  },
+  ];
+  sections.forEach(({ arr, label }) => {
+    arr.forEach(n => {
+      const hay = ((n.title || '') + ' ' + (n.text || '')).toLowerCase().replace(/<[^>]*>/g, '');
+      if (!q || hay.includes(q)) {
+        const preview = (n.text || '').replace(/<[^>]*>/g, '').slice(0, 60);
+        _palItems.push({ kind: 'note', label, id: n.id, title: n.title || '', preview });
+      }
+    });
+  });
+
+  // Slash commands
+  SLASH_DEFS.forEach(d => {
+    if (!q || d.cmd.includes(q) || d.hint.includes(q))
+      _palItems.push({ kind: 'cmd', label: 'cmd', id: d.cmd, title: d.cmd, preview: d.hint });
+  });
+
+  _palItems = _palItems.slice(0, 24);
+  _palIdx = Math.min(_palIdx, Math.max(0, _palItems.length - 1));
+
+  if (!_palItems.length) {
+    lst.innerHTML = `<div class="cmdpal-empty">nessun risultato</div>`;
+    return;
+  }
+  lst.innerHTML = _palItems.map((it, i) => `
+    <div class="cmdpal-row${i === _palIdx ? ' sel' : ''}" onclick="_palSelect(${i})">
+      <span class="cmdpal-tag">${it.label}</span>
+      <span class="cmdpal-name">${esc(it.title || it.preview)}</span>
+      ${it.title && it.preview ? `<span class="cmdpal-sub">${esc(it.preview)}</span>` : ''}
+    </div>`).join('');
+}
+function cmdPalKey(e) {
+  if (e.key === 'ArrowDown')  { e.preventDefault(); _palIdx = Math.min(_palIdx + 1, _palItems.length - 1); _palHighlight(); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); _palIdx = Math.max(_palIdx - 1, 0); _palHighlight(); }
+  else if (e.key === 'Enter')     { e.preventDefault(); _palSelect(_palIdx); }
+  else if (e.key === 'Escape')    { e.preventDefault(); _closeCmdPal(); }
+}
+function _palHighlight() {
+  document.querySelectorAll('.cmdpal-row').forEach((r, i) => r.classList.toggle('sel', i === _palIdx));
+  document.querySelectorAll('.cmdpal-row')[_palIdx]?.scrollIntoView({ block: 'nearest' });
+}
+function _palSelect(idx) {
+  const it = _palItems[idx]; if (!it) return;
+  _closeCmdPal();
+  if (it.kind === 'note') {
+    const labelMap = { prom: 'prom', idea: 'idee', nota: 'folder' };
+    const tp = labelMap[it.label];
+    if (tp === 'folder') openFolderNote(it.id);
+    else openFocus(tp, it.id);
+  } else {
+    const fm = document.getElementById('focus-modal');
+    if (fm?.classList.contains('open')) applySlashCmd(it.id);
+    else toast(it.id + ' — apri prima una nota');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 // KEYBOARD SHORTCUTS — solo desktop
 // ══════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
   const inInput = e.target.matches('input,textarea,select') || e.target.isContentEditable;
 
+  // Ctrl+K — command palette (works everywhere)
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault(); openCmdPal(); return;
+  }
   // Cmd/Ctrl+F — focus search (works everywhere)
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
     e.preventDefault();
@@ -3450,9 +3625,17 @@ document.addEventListener('keydown', e => {
     if (fm?.classList.contains('open')) { e.preventDefault(); doFocusSave(true); }
     return;
   }
-  // Esc — close: slash menu → focus modal → search
+  // Alt+C — zen mode (only when focus editor is open)
+  if (e.altKey && e.key.toLowerCase() === 'c') {
+    const fm = document.getElementById('focus-modal');
+    if (fm?.classList.contains('open')) { e.preventDefault(); toggleZen(); }
+    return;
+  }
+  // Esc — close: slash menu → command palette → zen → focus modal → search
   if (e.key === 'Escape') {
     if (_slashOpen) { closeSlashMenu(); return; }
+    if (_palOpen)   { _closeCmdPal(); return; }
+    if (_zenMode)   { toggleZen(); return; }
     const fm = document.getElementById('focus-modal');
     if (fm?.classList.contains('open')) { closeFocus(); return; }
     if (sOpen) { tglSearch(); return; }
