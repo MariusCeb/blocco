@@ -414,20 +414,16 @@ body {
 
   /* ── Due colonne per promemoria e idee ── */
   .vscroll { padding: 28px 28px 100px; }
-  .stack   { max-width: none; }
+  /* Il .stack nelle cartelle rimane a 740px; per prom/idee (che SONO lo .stack) sovrascriviamo via ID */
+  .stack   { max-width: 740px; }
   #prom-l, #idee-l {
+    max-width: none;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 420px));
     gap: 14px;
     align-items: start;
   }
-  #folder-l {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 420px));
-    gap: 14px;
-    align-items: start;
-  }
-  #prom-l .empty, #idee-l .empty, #folder-l .empty { grid-column: 1 / -1; }
+  #prom-l .empty, #idee-l .empty { grid-column: 1 / -1; }
 
   /* ── Mouse interactions ── */
   .card { cursor: default; }
