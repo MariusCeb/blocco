@@ -412,6 +412,23 @@ body {
     font-size: 18px;
   }
 
+  /* ── Due colonne per promemoria e idee ── */
+  .vscroll { padding: 28px 28px 100px; }
+  .stack   { max-width: none; }
+  #prom-l, #idee-l {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  #folder-l {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  #prom-l .empty, #idee-l .empty, #folder-l .empty { grid-column: 1 / -1; }
+
   /* ── Mouse interactions ── */
   .card { cursor: default; }
   .card:hover { background: var(--s2); }
@@ -1140,6 +1157,59 @@ html.light input[type="datetime-local"] { color-scheme:light }
   transition:background .12s;
 }
 .login-btn:hover { background:var(--s2); }
+
+/* ── Selection toolbar — appare sopra il testo selezionato ── */
+#sel-toolbar {
+  position:fixed;z-index:500;
+  background:var(--s2);border:1px solid var(--bd2);border-radius:5px;
+  padding:4px 8px;display:none;align-items:center;gap:3px;
+  box-shadow:0 6px 22px rgba(0,0,0,.5);white-space:nowrap;
+  font-family:var(--mono);pointer-events:auto;
+}
+#sel-toolbar.show { display:flex; }
+.stb-btn {
+  background:none;border:none;font-family:var(--mono);font-size:11px;
+  color:var(--text);cursor:pointer;padding:3px 6px;border-radius:3px;
+  transition:background .1s;-webkit-appearance:none;line-height:1.2;
+}
+.stb-btn:hover { background:var(--s3); }
+.stb-sep { width:1px;height:14px;background:var(--bd2);margin:0 3px;flex-shrink:0; }
+.stb-dot {
+  width:12px;height:12px;border-radius:50%;cursor:pointer;
+  border:1.5px solid transparent;transition:transform .1s;flex-shrink:0;
+}
+.stb-dot:hover { transform:scale(1.3); }
+.stb-dot-none {
+  width:12px;height:12px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--bd2);position:relative;flex-shrink:0;transition:transform .1s;
+}
+.stb-dot-none::after {
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 44%,var(--muted) 44%,var(--muted) 56%,transparent 56%);
+  border-radius:50%;
+}
+.stb-dot-none:hover { transform:scale(1.3); }
+.stb-clrs { display:flex;gap:4px;align-items:center; }
+
+/* ── Link nelle note ── */
+.ctext a,.ptext a,.focus-view-body a,.focus-body a {
+  color:var(--accent);text-decoration:underline;cursor:pointer;
+}
+
+/* ── Card collassabile ── */
+.card-peek {
+  display:none;padding:7px 11px 5px;font-size:12px;
+  color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-style:italic;letter-spacing:.01em;
+}
+.card.collapsed .card-peek { display:block; }
+.card.collapsed .prow,
+.card.collapsed .cbody,
+.card.collapsed .lrows,
+.card.collapsed .ladd,
+.card.collapsed .deadline-bar { display:none !important; }
+.card.collapsed .lhead { border-bottom:none; }
+
   </style>
 </head>
 <body>
@@ -1414,6 +1484,7 @@ html.light input[type="datetime-local"] { color-scheme:light }
             <div class="fmt-cmd" onclick="applySlashCmd('/todo')">/todo</div>
             <div class="fmt-cmd" onclick="applySlashCmd('/quote')">/quote</div>
             <div class="fmt-cmd" onclick="applySlashCmd('/datetime')">/datetime</div>
+            <div class="fmt-cmd" onclick="applySlashCmd('/link')">/link</div>
           </div>
         </div>
       </div>
@@ -1441,6 +1512,20 @@ html.light input[type="datetime-local"] { color-scheme:light }
 
 <!-- Slash command dropdown -->
 <div id="slash-menu" style="display:none"></div>
+
+<!-- Selection toolbar — appare sopra il testo selezionato nel focus editor -->
+<div id="sel-toolbar" onmousedown="event.preventDefault()">
+  <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('bold')" title="Grassetto"><b>B</b></button>
+  <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('italic')" title="Corsivo"><i>I</i></button>
+  <button class="stb-btn" onmousedown="event.preventDefault()" onclick="_addLink()" title="Link">⌘L</button>
+  <div class="stb-sep"></div>
+  <div class="stb-clrs" id="stb-clrs"></div>
+  <div class="stb-sep"></div>
+  <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('big')" title="Grande">A+</button>
+  <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('small')" title="Piccolo">A-</button>
+  <div class="stb-sep"></div>
+  <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('clear')" title="Rimuovi formattazione">×</button>
+</div>
 
 <!-- Toast: notifica temporanea in alto al centro -->
 <div class="toast" id="toast"></div>
@@ -1658,6 +1743,7 @@ const SLASH_DEFS = [
   { cmd:'/todo',     hint:'checkbox  [ ]'        },
   { cmd:'/datetime', hint:'data e ora correnti'  },
   { cmd:'/quote',    hint:'citazione rientrata'  },
+  { cmd:'/link',     hint:'inserisci link'       },
 ];
 let _slashOpen  = false;
 let _slashIdx   = 0;
@@ -1753,6 +1839,15 @@ function applySlashCmd(cmd) {
       const p = n => String(n).padStart(2, '0');
       const dt = `${p(now.getDate())}/${p(now.getMonth()+1)}/${now.getFullYear()} · ${p(now.getHours())}:${p(now.getMinutes())}`;
       document.execCommand('insertText', false, dt);
+      break;
+    }
+    case '/link': {
+      const url = prompt('URL del link:', 'https://');
+      if (url && url.trim()) {
+        const txt = prompt('Testo del link (vuoto = URL):', '') || url.trim();
+        document.execCommand('insertHTML', false,
+          `<a href="${url.trim()}" target="_blank" rel="noopener">${txt}</a>`);
+      }
       break;
     }
   }
@@ -2052,11 +2147,14 @@ function renderProms() {
     el.innerHTML = '<div class="empty">nessun promemoria.<br>[ + ] per aggiungerne uno.</div>';
     return;
   }
-  el.innerHTML = items.map(i => `
+  el.innerHTML = items.map(i => {
+    const peek = esc(_stripHtml(i.text).slice(0, 70));
+    return `
     <div class="card-slot">
       <div class="del-hint">[del]</div>
       <div class="share-hint">[share]</div>
-      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="prom">
+      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}${i.collapsed?' collapsed':''}" data-id="${i.id}" data-tp="prom">
+        <div class="card-peek">${peek || '—'}</div>
         <div class="prow">
           <div class="pcb" onclick="chkProm('${i.id}')"></div>
           <div class="ptext" onclick="openFocus('prom','${i.id}')">${mdCard(i.text, i.id, 'prom')}</div>
@@ -2065,16 +2163,16 @@ function renderProms() {
         <div class="cmeta">
           <span class="cts">${fmtTs(i.created)}${deadlineTag(i)}</span>
           <div class="cacts">
+            <button class="cact"     onclick="toggleCollapse('${i.id}','prom')">[${i.collapsed?'show':'hide'}]</button>
             <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
-
             <button class="cact cact-share" onclick="shareItem('${i.id}','prom')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
           </div>
         </div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
   initDrag(el, 'prom');
   initMouseDrag(el, 'prom');
   applyTwemoji(el);
@@ -2111,11 +2209,14 @@ function renderIdee() {
     el.innerHTML = '<div class="empty">nessuna idea.<br>[ + ] per aggiungerne una.</div>';
     return;
   }
-  el.innerHTML = items.map(i => `
+  el.innerHTML = items.map(i => {
+    const peek = esc(i.title || _stripHtml(i.text).slice(0, 70));
+    return `
     <div class="card-slot">
       <div class="del-hint">[del]</div>
       <div class="share-hint">[share]</div>
-      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}" data-id="${i.id}" data-tp="idee">
+      <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}${i.collapsed?' collapsed':''}" data-id="${i.id}" data-tp="idee">
+        <div class="card-peek">${peek || '—'}</div>
         <div class="cbody idea-body" onclick="openFocus('idee','${i.id}')">
           ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
           <div class="ctext">${mdCard(i.text, i.id, 'idee')}</div>
@@ -2124,16 +2225,16 @@ function renderIdee() {
         <div class="cmeta">
           <span class="cts">${fmtTs(i.created)}${deadlineTag(i)}</span>
           <div class="cacts">
+            <button class="cact"     onclick="toggleCollapse('${i.id}','idee')">[${i.collapsed?'show':'hide'}]</button>
             <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
-
             <button class="cact cact-share" onclick="shareItem('${i.id}','idee')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
           </div>
         </div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
   // Aggiungi fade gradient alle card con testo lungo
   requestAnimationFrame(() => {
     el.querySelectorAll('.idea-body').forEach(b => {
@@ -2162,7 +2263,7 @@ function renderListe() {
     return `
       <div class="card-slot">
       <div class="del-hint">[del]</div>
-      <div class="card${lst.pinned?' pin-on':''}${clrCls(lst.color)}" data-id="${lst.id}" data-tp="liste">
+      <div class="card${lst.pinned?' pin-on':''}${clrCls(lst.color)}${lst.collapsed?' collapsed':''}" data-id="${lst.id}" data-tp="liste">
         <div class="lhead">
           <span class="ltitle">${esc(lst.title)}</span>
           <span class="lprog">${done}/${lst.items.length}</span>
@@ -2186,6 +2287,7 @@ function renderListe() {
         <div class="cmeta">
           <span class="cts">${fmtTs(lst.created)}</span>
           <div class="cacts">
+            <button class="cact"     onclick="toggleCollapse('${lst.id}','liste')">[${lst.collapsed?'show':'hide'}]</button>
             <button class="cact"     onclick="pinItem('${lst.id}','liste')">[${lst.pinned?'unpin':'pin'}]</button>
             <button class="cact"     onclick="openListaMod('${lst.id}')">[edit]</button>
             <button class="cact del" onclick="delItem('${lst.id}','liste')">[del]</button>
@@ -2367,8 +2469,11 @@ function renderFolder() {
   let notes = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) notes = notes.filter(n => matches([n.title, n.text]));
   if (!notes.length) { el.innerHTML = `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`; return; }
-  el.innerHTML = notes.map(n => `
-    <div class="card${n.pinned?' pin-on':''}${clrCls(n.color)}" data-id="${n.id}">
+  el.innerHTML = notes.map(n => {
+    const peek = esc(n.title || _stripHtml(n.text).slice(0, 70));
+    return `
+    <div class="card${n.pinned?' pin-on':''}${clrCls(n.color)}${n.collapsed?' collapsed':''}" data-id="${n.id}">
+      <div class="card-peek">${peek || '—'}</div>
       <div class="cbody idea-body" onclick="openFolderNote('${n.id}')">
         ${n.title ? `<div class="ctitle">${esc(n.title)}</div>` : ''}
         <div class="ctext">${mdCard(n.text, n.id, 'folder')}</div>
@@ -2377,12 +2482,13 @@ function renderFolder() {
       <div class="cmeta">
         <span class="cts">${fmtTs(n.created)}${deadlineTag(n)}</span>
         <div class="cacts">
+          <button class="cact" onclick="toggleCollapse('${n.id}','folder')">[${n.collapsed?'show':'hide'}]</button>
           <button class="cact" onclick="pinFolderNote('${n.id}')">[${n.pinned?'unpin':'pin'}]</button>
           <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
           <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`}).join('');
   applyTwemoji(el);
 }
 
@@ -2602,62 +2708,13 @@ function _updateLineNums() {
   const el = document.getElementById('focus-body');
   const ln = document.getElementById('focus-lnums');
   if (!el || !ln) return;
-
-  // innerText is unreliable: it emits \n for BOTH a trailing <br> inside a <div>
-  // AND the block boundary between adjacent <div>s — causing double-counting.
-  // Instead walk the DOM directly.
-  const BLOCK = /^(DIV|P|H[1-6]|BLOCKQUOTE|PRE|LI|HR)$/;
-
-  // A <br> is a "placeholder" (cursor anchor in an empty block) if nothing
-  // meaningful follows it in the same parent — it adds no extra visual line.
-  function isPlaceholderBr(br) {
-    let s = br.nextSibling;
-    while (s) {
-      if (s.nodeType === 3 && s.textContent) return false;
-      if (s.nodeType === 1 && s.nodeName.toUpperCase() !== 'BR') return false;
-      s = s.nextSibling;
-    }
-    return true;
-  }
-
-  // Count line breaks inside a node: non-placeholder <br>s + \n chars in text nodes.
-  // autoList inserts literal \n via insertText (not <br>), so we must count both.
-  function countBreaksIn(node) {
-    let x = 0;
-    for (const c of node.childNodes) {
-      if (c.nodeType === 3) {
-        x += (c.textContent.match(/\n/g) || []).length;
-      } else if (c.nodeType === 1) {
-        if (c.nodeName.toUpperCase() === 'BR') { if (!isPlaceholderBr(c)) x++; }
-        else x += countBreaksIn(c);
-      }
-    }
-    return x;
-  }
-
-  const topBlocks = [...el.childNodes].filter(c =>
-    c.nodeType === 1 && BLOCK.test(c.nodeName.toUpperCase()));
-
-  let n;
-  if (topBlocks.length > 0) {
-    // Chrome-normalised structure: each top-level block = one base line.
-    n = topBlocks.length;
-    for (const b of topBlocks) n += countBreaksIn(b);
-    // Top-level bare <br> (inserted by heading-escape code between blocks).
-    for (const c of el.childNodes) {
-      if (c.nodeType === 1 && c.nodeName.toUpperCase() === 'BR') n++;
-    }
-  } else {
-    // Flat structure: count <br> elements + literal \n in text nodes.
-    let breaks = 0;
-    for (const c of el.childNodes) {
-      if (c.nodeType === 3) breaks += (c.textContent.match(/\n/g) || []).length;
-      else if (c.nodeType === 1 && c.nodeName.toUpperCase() === 'BR') breaks++;
-    }
-    n = 1 + breaks;
-  }
-
-  n = Math.max(1, n);
+  // innerText riflette esattamente ciò che il browser renderizza:
+  // ogni blocco (div, h1-h6, p…) produce un \n al confine.
+  // Chrome aggiunge un \n finale aggiuntivo → lo rimuoviamo per evitare
+  // una riga fantasma in fondo.
+  let text = el.innerText || '';
+  if (text.endsWith('\n')) text = text.slice(0, -1);
+  const n = Math.max(1, text === '' ? 1 : (text.match(/\n/g) || []).length + 1);
   ln.textContent = Array.from({length: n}, (_, i) => i + 1).join('\n');
   ln.scrollTop = el.scrollTop;
 }
@@ -2800,8 +2857,115 @@ function applyFmt(type, arg) {
   el.dispatchEvent(new Event('input'));
 }
 
+// ══════════════════════════════════════════════════════════
+// SELECTION TOOLBAR — appare sopra la selezione nel focus editor
+// ══════════════════════════════════════════════════════════
+function _buildSelToolbar() {
+  const clrs = document.getElementById('stb-clrs');
+  if (!clrs || clrs.childElementCount) return;
+  clrs.innerHTML =
+    `<div class="stb-dot-none" title="Nessun colore"
+       onmousedown="event.preventDefault()" onclick="applyFmt('color','')"></div>` +
+    CLRS.map(c =>
+      `<div class="stb-dot" style="background:${CLRHEX[c]}" title="${c}"
+         onmousedown="event.preventDefault()" onclick="applyFmt('color','${c}')"></div>`
+    ).join('');
+}
+
+function _posSelToolbar() {
+  const sel       = window.getSelection();
+  const focusBody = document.getElementById('focus-body');
+  const toolbar   = document.getElementById('sel-toolbar');
+  if (!toolbar) return;
+  if (!sel || sel.isCollapsed || !focusBody || !focusBody.contains(sel.anchorNode)) {
+    toolbar.classList.remove('show'); return;
+  }
+  const range = sel.getRangeAt(0);
+  const rect  = range.getBoundingClientRect();
+  if (rect.width === 0) { toolbar.classList.remove('show'); return; }
+  _buildSelToolbar();
+  toolbar.classList.add('show');
+  // Posiziona centrato sopra la selezione (o sotto se non c'è spazio)
+  const tbW  = toolbar.offsetWidth  || 300;
+  const tbH  = toolbar.offsetHeight || 36;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  let top  = rect.top  - tbH - 8;
+  left = Math.max(4, Math.min(left, window.innerWidth - tbW - 4));
+  if (top < 4) top = rect.bottom + 8;
+  toolbar.style.left = left + 'px';
+  toolbar.style.top  = top  + 'px';
+}
+
+document.addEventListener('mouseup',  () => setTimeout(_posSelToolbar, 10));
+document.addEventListener('touchend', () => setTimeout(_posSelToolbar, 60));
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (sel && sel.isCollapsed) {
+    const t = document.getElementById('sel-toolbar');
+    if (t) t.classList.remove('show');
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// LINK — aggiunge un link alla selezione nel focus editor
+// ══════════════════════════════════════════════════════════
+function _addLink() {
+  const focusBody = document.getElementById('focus-body');
+  if (!focusBody) return;
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) { toast('[seleziona prima il testo]'); return; }
+  const url = prompt('URL del link:', 'https://');
+  if (!url || !url.trim()) return;
+  focusBody.focus();
+  document.execCommand('createLink', false, url.trim());
+  // Assicura target=_blank su tutti i link
+  focusBody.querySelectorAll('a').forEach(a => {
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noopener');
+  });
+  document.getElementById('sel-toolbar').classList.remove('show');
+  _updateLineNums();
+}
+
+// Click su link dentro le card e il focus viewer → apre in nuova tab
+document.addEventListener('click', e => {
+  const link = e.target.closest('a[href]');
+  if (!link) return;
+  if (!link.closest('.ctext,.ptext,.focus-view-body,.focus-body,.ctitle')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const href = link.getAttribute('href');
+  if (href) window.open(href, '_blank', 'noopener');
+}, true);
+
+// ══════════════════════════════════════════════════════════
+// COLLASSA / ESPANDI CARD
+// ══════════════════════════════════════════════════════════
+function _stripHtml(html) {
+  return (html || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function toggleCollapse(id, tp) {
+  let arr;
+  if      (tp === 'prom')   arr = curProms();
+  else if (tp === 'idee')   arr = curIdee();
+  else if (tp === 'folder') arr = S.folderNotes;
+  else if (tp === 'liste')  arr = S.liste;
+  else return;
+  const it = arr?.find(i => i.id === id);
+  if (!it) return;
+  it.collapsed = !it.collapsed;
+  persist();
+  if      (tp === 'prom')   renderProms();
+  else if (tp === 'idee')   renderIdee();
+  else if (tp === 'liste')  renderListe();
+  else if (tp === 'folder') renderFolder();
+}
+
 function closeFocus() {
   closeSlashMenu();
+  const _st = document.getElementById('sel-toolbar');
+  if (_st) _st.classList.remove('show');
   clearTimeout(autoSaveTimer);
   if (_focusIsEdit) doFocusSave(false);
   const fm = document.getElementById('focus-modal');
