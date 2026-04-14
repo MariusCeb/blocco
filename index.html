@@ -1199,12 +1199,35 @@ html.light input[type="datetime-local"] { color-scheme:light }
   font-style:italic;letter-spacing:.01em;
 }
 .card.collapsed .card-peek { display:block; }
+.card.collapsed .card-peek:empty { display:none !important; }
 .card.collapsed .prow,
 .card.collapsed .cbody,
 .card.collapsed .lrows,
 .card.collapsed .ladd,
 .card.collapsed .deadline-bar { display:none !important; }
 .card.collapsed .lhead { border-bottom:none; }
+/* Titolo fuori da .cbody: mantiene il font anche quando la card è collassata */
+.ctitle-outer {
+  font-size:13px;font-weight:600;letter-spacing:.01em;
+  padding:9px 11px 0;cursor:pointer;
+}
+.cbody.has-title { padding-top:3px; }
+/* Zona di drop a destra per eliminare note cartella (solo desktop) */
+@media (min-width:680px) {
+  .folder-drop-zone {
+    position:fixed;right:0;top:50%;transform:translateY(-50%);
+    width:72px;height:100px;
+    background:var(--s2);border:1px solid var(--bd2);border-right:none;
+    border-radius:6px 0 0 6px;z-index:500;
+    display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    color:var(--muted);font-family:var(--mono);
+    transition:background .12s,color .12s,border-color .12s;
+  }
+  .folder-drop-zone.visible { display:flex; }
+  .folder-drop-zone.active  { background:var(--s3);color:var(--text);border-color:var(--text); }
+  .fdz-icon { font-size:18px;line-height:1; }
+  .fdz-lbl  { font-size:8px;letter-spacing:.08em;text-transform:uppercase; }
+}
 
   </style>
 </head>
@@ -2206,15 +2229,15 @@ function renderIdee() {
     return;
   }
   el.innerHTML = items.map(i => {
-    const peek = esc(i.title || _stripHtml(i.text).slice(0, 70));
+    const peek = i.title ? '' : (esc(_stripHtml(i.text).slice(0, 70)) || '—');
     return `
     <div class="card-slot">
       <div class="del-hint">[del]</div>
       <div class="share-hint">[share]</div>
       <div class="card${i.pinned?' pin-on':''}${clrCls(i.color)}${i.collapsed?' collapsed':''}" data-id="${i.id}" data-tp="idee">
-        <div class="card-peek">${peek || '—'}</div>
-        <div class="cbody idea-body" onclick="openFocus('idee','${i.id}')">
-          ${i.title ? `<div class="ctitle">${esc(i.title)}</div>` : ''}
+        <div class="card-peek">${peek}</div>
+        ${i.title ? `<div class="ctitle ctitle-outer" onclick="openFocus('idee','${i.id}')">${esc(i.title)}</div>` : ''}
+        <div class="cbody idea-body${i.title?' has-title':''}" onclick="openFocus('idee','${i.id}')">
           <div class="ctext">${mdCard(i.text, i.id, 'idee')}</div>
         </div>
         ${deadlineBar(i)}
@@ -2466,12 +2489,12 @@ function renderFolder() {
   if (q) notes = notes.filter(n => matches([n.title, n.text]));
   if (!notes.length) { el.innerHTML = `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`; return; }
   el.innerHTML = notes.map(n => {
-    const peek = esc(n.title || _stripHtml(n.text).slice(0, 70));
+    const peek = n.title ? '' : (esc(_stripHtml(n.text).slice(0, 70)) || '—');
     return `
     <div class="card${n.pinned?' pin-on':''}${clrCls(n.color)}${n.collapsed?' collapsed':''}" data-id="${n.id}">
-      <div class="card-peek">${peek || '—'}</div>
-      <div class="cbody idea-body" onclick="openFolderNote('${n.id}')">
-        ${n.title ? `<div class="ctitle">${esc(n.title)}</div>` : ''}
+      <div class="card-peek">${peek}</div>
+      ${n.title ? `<div class="ctitle ctitle-outer" onclick="openFolderNote('${n.id}')">${esc(n.title)}</div>` : ''}
+      <div class="cbody idea-body${n.title?' has-title':''}" onclick="openFolderNote('${n.id}')">
         <div class="ctext">${mdCard(n.text, n.id, 'folder')}</div>
       </div>
       ${deadlineBar(n)}
@@ -2485,6 +2508,7 @@ function renderFolder() {
         </div>
       </div>
     </div>`}).join('');
+  initFolderDrag(el);
   applyTwemoji(el);
 }
 
@@ -3425,6 +3449,98 @@ function initMouseDrag(container, tp) {
         document.removeEventListener('mouseup', onUp);
         if (dragging) endDrag(container, tp);
       };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// Drag note cartella su desktop — riordina e permette di eliminare trascinando a destra
+function initFolderDrag(container) {
+  if (window.innerWidth < 680) return;
+
+  const getZone = () => {
+    let dz = document.getElementById('folder-drop-zone');
+    if (!dz) {
+      dz = document.createElement('div');
+      dz.id = 'folder-drop-zone';
+      dz.className = 'folder-drop-zone';
+      dz.innerHTML = '<span class="fdz-icon">×</span><span class="fdz-lbl">elimina</span>';
+      document.body.appendChild(dz);
+    }
+    return dz;
+  };
+
+  const overZone = (ev) => {
+    const dz = document.getElementById('folder-drop-zone');
+    if (!dz) return false;
+    const r = dz.getBoundingClientRect();
+    return ev.clientX >= r.left && ev.clientX <= r.right &&
+           ev.clientY >= r.top  && ev.clientY <= r.bottom;
+  };
+
+  container.querySelectorAll('.card[data-id]').forEach(card => {
+    card.addEventListener('mousedown', e => {
+      if (e.target.closest('button,input')) return;
+      if (e.button !== 0) return;
+      e.preventDefault();
+
+      const sx = e.clientX, sy = e.clientY;
+      let started = false, ghost = null, dragId = null;
+
+      const onMove = ev => {
+        if (!started && (Math.abs(ev.clientX-sx)>5 || Math.abs(ev.clientY-sy)>5)) {
+          started = true;
+          dragId = card.dataset.id;
+          const r = card.getBoundingClientRect();
+          ghost = card.cloneNode(true);
+          ghost.className = 'card drag-ghost';
+          ghost.style.width  = r.width  + 'px';
+          ghost.style.height = r.height + 'px';
+          ghost.style.left   = r.left   + 'px';
+          ghost.style.top    = (ev.clientY - r.height/2) + 'px';
+          document.body.appendChild(ghost);
+          card.classList.add('drag-src');
+          getZone().classList.add('visible');
+        }
+        if (!started) return;
+
+        ghost.style.top = (ev.clientY - parseInt(ghost.style.height||60)/2) + 'px';
+        getZone().classList.toggle('active', overZone(ev));
+
+        if (!overZone(ev)) {
+          ghost.style.display = 'none';
+          const hit = document.elementFromPoint(ev.clientX, ev.clientY);
+          ghost.style.display = '';
+          const tgt = hit?.closest('.card[data-id]');
+          if (tgt && tgt !== card && container.contains(tgt)) {
+            const tr = tgt.getBoundingClientRect();
+            container.insertBefore(card, ev.clientY < tr.top + tr.height/2 ? tgt : tgt.nextSibling);
+          }
+        }
+      };
+
+      const onUp = ev => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (!started) return;
+
+        getZone().classList.remove('visible', 'active');
+        if (ghost) { ghost.remove(); ghost = null; }
+        card.classList.remove('drag-src');
+
+        const id = dragId; dragId = null;
+        if (overZone(ev)) {
+          S.folderNotes = (S.folderNotes||[]).filter(n => n.id !== id);
+          persist(); renderFolder(); renderFolders();
+          toast('[nota eliminata]');
+        } else {
+          const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
+          S.folderNotes = newOrder.map(i => (S.folderNotes||[]).find(n => n.id === i)).filter(Boolean);
+          persist();
+        }
+      };
+
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
