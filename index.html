@@ -2518,6 +2518,7 @@ function renderFolder() {
           <button class="cact" onclick="toggleCollapse('${n.id}','folder')">[${n.collapsed?'show':'hide'}]</button>
           <button class="cact" onclick="pinFolderNote('${n.id}')">[${n.pinned?'unpin':'pin'}]</button>
           <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
+          <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
         </div>
       </div>
     </div>`}).join('');
@@ -2574,8 +2575,12 @@ function pinFolderNote(id) {
 
 function delFolderNote(id) {
   if (!confirm('Eliminare questa nota?')) return;
+  const note = (S.folderNotes||[]).find(n => n.id === id);
+  if (!note) return;
+  S.cestino.unshift({...note, type:'folder', deletedAt:Date.now()});
   S.folderNotes = (S.folderNotes||[]).filter(n => n.id !== id);
   persist(); renderFolder(); renderFolders();
+  toast('[nel cestino]');
 }
 
 function addFolderNote() {
@@ -3537,15 +3542,10 @@ function initFolderDrag(container) {
         card.classList.remove('drag-src');
 
         const id = dragId; dragId = null;
-        if (overZone(ev)) {
-          S.folderNotes = (S.folderNotes || []).filter(n => n.id !== id);
-          persist(); renderFolder(); renderFolders();
-          toast('[nota eliminata]');
-        } else {
-          const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
-          S.folderNotes = newOrder.map(i => (S.folderNotes || []).find(n => n.id === i)).filter(Boolean);
-          persist();
-        }
+        // solo riordina — nessuna cancellazione
+        const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
+        S.folderNotes = newOrder.map(i => (S.folderNotes || []).find(n => n.id === i)).filter(Boolean);
+        persist();
       };
 
       document.addEventListener('mousemove', onMove);
