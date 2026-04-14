@@ -1212,8 +1212,8 @@ html.light input[type="datetime-local"] { color-scheme:light }
   padding:9px 11px 0;cursor:pointer;
 }
 .cbody.has-title { padding-top:3px; }
-/* Zona di drop cartella — visibile sempre a destra su desktop */
-.folder-drop-zone { display:none; }
+/* Colonna destra cartella — parcheggio note */
+.folder-side-col { display:none; }
 @media (min-width:680px) {
   #v-folder .vscroll {
     display:grid !important;
@@ -1221,20 +1221,30 @@ html.light input[type="datetime-local"] { color-scheme:light }
     gap:24px;align-items:start;
   }
   #v-folder .stack { max-width:none; }
-  .folder-drop-zone {
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-    border:1px dashed var(--bd2);border-radius:6px;
-    min-height:220px;
+  .folder-side-col {
+    display:flex;flex-direction:column;gap:10px;
     position:sticky;top:28px;
-    color:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
-    text-align:center;user-select:none;cursor:default;
-    transition:background .15s,border-color .15s,color .15s,border-style .1s;
   }
-  .fdz-icon { font-size:22px;line-height:1;opacity:.5; }
+  .folder-side-hdr {
+    font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;
+    padding:0 2px 4px;border-bottom:1px solid var(--bd);
+  }
+  #folder-parked { display:flex;flex-direction:column;gap:8px; }
+  /* card nella colonna parcheggio: più compatte */
+  #folder-parked .card { opacity:.75;transition:opacity .15s; }
+  #folder-parked .card:hover { opacity:1; }
+  /* zona drop: mostra solo quando si sta trascinando */
+  .folder-drop-zone {
+    display:none;
+    border:1px dashed var(--bd2);border-radius:6px;padding:14px;
+    font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--dim);text-align:center;user-select:none;
+    transition:background .12s,border-color .12s,color .12s;
+  }
+  .folder-drop-zone.visible { display:block; }
   .folder-drop-zone.drag-over {
     background:var(--s2);border-style:solid;border-color:var(--muted);color:var(--text);
   }
-  .folder-drop-zone.drag-over .fdz-icon { opacity:1; }
 }
 
   </style>
@@ -1365,9 +1375,10 @@ html.light input[type="datetime-local"] { color-scheme:light }
         </div>
         <div id="folder-l"></div>
       </div>
-      <div id="folder-drop-zone" class="folder-drop-zone">
-        <span class="fdz-icon">×</span>
-        <span>trascina qui<br>per eliminare</span>
+      <div class="folder-side-col">
+        <div class="folder-side-hdr">accantonate</div>
+        <div id="folder-parked"></div>
+        <div id="folder-drop-zone" class="folder-drop-zone">trascina qui</div>
       </div>
     </div>
   </div>
@@ -2496,34 +2507,47 @@ function goFolder(id) {
   } else renderAll();
 }
 
+function _folderCardHtml(n, parked) {
+  const peek = n.title ? '' : (esc(_stripHtml(n.text).slice(0, 70)) || '—');
+  return `
+  <div class="card${n.pinned?' pin-on':''}${clrCls(n.color)}${n.collapsed?' collapsed':''}" data-id="${n.id}" data-parked="${parked?'1':'0'}">
+    <div class="card-peek">${peek}</div>
+    ${n.title ? `<div class="ctitle ctitle-outer" onclick="openFolderNote('${n.id}')">${esc(n.title)}</div>` : ''}
+    <div class="cbody idea-body${n.title?' has-title':''}" onclick="openFolderNote('${n.id}')">
+      <div class="ctext">${mdCard(n.text, n.id, 'folder')}</div>
+    </div>
+    ${deadlineBar(n)}
+    <div class="cmeta">
+      <span class="cts">${fmtTs(n.created)}${deadlineTag(n)}</span>
+      <div class="cacts">
+        ${parked ? `<button class="cact" onclick="unparkFolderNote('${n.id}')">[← riporta]</button>` : `<button class="cact" onclick="toggleCollapse('${n.id}','folder')">[${n.collapsed?'show':'hide'}]</button>`}
+        <button class="cact" onclick="pinFolderNote('${n.id}')">[${n.pinned?'unpin':'pin'}]</button>
+        <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
+        <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderFolder() {
   const el = document.getElementById('folder-l');
+  const ep = document.getElementById('folder-parked');
   if (!el) return;
-  let notes = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
-  if (q) notes = notes.filter(n => matches([n.title, n.text]));
-  if (!notes.length) { el.innerHTML = `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`; return; }
-  el.innerHTML = notes.map(n => {
-    const peek = n.title ? '' : (esc(_stripHtml(n.text).slice(0, 70)) || '—');
-    return `
-    <div class="card${n.pinned?' pin-on':''}${clrCls(n.color)}${n.collapsed?' collapsed':''}" data-id="${n.id}">
-      <div class="card-peek">${peek}</div>
-      ${n.title ? `<div class="ctitle ctitle-outer" onclick="openFolderNote('${n.id}')">${esc(n.title)}</div>` : ''}
-      <div class="cbody idea-body${n.title?' has-title':''}" onclick="openFolderNote('${n.id}')">
-        <div class="ctext">${mdCard(n.text, n.id, 'folder')}</div>
-      </div>
-      ${deadlineBar(n)}
-      <div class="cmeta">
-        <span class="cts">${fmtTs(n.created)}${deadlineTag(n)}</span>
-        <div class="cacts">
-          <button class="cact" onclick="toggleCollapse('${n.id}','folder')">[${n.collapsed?'show':'hide'}]</button>
-          <button class="cact" onclick="pinFolderNote('${n.id}')">[${n.pinned?'unpin':'pin'}]</button>
-          <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
-          <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
-        </div>
-      </div>
-    </div>`}).join('');
+  let all = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
+  if (q) all = all.filter(n => matches([n.title, n.text]));
+  const active = all.filter(n => !n.parked);
+  const parked = all.filter(n =>  n.parked);
+  el.innerHTML = active.length ? active.map(n => _folderCardHtml(n, false)).join('') :
+    `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`;
+  if (ep) ep.innerHTML = parked.map(n => _folderCardHtml(n, true)).join('');
   initFolderDrag(el);
   applyTwemoji(el);
+  if (ep) applyTwemoji(ep);
+}
+
+function unparkFolderNote(id) {
+  const n = (S.folderNotes||[]).find(x => x.id === id);
+  if (n) { n.parked = false; persist(); renderFolder(); }
 }
 
 function openFolderNote(id) {
@@ -3509,6 +3533,7 @@ function initFolderDrag(container) {
           ghost.style.top    = (ev.clientY - gh / 2) + 'px';
           document.body.appendChild(ghost);
           card.classList.add('drag-src');
+          dz.classList.add('visible');
         }
         if (!started) return;
 
@@ -3537,15 +3562,23 @@ function initFolderDrag(container) {
         document.removeEventListener('mouseup', onUp);
         if (!started) return;
 
-        dz.classList.remove('drag-over');
+        dz.classList.remove('drag-over', 'visible');
         if (ghost) { ghost.remove(); ghost = null; }
         card.classList.remove('drag-src');
 
         const id = dragId; dragId = null;
-        // solo riordina — nessuna cancellazione
-        const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
-        S.folderNotes = newOrder.map(i => (S.folderNotes || []).find(n => n.id === i)).filter(Boolean);
-        persist();
+        if (overZone(ev)) {
+          // sposta nella colonna destra (parcheggio) — non cancella
+          const n = (S.folderNotes||[]).find(x => x.id === id);
+          if (n) { n.parked = true; persist(); renderFolder(); }
+        } else {
+          // riordina solo le note attive della cartella corrente
+          const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
+          const altri = (S.folderNotes||[]).filter(n => n.folder !== curFolder || n.parked);
+          const riord = newOrder.map(i => (S.folderNotes||[]).find(n => n.id === i)).filter(Boolean);
+          S.folderNotes = [...altri, ...riord];
+          persist();
+        }
       };
 
       document.addEventListener('mousemove', onMove);
