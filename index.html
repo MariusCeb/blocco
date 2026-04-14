@@ -1212,21 +1212,29 @@ html.light input[type="datetime-local"] { color-scheme:light }
   padding:9px 11px 0;cursor:pointer;
 }
 .cbody.has-title { padding-top:3px; }
-/* Zona di drop a destra per eliminare note cartella (solo desktop) */
+/* Zona di drop cartella — visibile sempre a destra su desktop */
+.folder-drop-zone { display:none; }
 @media (min-width:680px) {
-  .folder-drop-zone {
-    position:fixed;right:0;top:50%;transform:translateY(-50%);
-    width:72px;height:100px;
-    background:var(--s2);border:1px solid var(--bd2);border-right:none;
-    border-radius:6px 0 0 6px;z-index:500;
-    display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-    color:var(--muted);font-family:var(--mono);
-    transition:background .12s,color .12s,border-color .12s;
+  #v-folder .vscroll {
+    display:grid !important;
+    grid-template-columns: minmax(0,480px) 1fr;
+    gap:24px;align-items:start;
   }
-  .folder-drop-zone.visible { display:flex; }
-  .folder-drop-zone.active  { background:var(--s3);color:var(--text);border-color:var(--text); }
-  .fdz-icon { font-size:18px;line-height:1; }
-  .fdz-lbl  { font-size:8px;letter-spacing:.08em;text-transform:uppercase; }
+  #v-folder .stack { max-width:none; }
+  .folder-drop-zone {
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    border:1px dashed var(--bd2);border-radius:6px;
+    min-height:220px;
+    position:sticky;top:28px;
+    color:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    text-align:center;user-select:none;cursor:default;
+    transition:background .15s,border-color .15s,color .15s,border-style .1s;
+  }
+  .fdz-icon { font-size:22px;line-height:1;opacity:.5; }
+  .folder-drop-zone.drag-over {
+    background:var(--s2);border-style:solid;border-color:var(--muted);color:var(--text);
+  }
+  .folder-drop-zone.drag-over .fdz-icon { opacity:1; }
 }
 
   </style>
@@ -1343,19 +1351,25 @@ html.light input[type="datetime-local"] { color-scheme:light }
   </div>
   <!-- Vista Cartella: mostra le note della cartella selezionata -->
   <div class="view" id="v-folder">
-    <div class="vscroll"><div class="stack">
-      <div class="folder-compose" id="folder-compose">
-        <input  class="fc-title" id="fc-title" placeholder="Titolo (opzionale)..." maxlength="100"
-          onkeydown="if(event.key==='Tab'){event.preventDefault();document.getElementById('fc-body').focus()}">
-        <textarea class="fc-body" id="fc-body" placeholder="Testo nota..."
-          onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))addFolderNote();else autoList(event)"></textarea>
-        <div class="fc-footer">
-          <span class="fc-hint">ctrl+enter per salvare</span>
-          <button class="fc-save" onclick="addFolderNote()">[+ salva]</button>
+    <div class="vscroll">
+      <div class="stack">
+        <div class="folder-compose" id="folder-compose">
+          <input  class="fc-title" id="fc-title" placeholder="Titolo (opzionale)..." maxlength="100"
+            onkeydown="if(event.key==='Tab'){event.preventDefault();document.getElementById('fc-body').focus()}">
+          <textarea class="fc-body" id="fc-body" placeholder="Testo nota..."
+            onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))addFolderNote();else autoList(event)"></textarea>
+          <div class="fc-footer">
+            <span class="fc-hint">ctrl+enter per salvare</span>
+            <button class="fc-save" onclick="addFolderNote()">[+ salva]</button>
+          </div>
         </div>
+        <div id="folder-l"></div>
       </div>
-      <div id="folder-l"></div>
-    </div></div>
+      <div id="folder-drop-zone" class="folder-drop-zone">
+        <span class="fdz-icon">×</span>
+        <span>trascina qui<br>per eliminare</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2504,7 +2518,6 @@ function renderFolder() {
           <button class="cact" onclick="toggleCollapse('${n.id}','folder')">[${n.collapsed?'show':'hide'}]</button>
           <button class="cact" onclick="pinFolderNote('${n.id}')">[${n.pinned?'unpin':'pin'}]</button>
           <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
-          <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
         </div>
       </div>
     </div>`}).join('');
@@ -3455,25 +3468,14 @@ function initMouseDrag(container, tp) {
   });
 }
 
-// Drag note cartella su desktop — riordina e permette di eliminare trascinando a destra
+// Drag note cartella su desktop — riordina e drop sulla zona destra per eliminare
 function initFolderDrag(container) {
   if (window.innerWidth < 680) return;
 
-  const getZone = () => {
-    let dz = document.getElementById('folder-drop-zone');
-    if (!dz) {
-      dz = document.createElement('div');
-      dz.id = 'folder-drop-zone';
-      dz.className = 'folder-drop-zone';
-      dz.innerHTML = '<span class="fdz-icon">×</span><span class="fdz-lbl">elimina</span>';
-      document.body.appendChild(dz);
-    }
-    return dz;
-  };
+  const dz = document.getElementById('folder-drop-zone');
+  if (!dz) return;
 
-  const overZone = (ev) => {
-    const dz = document.getElementById('folder-drop-zone');
-    if (!dz) return false;
+  const overZone = ev => {
     const r = dz.getBoundingClientRect();
     return ev.clientX >= r.left && ev.clientX <= r.right &&
            ev.clientY >= r.top  && ev.clientY <= r.bottom;
@@ -3486,28 +3488,33 @@ function initFolderDrag(container) {
       e.preventDefault();
 
       const sx = e.clientX, sy = e.clientY;
-      let started = false, ghost = null, dragId = null;
+      let started = false, ghost = null, dragId = null, gw = 0, gh = 0;
 
       const onMove = ev => {
-        if (!started && (Math.abs(ev.clientX-sx)>5 || Math.abs(ev.clientY-sy)>5)) {
+        if (!started && (Math.abs(ev.clientX - sx) > 5 || Math.abs(ev.clientY - sy) > 5)) {
           started = true;
           dragId = card.dataset.id;
           const r = card.getBoundingClientRect();
+          gw = r.width; gh = r.height;
           ghost = card.cloneNode(true);
           ghost.className = 'card drag-ghost';
-          ghost.style.width  = r.width  + 'px';
-          ghost.style.height = r.height + 'px';
-          ghost.style.left   = r.left   + 'px';
-          ghost.style.top    = (ev.clientY - r.height/2) + 'px';
+          ghost.style.width  = gw + 'px';
+          ghost.style.height = gh + 'px';
+          ghost.style.left   = (ev.clientX - gw / 2) + 'px';
+          ghost.style.top    = (ev.clientY - gh / 2) + 'px';
           document.body.appendChild(ghost);
           card.classList.add('drag-src');
-          getZone().classList.add('visible');
         }
         if (!started) return;
 
-        ghost.style.top = (ev.clientY - parseInt(ghost.style.height||60)/2) + 'px';
-        getZone().classList.toggle('active', overZone(ev));
+        // ghost segue il cursore in 2D
+        ghost.style.left = (ev.clientX - gw / 2) + 'px';
+        ghost.style.top  = (ev.clientY - gh / 2) + 'px';
 
+        // evidenzia zona drop
+        dz.classList.toggle('drag-over', overZone(ev));
+
+        // riordina card nella colonna note solo se non siamo sulla zona drop
         if (!overZone(ev)) {
           ghost.style.display = 'none';
           const hit = document.elementFromPoint(ev.clientX, ev.clientY);
@@ -3515,7 +3522,7 @@ function initFolderDrag(container) {
           const tgt = hit?.closest('.card[data-id]');
           if (tgt && tgt !== card && container.contains(tgt)) {
             const tr = tgt.getBoundingClientRect();
-            container.insertBefore(card, ev.clientY < tr.top + tr.height/2 ? tgt : tgt.nextSibling);
+            container.insertBefore(card, ev.clientY < tr.top + tr.height / 2 ? tgt : tgt.nextSibling);
           }
         }
       };
@@ -3525,18 +3532,18 @@ function initFolderDrag(container) {
         document.removeEventListener('mouseup', onUp);
         if (!started) return;
 
-        getZone().classList.remove('visible', 'active');
+        dz.classList.remove('drag-over');
         if (ghost) { ghost.remove(); ghost = null; }
         card.classList.remove('drag-src');
 
         const id = dragId; dragId = null;
         if (overZone(ev)) {
-          S.folderNotes = (S.folderNotes||[]).filter(n => n.id !== id);
+          S.folderNotes = (S.folderNotes || []).filter(n => n.id !== id);
           persist(); renderFolder(); renderFolders();
           toast('[nota eliminata]');
         } else {
           const newOrder = [...container.querySelectorAll('.card[data-id]')].map(c => c.dataset.id);
-          S.folderNotes = newOrder.map(i => (S.folderNotes||[]).find(n => n.id === i)).filter(Boolean);
+          S.folderNotes = newOrder.map(i => (S.folderNotes || []).find(n => n.id === i)).filter(Boolean);
           persist();
         }
       };
