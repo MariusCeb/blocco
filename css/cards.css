@@ -1,0 +1,249 @@
+/* ─────────────────────────────────────────────────────────
+   CARD — il blocco base per ogni nota/promemoria/lista
+   animation fadeIn: ogni nuova card appare con piccolo slide-up
+   .pin-on::after → piccolo triangolino ▲ in alto a destra per le card fissate
+───────────────────────────────────────────────────────── */
+.card-slot { position:relative;border-radius:var(--r); }
+.del-hint {
+  position:absolute;left:0;top:0;bottom:0;width:68px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  pointer-events:none;transition:color .12s;
+}
+.del-hint.hint-on   { color:#e94560 }
+.share-hint {
+  position:absolute;right:0;top:0;bottom:0;width:68px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  pointer-events:none;transition:color .12s;
+}
+.share-hint.hint-on { color:var(--text) }
+.card {
+  background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);
+  overflow:hidden;position:relative;animation:fadeIn .28s cubic-bezier(.22,.68,0,1.2) both;
+  -webkit-user-select:none;user-select:none;
+}
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(10px) scale(.97) }
+  to   { opacity:1; transform:translateY(0)    scale(1)   }
+}
+/* Indicatore visivo "card fissata" — triangolino grigio in alto a destra */
+.card.pin-on::after {
+  content:'▲';position:absolute;top:9px;right:10px;
+  font-size:7px;color:var(--accent);opacity:.8;font-family:var(--mono);
+}
+/* Bordi colorati a sinistra per le etichette colore */
+.clr-red    {border-left:3px solid #f87171!important}
+.clr-orange {border-left:3px solid #fb923c!important}
+.clr-yellow {border-left:3px solid #facc15!important}
+.clr-green  {border-left:3px solid #4ade80!important}
+.clr-blue   {border-left:3px solid #60a5fa!important}
+.clr-purple {border-left:3px solid #a78bfa!important}
+.clr-pink   {border-left:3px solid #f472b6!important}
+.clr-teal   {border-left:3px solid #2dd4bf!important}
+.clr-lime   {border-left:3px solid #a3e635!important}
+
+/* ── Riga inferiore della card (timestamp + azioni) ─────── */
+.cmeta {
+  display:flex;align-items:center;gap:8px;
+  padding:4px 10px 5px;border-top:1px solid var(--bd);
+}
+.cts   {font-size:8px;color:var(--dim);letter-spacing:.05em;flex:1}
+.cacts {display:flex;gap:8px}
+.cact  {
+  font-size:8px;padding:4px 3px;border:none;
+  background:transparent;cursor:pointer;color:var(--muted);font-family:var(--mono);
+  letter-spacing:.05em;-webkit-appearance:none;transition:color .12s;
+}
+.cact:active     {color:var(--text)}
+.cact.del:active {color:#e94560}
+
+/* ─────────────────────────────────────────────────────────
+   PROMEMORIA — riga con cerchietto + testo
+   .pcb = "prompt check button", il cerchio che segna come fatto
+   Tap sul cerchio → animazione slide-out e rimozione
+   Tap sul testo → apre la focus view (lettura)
+───────────────────────────────────────────────────────── */
+.prow  {display:flex;align-items:flex-start;gap:10px;padding:9px 11px 5px}
+.pcb   {
+  width:18px;height:18px;border-radius:50%;border:1.5px solid var(--muted);
+  flex-shrink:0;cursor:pointer;background:transparent;margin-top:2px;
+  transition:border-color .12s;
+}
+.pcb:active {border-color:var(--accent)}
+.ptext {
+  flex:1;font-size:13px;line-height:1.6;word-break:break-word;
+  cursor:pointer;letter-spacing:.01em;
+  overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;
+}
+.ptext b {font-weight:600}
+.ptext i {font-style:italic;color:var(--muted)}
+
+/* ─────────────────────────────────────────────────────────
+   IDEA CARD — titolo opzionale + testo
+   Tap sul body → apre focus view (lettura)
+───────────────────────────────────────────────────────── */
+.cbody  {padding:9px 11px 5px;cursor:pointer}
+.ctitle {font-size:13px;font-weight:600;margin-bottom:3px;letter-spacing:.01em}
+.ctext  {font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;letter-spacing:.01em}
+.ctext b {font-weight:600}
+.ctext i {font-style:italic;color:var(--muted)}
+.cb { font-style:normal; font-size:11px; letter-spacing:0; }
+.cb-open { color:var(--muted); }
+.cb-done { color:#4ade80; }
+
+/* ─────────────────────────────────────────────────────────
+   LISTA CARD — header con titolo e progresso (done/tot)
+   ogni .lrow = una voce della lista con checkbox + testo + ×
+   .ladd = riga in fondo per aggiungere nuove voci
+───────────────────────────────────────────────────────── */
+.lhead  {
+  padding:9px 11px 7px;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--bd);
+}
+.ltitle {font-size:13px;font-weight:600;letter-spacing:.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lprog  {font-size:8px;color:var(--dim);flex-shrink:0;letter-spacing:.06em}
+.lrows  {padding:2px 11px 0}
+.lrow   {
+  display:flex;align-items:center;gap:8px;padding:5px 0;
+  border-bottom:1px solid var(--bd);
+}
+.lrow:last-child {border-bottom:none}
+.lck    {
+  width:17px;height:17px;border:1.5px solid var(--muted);border-radius:2px;
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:9px;transition:background .12s,border-color .12s;
+}
+.lck.on {background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.lit    {flex:1;font-size:13px;cursor:pointer;letter-spacing:.01em}
+.lit.done {text-decoration:line-through;color:var(--dim)}
+.ldel   {
+  background:none;border:none;cursor:pointer;color:var(--dim);
+  font-size:14px;line-height:1;padding:0 2px;transition:color .12s;
+}
+.ldel:active {color:#e94560}
+.ladd   {display:flex;gap:8px;padding:6px 11px 9px;border-top:1px solid var(--bd)}
+.laddinp {
+  flex:1;background:transparent;border:none;outline:none;
+  font-size:13px;color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+}
+.laddinp::placeholder {color:var(--dim)}
+.laddbtn {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-size:16px;line-height:1;transition:color .12s;
+}
+.laddbtn:active {color:var(--accent)}
+/* Handle drag voci lista */
+.ldrag {
+  color:var(--dim);font-size:13px;cursor:grab;flex-shrink:0;
+  padding:0 6px 0 0;user-select:none;touch-action:none;line-height:1;
+}
+.ldrag:active {cursor:grabbing}
+/* Ghost voce durante il drag */
+.lrow-ghost {
+  position:fixed;z-index:400;pointer-events:none;
+  background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r);
+  display:flex;align-items:center;gap:8px;padding:5px 0;
+  opacity:.9;transform:scale(1.02);box-shadow:0 8px 28px rgba(0,0,0,.4);
+  padding-left:12px;padding-right:12px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   DRAG TO REORDER — stili per il trascinamento card
+   .drag-ghost: copia visiva della card che segue il dito
+   .drag-src: la card originale diventa quasi invisibile
+   .drag-ov: la card su cui stai trascinando riceve un outline
+───────────────────────────────────────────────────────── */
+.drag-ghost {
+  position:fixed;z-index:400;pointer-events:none;opacity:.88;
+  transform:scale(1.03) rotate(.4deg);box-shadow:0 10px 36px rgba(0,0,0,.5);
+  border-radius:var(--r);overflow:hidden;transition:top .04s linear;
+}
+.drag-src {opacity:.15;pointer-events:none;}
+.card-slot {transition:transform .18s ease;}
+
+/* ── Idea card: limita altezza con fade ──────────────── */
+.idea-body {
+  max-height:200px;overflow:hidden;position:relative;
+}
+.idea-body.overflows::after {
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:44px;background:linear-gradient(transparent,var(--s1));
+  pointer-events:none;
+}
+
+/* ── Deadline progress bar ───────────────────────────── */
+.deadline-bar {
+  height:3px;background:var(--bd);overflow:hidden;flex-shrink:0;
+}
+.deadline-fill {
+  height:100%;transition:width .5s ease;
+}
+.dl-lbl { color:var(--muted) }
+.dl-lbl.expired { color:#e94560 }
+@keyframes deadlinePulse {
+  0%,100%{opacity:1}50%{opacity:.3}
+}
+.dl-row {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:2px;
+}
+input[type="datetime-local"] { color-scheme:dark }
+html.light input[type="datetime-local"] { color-scheme:light }
+
+/* ── Card collassabile ── */
+.card-peek {
+  display:none;padding:7px 11px 5px;font-size:12px;
+  color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-style:italic;letter-spacing:.01em;
+}
+.card.collapsed .card-peek { display:block; }
+.card.collapsed .card-peek:empty { display:none !important; }
+.card.collapsed .prow,
+.card.collapsed .cbody,
+.card.collapsed .lrows,
+.card.collapsed .ladd,
+.card.collapsed .deadline-bar { display:none !important; }
+.card.collapsed .lhead { border-bottom:none; }
+/* Titolo fuori da .cbody: mantiene il font anche quando la card è collassata */
+.ctitle-outer {
+  font-size:13px;font-weight:600;letter-spacing:.01em;
+  padding:9px 11px 0;cursor:pointer;
+}
+.cbody.has-title { padding-top:3px; }
+
+/* Colonna destra cartella — parcheggio note */
+.folder-side-col { display:none; }
+@media (min-width:680px) {
+  #v-folder .vscroll {
+    display:grid !important;
+    grid-template-columns: minmax(0,480px) 1fr;
+    gap:24px;align-items:start;
+  }
+  #v-folder .stack { max-width:none; }
+  .folder-side-col {
+    display:flex;flex-direction:column;gap:10px;
+    position:sticky;top:28px;
+  }
+  .folder-side-hdr {
+    font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;
+    padding:0 2px 4px;border-bottom:1px solid var(--bd);
+  }
+  #folder-parked { display:flex;flex-direction:column;gap:8px; }
+  /* card nella colonna parcheggio: più compatte */
+  #folder-parked .card { opacity:.75;transition:opacity .15s; }
+  #folder-parked .card:hover { opacity:1; }
+  /* zona drop: mostra solo quando si sta trascinando */
+  .folder-drop-zone {
+    display:none;
+    border:1px dashed var(--bd2);border-radius:6px;padding:14px;
+    font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--dim);text-align:center;user-select:none;
+    transition:background .12s,border-color .12s,color .12s;
+  }
+  .folder-drop-zone.visible { display:block; }
+  .folder-drop-zone.drag-over {
+    background:var(--s2);border-style:solid;border-color:var(--muted);color:var(--text);
+  }
+}

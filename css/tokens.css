@@ -1,0 +1,91 @@
+/* ─────────────────────────────────────────────────────────
+   TOKENS — variabili CSS globali
+   Cambiale qui per ridisegnare tutta l'app in un colpo solo.
+   --bg: sfondo principale
+   --s1/s2/s3: livelli di grigio per le superfici (card, modal…)
+   --bd/bd2: colori dei bordi (trasparenze)
+   --text: testo principale  --muted: testo secondario/grigio
+   --dim: testo quasi invisibile (placeholder, bordi sottili)
+   --accent: colore di accento (grigio scuro)
+   --mono: font monospace usato ovunque
+   --r: border-radius (angoli delle card)
+   --st/--sb: safe area iPhone (spazio per notch e barra home)
+───────────────────────────────────────────────────────── */
+:root {
+  --bg:    #0e0e0e;
+  --s1:    #161616;
+  --s2:    #1e1e1e;
+  --s3:    #272727;
+  --bd:    rgba(255,255,255,.07);
+  --bd2:   rgba(255,255,255,.13);
+  --text:  #e8e6e1;
+  --muted: #5e5e5e;
+  --dim:   #333333;
+  --accent:#686868;
+  --mono:  'IBM Plex Mono', monospace;
+  --r:     3px;
+  --st:    env(safe-area-inset-top, 0px);
+  --sb:    env(safe-area-inset-bottom, 0px);
+}
+/* Tema chiaro: sovrascrive solo i colori, tutto il resto rimane uguale */
+html.light {
+  --bg:    #f0eeea;
+  --s1:    #e8e6e2;
+  --s2:    #dddbd7;
+  --s3:    #d2d0cc;
+  --bd:    rgba(0,0,0,.08);
+  --bd2:   rgba(0,0,0,.15);
+  --text:  #111111;
+  --muted: #888888;
+  --dim:   #cccccc;
+  --accent:#444444;
+}
+/* Tema Gruvbox Dark Soft */
+html.gruvbox {
+  --bg:    #32302f;
+  --s1:    #3c3836;
+  --s2:    #504945;
+  --s3:    #665c54;
+  --bd:    rgba(235,219,178,.08);
+  --bd2:   rgba(235,219,178,.16);
+  --text:  #ebdbb2;
+  --muted: #a89984;
+  --dim:   #665c54;
+  --accent:#d79921;
+}
+
+/* ─────────────────────────────────────────────────────────
+   RESET — azzera i margini di default del browser
+   box-sizing:border-box → padding e border sono DENTRO la larghezza
+   -webkit-tap-highlight-color:transparent → rimuove il flash blu su tap mobile
+───────────────────────────────────────────────────────── */
+*,*::before,*::after {
+  margin:0;padding:0;box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+html { background:#0e0e0e;-webkit-text-size-adjust:100%;text-size-adjust:100%;width:100%;height:100%;overflow:hidden }
+html.light { background:#f0eeea }
+html.gruvbox { background:#32302f }
+body {
+  margin:0;width:100%;background:var(--bg);color:var(--text);font-family:var(--mono);
+  height:100%;overflow:hidden;display:flex;justify-content:center;
+  font-size:14px;transition:background .3s,color .3s;
+}
+/* Contenitore app — occupa tutto su mobile, si centra su desktop */
+.app {
+  width:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  position:relative;
+}
+/* ── Splash screen ─────────────────────────────────────── */
+#splash {
+  position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;transition:opacity .4s ease;pointer-events:none;
+}
+#splash-name { font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--text);
+  animation:splashIn .55s cubic-bezier(.22,.68,0,1.2) both; }
+#splash-name .hl { color:var(--accent) }
+@keyframes splashIn {
+  from { opacity:0; transform:translateY(8px) scale(.96) }
+  to   { opacity:1; transform:translateY(0)   scale(1)   }
+}

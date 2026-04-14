@@ -1,0 +1,403 @@
+/* ─────────────────────────────────────────────────────────
+   MODAL — pannello che sale dal basso (bottom sheet)
+   .modal-bg: overlay scuro semitrasparente su tutto lo schermo
+   .modal-sheet: il pannello bianco/scuro che sale
+   opacity + pointer-events: quando è chiuso è invisibile e non cliccabile
+   transform:translateY(14px) → parte leggermente sotto, poi sale a 0
+───────────────────────────────────────────────────────── */
+.modal-bg {
+  position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-bg.open {opacity:1;pointer-events:auto}
+.modal-sheet {
+  background:var(--s1);border-top:1px solid var(--bd2);
+  padding:20px 20px calc(var(--sb) + 28px);width:100%;max-width:500px;
+  transform:translateY(14px);transition:transform .25s;
+  max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.modal-bg.open .modal-sheet {transform:translateY(0)}
+/* Titolino in cima alla sheet, tipo "NUOVO PROMEMORIA" */
+.modal-ttl  {font-size:9px;font-weight:600;margin-bottom:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+/* Contenitore di ogni campo del form */
+.m-field    {margin-bottom:9px}
+/* Etichetta del campo, tipo "NOTA" o "TITOLO" */
+.m-lbl      {font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px}
+/* Input e textarea del form */
+.m-inp      {
+  width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:3px;
+  padding:9px 11px;color:var(--text);font-family:var(--mono);font-size:12px;
+  outline:none;-webkit-appearance:none;transition:border-color .15s;resize:none;
+}
+.m-inp:focus {border-color:var(--bd2)}
+.m-inp::placeholder {color:var(--dim)}
+/* Riga con [annulla] + [salva] */
+.m-actions  {display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:4px}
+.m-cancel   {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  -webkit-appearance:none;transition:color .12s;padding:8px 4px;
+}
+.m-cancel:active  {color:var(--text)}
+.m-confirm  {
+  background:none;border:none;cursor:pointer;color:var(--text);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  font-weight:600;-webkit-appearance:none;transition:color .12s;padding:8px 4px;
+}
+.m-confirm:active {opacity:.6}
+
+/* ─────────────────────────────────────────────────────────
+   COLOR PICKER — pallini colorati nel modal
+   .clrdot.sel → bordo bianco/nero quando selezionato
+   .clrnone → il pallino "nessun colore" (grigio tratteggiato)
+───────────────────────────────────────────────────────── */
+.clrpick {display:flex;gap:8px;flex-wrap:wrap;padding:2px 0}
+.clrdot  {
+  width:18px;height:18px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:transform .12s,border-color .12s;
+}
+.clrdot:active {transform:scale(.8)}
+.clrdot.sel    {border-color:var(--text)}
+.clrnone       {background:var(--s3);border:1.5px dashed var(--bd2)}
+
+/* ─────────────────────────────────────────────────────────
+   TOAST — notifica temporanea (tipo "[nel cestino]")
+   Appare in alto al centro, poi scompare dopo 2 secondi
+   transform:translateY(-8px) → parte un po' più in su, poi scende a 0
+───────────────────────────────────────────────────────── */
+.toast {
+  position:fixed;top:calc(var(--st) + 16px);left:50%;
+  transform:translateX(-50%) translateY(-4px);
+  font-size:9px;font-weight:500;letter-spacing:.08em;color:var(--text);
+  z-index:300;opacity:0;transition:all .2s;pointer-events:none;white-space:nowrap;
+}
+.toast.show {opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Messaggio stato vuoto delle sezioni */
+.empty {
+  padding:44px 20px;text-align:center;color:var(--dim);
+  font-size:10px;line-height:1.9;letter-spacing:.06em;
+}
+
+/* Bottoni nel modal backup */
+.bk-btn {
+  width:100%;padding:11px;background:var(--s2);border:1px solid var(--bd);
+  border-radius:3px;color:var(--text);font-family:var(--mono);font-size:10px;
+  cursor:pointer;letter-spacing:.08em;-webkit-appearance:none;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:background .12s;
+}
+.bk-btn:active {background:var(--s3)}
+.bk-btn img.emoji {width:13px;height:13px;pointer-events:none}
+
+/* ─────────────────────────────────────────────────────────
+   CESTINO — sezione elementi eliminati
+   .cestino-notice: avviso "conservati 30 giorni" in cima
+   .trash-act: bottoni [ripristina] e [elimina] senza box
+───────────────────────────────────────────────────────── */
+.cestino-notice {
+  font-size:8px;color:var(--dim);letter-spacing:.06em;
+  padding:14px 16px 6px;text-align:center;
+}
+.trash-act {
+  font-size:8px;background:none;border:none;cursor:pointer;
+  color:var(--muted);font-family:var(--mono);letter-spacing:.06em;
+  -webkit-appearance:none;padding:5px 4px;transition:color .12s;
+}
+.trash-act:active {color:var(--text)}
+.trash-act.del:active {color:#e94560}
+
+/* ─────────────────────────────────────────────────────────
+   FOCUS — schermata a schermo intero, stile iOS Notes
+   Due modalità: view (lettura) ed edit (modifica)
+   Slide-up dal basso all'apertura
+───────────────────────────────────────────────────────── */
+.focus-bg {
+  position:fixed;inset:0;background:var(--bg);z-index:150;
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transform:translateY(100%);
+  transition:opacity .22s,transform .3s cubic-bezier(.32,.72,0,1);
+}
+.focus-bg.open {opacity:1;pointer-events:auto;transform:translateY(0)}
+
+/* ── Zen mode ── */
+.zen-exit {
+  display:none;position:fixed;top:calc(var(--st) + 10px);left:14px;
+  background:none;border:none;color:var(--dim);font-size:17px;
+  cursor:pointer;z-index:200;padding:6px;line-height:1;transition:color .15s;
+}
+.zen-exit:hover { color:var(--text); }
+.focus-bg.zen .zen-exit { display:block; }
+.focus-bg.zen .focus-topbar {
+  opacity:0;pointer-events:none;
+  transform:translateY(-100%);transition:opacity .25s,transform .25s;
+}
+.focus-bg.zen .focus-foot { display:none; }
+.focus-bg.zen .focus-lnums { display:none !important; }
+.focus-bg.zen .fmt-panel   { display:none !important; }
+.focus-bg.zen .focus-editor-wrap { justify-content:center;padding:40px 20px; }
+.focus-bg.zen .focus-body  { max-width:680px;width:100%; }
+.focus-bg.zen .focus-view  { max-width:680px;width:100%;margin:0 auto;padding:40px 20px; }
+
+/* ── Command palette ── */
+.cmdpal {
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.45);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding-top:72px;
+}
+.cmdpal-box {
+  width:560px;max-width:92vw;
+  background:var(--s2);border:1px solid var(--bd2);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.35);
+}
+.cmdpal-inp {
+  width:100%;padding:14px 18px;background:none;border:none;
+  border-bottom:1px solid var(--bd);outline:none;
+  font-family:var(--mono);font-size:13px;color:var(--text);
+  box-sizing:border-box;
+}
+.cmdpal-inp::placeholder { color:var(--dim); }
+.cmdpal-list { max-height:340px;overflow-y:auto;scrollbar-width:none; }
+.cmdpal-list::-webkit-scrollbar { display:none; }
+.cmdpal-row {
+  padding:9px 18px;cursor:pointer;
+  display:flex;align-items:center;gap:10px;
+  font-size:11px;color:var(--text);
+  border-bottom:1px solid var(--bd);
+  transition:background .1s;
+}
+.cmdpal-row:last-child { border-bottom:none; }
+.cmdpal-row.sel,.cmdpal-row:hover { background:var(--s1); }
+.cmdpal-tag  { font-size:9px;color:var(--dim);letter-spacing:.06em;flex-shrink:0;min-width:32px; }
+.cmdpal-name { flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.cmdpal-sub  { font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;flex-shrink:0; }
+.cmdpal-empty { padding:18px;font-size:11px;color:var(--dim);text-align:center; }
+
+/* Barra superiore: [chiudi] a sx, status + pulsante a dx */
+.focus-topbar {
+  padding:calc(var(--st) + 14px) 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bd);flex-shrink:0;
+}
+/* Area lettura: testo renderizzato, scrollabile */
+.focus-view {
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:24px 24px 20px;overscroll-behavior:contain;
+}
+.focus-view-title {
+  font-size:16px;font-weight:600;letter-spacing:-.01em;
+  margin-bottom:14px;color:var(--text);line-height:1.3;
+}
+.focus-view-body {
+  font-size:13px;line-height:1.9;color:var(--text);
+  font-family:var(--mono);letter-spacing:.01em;
+}
+.focus-view-body p { margin:0 0 6px }
+/* Area modifica: textarea occupa tutto lo spazio disponibile */
+.focus-edit {flex:1;display:flex;flex-direction:column;overflow:hidden}
+.focus-ttl-inp {
+  width:100%;background:transparent;border:none;
+  border-bottom:1px solid var(--bd);outline:none;
+  font-size:14px;font-weight:600;font-family:var(--mono);
+  color:var(--text);padding:14px 24px 12px;letter-spacing:-.01em;
+  -webkit-appearance:none;appearance:none;flex-shrink:0;
+}
+/* Editor contenteditable — mostra direttamente il testo formattato */
+.focus-body {
+  flex:1;padding:16px 20px 16px 8px;font-size:13px;line-height:1.9;
+  color:var(--text);font-family:var(--mono);letter-spacing:.01em;
+  background:transparent;border:none;outline:none;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  white-space:pre-wrap;word-break:break-word;
+}
+.focus-body:empty::before { content:attr(data-ph);color:var(--muted);pointer-events:none;display:block; }
+/* Headings con auto-numerazione via CSS counter */
+.focus-body { counter-reset:subtitle 0 section 0; }
+.focus-body h1 { counter-reset:subtitle 0 section 0;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
+.focus-body h2 { counter-increment:subtitle;counter-reset:section 0;font-weight:600;
+  font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
+.focus-body h2::before { content:counter(subtitle)'.0  ';color:var(--muted);font-size:.82em; }
+.focus-body h3 { counter-increment:section;font-weight:500;color:var(--muted);
+  font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
+.focus-body h3::before { content:counter(subtitle)'.'counter(section)'  ';color:var(--dim);font-size:.82em; }
+.focus-body hr { border:none;border-top:1px solid var(--bd2);margin:4px 0; }
+.focus-body blockquote {
+  border-left:2px solid var(--dim);margin:0;padding-left:12px;
+  color:var(--muted);font-style:italic;line-height:1.9;
+}
+/* usati anche nelle card in sola lettura */
+.mbig { font-size:15px; }
+.msmall { font-size:10px;opacity:.5; }
+/* Barra inferiore */
+.focus-foot {
+  border-top:1px solid var(--bd);flex-shrink:0;
+  padding:8px 20px calc(var(--sb) + 10px);
+  display:flex;align-items:center;gap:10px;
+}
+/* Numeri di riga stile VS Code */
+.focus-lnums {
+  font-size:13px;line-height:1.9;font-family:var(--mono);
+  color:var(--muted);opacity:.35;user-select:none;pointer-events:none;
+  flex-shrink:0;min-width:28px;text-align:right;
+  padding:16px 4px 16px 16px;overflow:hidden;white-space:pre;
+}
+/* Wrapper textarea + numeri riga */
+.focus-editor-wrap {flex:1;display:flex;overflow:hidden;position:relative}
+/* ── Format panel — hidden on mobile ── */
+.fmt-panel {
+  display:none;
+  flex-direction:row;flex-shrink:0;
+  border-left:1px solid var(--bd);
+  background:var(--s1);
+  overflow:hidden;
+  width:26px;
+  transition:width .22s cubic-bezier(.4,0,.2,1);
+}
+.fmt-toggle {
+  width:26px;flex-shrink:0;height:100%;
+  background:none;border:none;border-right:1px solid transparent;
+  color:var(--dim);font-family:var(--mono);font-size:13px;
+  cursor:pointer;transition:color .15s, border-color .15s;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-appearance:none;appearance:none;
+}
+.fmt-toggle:hover { color:var(--text); }
+.fmt-panel.open .fmt-toggle { border-right-color:var(--bd); }
+.fmt-body {
+  flex:1;min-width:0;overflow:hidden;
+  padding:16px 12px;
+  display:flex;flex-direction:column;
+  opacity:0;transition:opacity .18s;pointer-events:none;
+}
+.fmt-panel.open .fmt-body { opacity:1;pointer-events:auto; }
+.fmt-section-lbl {
+  font-size:9px;color:var(--dim);letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:8px;
+}
+.fmt-row { display:flex;gap:6px;flex-wrap:wrap; }
+.fmt-btn {
+  background:none;border:1px solid var(--bd2);border-radius:3px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  padding:4px 8px;cursor:pointer;transition:color .12s,background .12s;
+  -webkit-appearance:none;appearance:none;min-width:28px;text-align:center;
+}
+.fmt-btn:hover { color:var(--text);background:var(--s2); }
+.fmt-clrs {
+  display:flex;flex-wrap:wrap;gap:7px;margin-top:2px;
+}
+.fmt-clr-dot {
+  width:14px;height:14px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:border-color .12s,transform .1s;
+  flex-shrink:0;
+}
+.fmt-clr-dot:hover { transform:scale(1.25); }
+.fmt-clr-dot.sel { border-color:var(--text); }
+.fmt-clr-none {
+  width:14px;height:14px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--bd2);transition:border-color .12s,transform .1s;
+  flex-shrink:0;position:relative;
+}
+.fmt-clr-none::after {
+  content:'';position:absolute;inset:0;
+  background: linear-gradient(135deg, transparent 45%, var(--muted) 45%, var(--muted) 55%, transparent 55%);
+  border-radius:50%;
+}
+.fmt-clr-none:hover { transform:scale(1.25); }
+/* ── Slash command dropdown ── */
+#slash-menu {
+  position:fixed;z-index:9000;
+  background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r);
+  overflow:hidden;min-width:210px;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);
+}
+.slash-item {
+  display:flex;align-items:center;gap:12px;
+  padding:7px 14px;cursor:pointer;transition:background .1s;
+}
+.slash-item.sel, .slash-item:hover { background:var(--s3); }
+.slash-cmd  { font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);min-width:82px; }
+.slash-desc { font-family:var(--mono);font-size:10px;color:var(--muted); }
+/* Elenco slash commands nel pannello formato */
+.fmt-cmds {
+  display:flex;flex-direction:column;gap:3px;margin-top:2px;
+}
+.fmt-cmd {
+  font-size:9px;color:var(--dim);font-family:var(--mono);
+  letter-spacing:.02em;padding:2px 4px;cursor:pointer;
+  border-radius:2px;transition:color .12s,background .1s;
+}
+.fmt-cmd:hover { color:var(--text);background:var(--s3); }
+@media (min-width:680px) {
+  .fmt-panel { display:flex; }
+  .fmt-panel.open { width:175px; }
+}
+.fclose {
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  -webkit-appearance:none;appearance:none;transition:color .12s;padding:6px 0;
+}
+.fclose:active {color:var(--text)}
+.fclose.primary {color:var(--text);font-weight:600}
+
+/* ── Login overlay ── */
+#login-overlay {
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:20px;
+}
+#login-overlay.hidden { display:none; }
+.login-logo { font-size:22px;font-weight:600;letter-spacing:-.02em;font-family:inherit; }
+.login-logo .hl { color:var(--accent); }
+.login-sub { font-size:11px;color:var(--dim); }
+.login-btn {
+  font-family:inherit;font-size:11px;letter-spacing:.02em;
+  border:1px solid var(--bd2);border-radius:4px;
+  padding:11px 22px;cursor:pointer;
+  background:var(--s1);color:var(--text);
+  transition:background .12s;
+}
+.login-btn:hover { background:var(--s2); }
+
+/* ── Selection toolbar — appare sopra il testo selezionato ── */
+#sel-toolbar {
+  position:fixed;z-index:500;
+  background:var(--s2);border:1px solid var(--bd2);border-radius:5px;
+  padding:4px 8px;display:none;align-items:center;gap:3px;
+  box-shadow:0 6px 22px rgba(0,0,0,.5);white-space:nowrap;
+  font-family:var(--mono);pointer-events:auto;
+}
+#sel-toolbar.show { display:flex; }
+.stb-btn {
+  background:none;border:none;font-family:var(--mono);font-size:11px;
+  color:var(--text);cursor:pointer;padding:3px 6px;border-radius:3px;
+  transition:background .1s;-webkit-appearance:none;line-height:1.2;
+}
+.stb-btn:hover { background:var(--s3); }
+.stb-sep { width:1px;height:14px;background:var(--bd2);margin:0 3px;flex-shrink:0; }
+.stb-dot {
+  width:12px;height:12px;border-radius:50%;cursor:pointer;
+  border:1.5px solid transparent;transition:transform .1s;flex-shrink:0;
+}
+.stb-dot:hover { transform:scale(1.3); }
+.stb-dot-none {
+  width:12px;height:12px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--bd2);position:relative;flex-shrink:0;transition:transform .1s;
+}
+.stb-dot-none::after {
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 44%,var(--muted) 44%,var(--muted) 56%,transparent 56%);
+  border-radius:50%;
+}
+.stb-dot-none:hover { transform:scale(1.3); }
+.stb-clrs { display:flex;gap:4px;align-items:center; }
+
+/* ── Link nelle note ── */
+.ctext a,.ptext a,.focus-view-body a,.focus-body a {
+  color:var(--accent);text-decoration:underline;cursor:pointer;
+}
