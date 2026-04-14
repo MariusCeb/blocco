@@ -3562,12 +3562,14 @@ function initFolderDrag(container) {
         document.removeEventListener('mouseup', onUp);
         if (!started) return;
 
+        // controlla zona PRIMA di nasconderla (altrimenti getBoundingClientRect → 0)
+        const dropped = overZone(ev);
         dz.classList.remove('drag-over', 'visible');
         if (ghost) { ghost.remove(); ghost = null; }
         card.classList.remove('drag-src');
 
         const id = dragId; dragId = null;
-        if (overZone(ev)) {
+        if (dropped) {
           // sposta nella colonna destra (parcheggio) — non cancella
           const n = (S.folderNotes||[]).find(x => x.id === id);
           if (n) { n.parked = true; persist(); renderFolder(); }
