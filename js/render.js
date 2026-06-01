@@ -30,7 +30,6 @@ function renderProms() {
           <div class="cacts">
             <button class="cact"     onclick="toggleCollapse('${i.id}','prom')">[${i.collapsed?'show':'hide'}]</button>
             <button class="cact"     onclick="pinItem('${i.id}','prom')">[${i.pinned?'unpin':'pin'}]</button>
-            <button class="cact"     onclick="openFocus('prom','${i.id}')">[edit]</button>
             <button class="cact cact-share" onclick="shareItem('${i.id}','prom')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','prom')">[del]</button>
           </div>
@@ -92,7 +91,6 @@ function renderIdee() {
           <div class="cacts">
             <button class="cact"     onclick="toggleCollapse('${i.id}','idee')">[${i.collapsed?'show':'hide'}]</button>
             <button class="cact"     onclick="pinItem('${i.id}','idee')">[${i.pinned?'unpin':'pin'}]</button>
-            <button class="cact"     onclick="openFocus('idee','${i.id}')">[edit]</button>
             <button class="cact cact-share" onclick="shareItem('${i.id}','idee')">[share]</button>
             <button class="cact del" onclick="delItem('${i.id}','idee')">[del]</button>
           </div>
@@ -124,14 +122,12 @@ function renderListe() {
     return;
   }
   el.innerHTML = items.map(lst => {
-    const done = lst.items.filter(r => r.done).length;
     return `
       <div class="card-slot">
       <div class="del-hint">[del]</div>
       <div class="card${lst.pinned?' pin-on':''}${clrCls(lst.color)}${lst.collapsed?' collapsed':''}" data-id="${lst.id}" data-tp="liste">
         <div class="lhead">
           <span class="ltitle">${esc(lst.title)}</span>
-          <span class="lprog">${done}/${lst.items.length}</span>
         </div>
         <div class="lrows">
           ${lst.items.map(r => `
@@ -154,7 +150,6 @@ function renderListe() {
           <div class="cacts">
             <button class="cact"     onclick="toggleCollapse('${lst.id}','liste')">[${lst.collapsed?'show':'hide'}]</button>
             <button class="cact"     onclick="pinItem('${lst.id}','liste')">[${lst.pinned?'unpin':'pin'}]</button>
-            <button class="cact"     onclick="openListaMod('${lst.id}')">[edit]</button>
             <button class="cact del" onclick="delItem('${lst.id}','liste')">[del]</button>
           </div>
         </div>
@@ -273,7 +268,6 @@ function _folderCardHtml(n, parked) {
       <div class="cacts">
         ${parked ? `<button class="cact" onclick="unparkFolderNote('${n.id}')">[← riporta]</button>` : `<button class="cact" onclick="toggleCollapse('${n.id}','folder')">[${n.collapsed?'show':'hide'}]</button>`}
         <button class="cact" onclick="pinFolderNote('${n.id}')">[${n.pinned?'unpin':'pin'}]</button>
-        <button class="cact" onclick="openFolderNote('${n.id}')">[edit]</button>
         <button class="cact del" onclick="delFolderNote('${n.id}')">[del]</button>
       </div>
     </div>

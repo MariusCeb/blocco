@@ -45,17 +45,17 @@
 
   /* Folder list — horizontal scrollable chip strip */
   .folders-sec.has-folders {
-    display: flex !important;
-    flex-direction: row; align-items: center;
+    display: block !important;
     overflow-x: auto; overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
     scrollbar-width: none;
     border-bottom: 1px solid var(--bd);
-    padding: 6px 12px; gap: 6px;
+    padding: 6px 12px;
   }
   .folders-sec.has-folders::-webkit-scrollbar { display: none; }
   .folder-hdr { display: none; }
-  #folders-list { display: flex; flex-direction: row; gap: 6px; align-items: center; flex-shrink: 0; }
+  #folders-list { display: flex; flex-direction: row; gap: 6px; align-items: center; flex-wrap: nowrap; min-width: max-content; }
 
   .folder-item {
     display: inline-flex !important; align-items: center;
