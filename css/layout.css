@@ -49,6 +49,7 @@
     overflow-x: auto; overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
+    overscroll-behavior-x: contain;
     scrollbar-width: none;
     border-bottom: 1px solid var(--bd);
     padding: 6px 12px;
@@ -60,6 +61,7 @@
   .folder-item {
     display: inline-flex !important; align-items: center;
     flex-shrink: 0; white-space: nowrap;
+    touch-action: pan-x;
     padding: 4px 12px !important;
     border-radius: 20px; border: 1px solid var(--bd2) !important; border-left: 1px solid var(--bd2) !important;
     font-size: 11px; color: var(--muted);

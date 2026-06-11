@@ -113,7 +113,6 @@ function applySlashCmd(cmd) {
     case '/quote':    document.execCommand('formatBlock', false, 'blockquote'); break;
     case '/hr':
       document.execCommand('insertHTML', false, '<hr>');
-      document.execCommand('insertLineBreak');
       break;
     case '/todo': document.execCommand('insertText', false, '[ ] '); break;
     case '/datetime': {
@@ -133,7 +132,7 @@ function applySlashCmd(cmd) {
       break;
     }
   }
-  el.focus(); closeSlashMenu(); _updateLineNums();
+  el.focus(); closeSlashMenu();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -187,7 +186,7 @@ function autoList(e) {
         const r = document.createRange();
         r.setStartAfter(br); r.setEndAfter(br);
         sel.removeAllRanges(); sel.addRange(r);
-        _updateLineNums(); return;
+        return;
       }
       node = node.parentNode;
     }
@@ -206,27 +205,8 @@ function autoList(e) {
     } else {
       document.execCommand('insertText', false, '\n' + prefix);
     }
-    _updateLineNums();
   }
   // default Enter: browser gestisce (inserisce <br> o <div>)
-}
-
-// ══════════════════════════════════════════════════════════
-// NUMERO RIGHE — aggiorna il pannello numeri nel focus editor
-// ══════════════════════════════════════════════════════════
-function _updateLineNums() {
-  const el = document.getElementById('focus-body');
-  const ln = document.getElementById('focus-lnums');
-  if (!el || !ln) return;
-  // innerText riflette esattamente ciò che il browser renderizza:
-  // ogni blocco (div, h1-h6, p…) produce un \n al confine.
-  // Chrome aggiunge un \n finale aggiuntivo → lo rimuoviamo per evitare
-  // una riga fantasma in fondo.
-  let text = el.innerText || '';
-  if (text.endsWith('\n')) text = text.slice(0, -1);
-  const n = Math.max(1, text === '' ? 1 : (text.match(/\n/g) || []).length + 1);
-  ln.textContent = Array.from({length: n}, (_, i) => i + 1).join('\n');
-  ln.scrollTop = el.scrollTop;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -287,10 +267,7 @@ function focusEnterEdit() {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  const upd = () => { _updateLineNums(); schedAutoSave(); checkSlashTrigger(); };
-  _updateLineNums();
-  bodyEl.oninput = upd;
-  bodyEl.onscroll = () => { const ln = document.getElementById('focus-lnums'); if (ln) ln.scrollTop = bodyEl.scrollTop; };
+  bodyEl.oninput = () => { schedAutoSave(); checkSlashTrigger(); };
   if (focusType === 'idee') ttlInp.oninput = schedAutoSave;
   // Color picker
   focusColor = it.color || null;
@@ -402,7 +379,6 @@ function applyFmt(type, arg) {
       break;
     default: return;
   }
-  _updateLineNums();
   el.dispatchEvent(new Event('input'));
 }
 
@@ -463,7 +439,6 @@ function _addLink() {
     a.setAttribute('rel', 'noopener');
   });
   document.getElementById('sel-toolbar').classList.remove('show');
-  _updateLineNums();
 }
 
 function openFolderNote(id) {
@@ -486,10 +461,8 @@ function openFolderNote(id) {
       if (st2) { st2.textContent = '✓'; setTimeout(() => { if (st2) st2.textContent = ''; }, 1400); }
     }, 300);
   };
-  bodyEl.oninput  = () => { _updateLineNums(); schedAutoSave(); checkSlashTrigger(); };
+  bodyEl.oninput  = () => { schedAutoSave(); checkSlashTrigger(); };
   titleEl.oninput = schedAutoSave;
-  bodyEl.onscroll = () => { const ln = document.getElementById('focus-lnums'); if (ln) ln.scrollTop = bodyEl.scrollTop; };
-  _updateLineNums();
   focusColor = n.color || null;
   document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
     <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"

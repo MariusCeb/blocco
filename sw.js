@@ -1,4 +1,4 @@
-const CACHE  = 'blocco-v32';
+const CACHE  = 'blocco-v33';
 const STATIC = [
   './notes-manifest.json',
   './notes-icon.svg',
