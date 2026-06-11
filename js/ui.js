@@ -473,6 +473,22 @@ document.addEventListener('keydown', e => {
 });
 
 // ══════════════════════════════════════════════════════════
+// STRIP CARTELLE — su layout mobile la rotella del mouse scorre
+// la strip in orizzontale (la scrollbar è nascosta)
+// ══════════════════════════════════════════════════════════
+(() => {
+  const fsec = document.getElementById('folders-sec');
+  if (!fsec) return;
+  fsec.addEventListener('wheel', e => {
+    if (window.innerWidth >= 680) return; // su desktop la lista è verticale
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      fsec.scrollLeft += e.deltaY;
+    }
+  }, {passive: false});
+})();
+
+// ══════════════════════════════════════════════════════════
 // SERVICE WORKER — registra il SW per la modalità offline (PWA)
 // Il file notes-sw.js gestisce la cache e gli aggiornamenti.
 // .catch(() => {}) ignora silenziosamente se il SW non è supportato.
