@@ -26,8 +26,12 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const { request } = e;
+  // Solo GET è cacheabile — le POST (Firestore RPC) passano dirette alla rete
+  if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (!url.protocol.startsWith('http')) return;
+  // API dinamiche Firebase (dati e auth) — mai intercettare né cachare
+  if (/firestore|identitytoolkit|securetoken/.test(url.hostname)) return;
 
   // HTML — always network, no cache
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/blocco')) {
@@ -43,6 +47,6 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(request, clone));
       }
       return resp;
-    }))
+    })).catch(() => new Response('', { status: 504, statusText: 'offline' }))
   );
 });
