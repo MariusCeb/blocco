@@ -1,4 +1,4 @@
-const CACHE  = 'blocco-v34';
+const CACHE  = 'blocco-v35';
 const STATIC = [
   './notes-manifest.json',
   './notes-icon.svg',
@@ -33,8 +33,9 @@ self.addEventListener('fetch', e => {
   // API dinamiche Firebase (dati e auth) — mai intercettare né cachare
   if (/firestore|identitytoolkit|securetoken/.test(url.hostname)) return;
 
-  // HTML — always network, no cache
-  if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/blocco')) {
+  // HTML/navigazioni — sempre rete, mai cache-first
+  // request.mode==='navigate' copre anche path tipo /blocco/ (GitHub Pages)
+  if (request.mode === 'navigate' || url.pathname.endsWith('.html')) {
     e.respondWith(fetch(request).catch(() => caches.match(request)));
     return;
   }

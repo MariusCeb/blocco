@@ -31,7 +31,7 @@ function doSignOut() {
 // Handle redirect result after signInWithRedirect (iOS PWA fallback)
 _fbAuth.getRedirectResult().catch(err => console.error(err));
 const _loginStatus = document.getElementById('login-status');
-if (_loginStatus) _loginStatus.textContent = 'firebase ok · v34';
+if (_loginStatus) _loginStatus.textContent = 'firebase ok · v35';
 
 let _fbUnsub = null; // active onSnapshot unsubscribe
 
