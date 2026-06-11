@@ -338,7 +338,7 @@ document.addEventListener('focusout', () => {
 // Blocca il bounce/scroll della pagina intera su iOS.
 // Solo i contenitori esplicitamente scrollabili possono ricevere touchmove.
 document.addEventListener('touchmove', e => {
-  if (!e.target.closest('.view, .focus-view, .focus-body, .modal-sheet, textarea')) {
+  if (!e.target.closest('.view, .focus-view, .focus-body, .modal-sheet, textarea, .folders-sec')) {
     e.preventDefault();
   }
 }, {passive: false});

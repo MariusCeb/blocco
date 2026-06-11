@@ -1,4 +1,4 @@
-const CACHE  = 'blocco-v35';
+const CACHE  = 'blocco-v36';
 const STATIC = [
   './notes-manifest.json',
   './notes-icon.svg',
@@ -40,7 +40,22 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Everything else — cache first
+  // Asset propri (js/css) — network-first: gli aggiornamenti arrivano
+  // subito, la cache serve solo da fallback offline
+  if (url.origin === location.origin) {
+    e.respondWith(
+      fetch(request).then(resp => {
+        if (resp.ok) {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(request).then(c => c || new Response('', { status: 504, statusText: 'offline' })))
+    );
+    return;
+  }
+
+  // Risorse esterne (font, twemoji, librerie) — cache first
   e.respondWith(
     caches.match(request).then(cached => cached || fetch(request).then(resp => {
       if (resp.ok) {
