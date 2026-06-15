@@ -111,13 +111,27 @@ function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
+// Sanitizza HTML salvato (da contenteditable / paste) prima di iniettarlo via innerHTML.
+// Allowlist stretta sui soli tag/attr che l'editor produce. DOMPurify rimuove
+// script, handler on*, javascript:/data: URL → blocca XSS da note avvelenate.
+// Fallback fail-safe: se DOMPurify non è caricato, fa escape totale (niente HTML).
+const _SANITIZE_CFG = {
+  ALLOWED_TAGS: ['b','i','u','s','strong','em','span','br','div','p','a','h1','h2','h3','h4','h5','h6','hr','ul','ol','li','blockquote'],
+  ALLOWED_ATTR: ['class','style','href','target','rel'],
+  ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i
+};
+function _sanitize(html) {
+  if (typeof DOMPurify !== 'undefined') return DOMPurify.sanitize(html, _SANITIZE_CFG);
+  return esc(html); // fail-safe: meglio testo grezzo che HTML non filtrato
+}
+
 // Renderer markdown leggero: prima fa escape dell'HTML (sicurezza),
 // poi applica **grassetto** e _corsivo_, poi converte i newline in <br>.
 function md(s) {
   if (!s) return '';
-  // Contenuto HTML (da contenteditable) — converti solo le checkbox rimaste come testo
+  // Contenuto HTML (da contenteditable) — sanitizza PRIMA, poi converti le checkbox testuali
   if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(s)) {
-    return s
+    return _sanitize(s)
       .replace(/\[ \] /g, '<span class="cb cb-open">○</span> ')
       .replace(/\[x\] /g,  '<span class="cb cb-done">✓</span> ');
   }
@@ -140,7 +154,8 @@ function mdCard(text, id, tp) {
   if (!text) return '';
   let n = 0;
   if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(text)) {
-    return text.replace(/\[([ x])\] /g, (_, c) =>
+    // sanitizza PRIMA, poi inietta gli onclick checkbox (stringa controllata da noi)
+    return _sanitize(text).replace(/\[([ x])\] /g, (_, c) =>
       `<span class="cb ${c===' '?'cb-open':'cb-done'}" onclick="event.stopPropagation();toggleCb('${id}','${tp}',${n++})">${c===' '?'○':'✓'}</span> `);
   }
   return text
@@ -244,7 +259,7 @@ function updateDatetime() {
   const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
   const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
   const el = document.getElementById('vdate-lbl');
-  if (el) el.textContent = d + ' — ' + t + ' [v36]';
+  if (el) el.textContent = d + ' — ' + t + ' [v37]';
 }
 
 // ══════════════════════════════════════════════════════════
