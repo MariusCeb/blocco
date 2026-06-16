@@ -1,18 +1,15 @@
-// ══════════════════════════════════════════════════════════
-// QUICK CAPTURE — aggiunge un promemoria dalla barra rapida
-// Se non sei già nel tab Promemoria, ci porta automaticamente
-// ══════════════════════════════════════════════════════════
+
+
 function qAdd(inp) {
   const t = inp.value.trim(); if (!t) return;
   const now = Date.now();
-  // unshift() aggiunge in cima all'array (più recente primo)
+
   curProms().unshift({id:uid(), text:t, title:'', color:null, pinned:false, created:now, updated:now});
   inp.value = ''; persist(); renderAll();
   toast('[+ prom]');
   if (curTab !== 'prom') goTab('prom');
 }
 
-// Toggle pin: fissa/sfissa una card in cima alla lista
 function pinItem(id, tp) {
   const arr = tp === 'prom' ? curProms() : curIdee();
   const it = arr.find(i => i.id===id); if (!it) return;
@@ -20,10 +17,8 @@ function pinItem(id, tp) {
   toast(it.pinned ? '[fissato]' : '[rimosso dai fissati]');
 }
 
-// Elimina (soft delete): sposta l'elemento nel cestino invece di rimuoverlo.
-// Aggiunge i campi type (per sapere da dove veniva) e deletedAt (per la scadenza).
 function delItem(id, tp) {
-  const card = document.querySelector(`.card[data-id="${id}"]`);
+  const card = document.querySelector(`.card[data-id="${cssId(id)}"]`);
   const el   = card?.closest('.card-slot') || card;
   const commit = () => {
     if (secretMode && (tp === 'prom' || tp === 'idee')) {
@@ -48,21 +43,19 @@ function delItem(id, tp) {
   } else { commit(); }
 }
 
-// Ripristina un elemento dal cestino alla sua sezione originale (proms/idee/liste)
 function restoreItem(id) {
   const idx = S.cestino.findIndex(i => i.id === id);
   if (idx === -1) return;
   const it = {...S.cestino[idx]};
   const tp = it.type;
-  delete it.type; delete it.deletedAt; // rimuove i campi cestino-specifici
+  delete it.type; delete it.deletedAt;
   S.cestino.splice(idx, 1);
   const k = tp === 'prom' ? 'proms' : tp;
-  S[k].unshift(it); // aggiunge in cima alla sezione
+  S[k].unshift(it);
   persist(); renderAll(); renderCestino(); updateStats();
   toast('[ripristinato]');
 }
 
-// Elimina definitivamente un elemento dal cestino (con conferma)
 function permaDelete(id) {
   if (!confirm('Eliminare definitivamente?')) return;
   S.cestino = S.cestino.filter(i => i.id !== id);
@@ -70,33 +63,24 @@ function permaDelete(id) {
   toast('[eliminato]');
 }
 
-// Svuota l'intero cestino (con conferma)
 function clearAllTrash() {
   if (!confirm('Svuotare tutto il cestino?')) return;
   S.cestino = []; persist(); renderCestino(); updateStats();
   toast('[cestino svuotato]');
 }
 
-// Rimuove automaticamente gli elementi scaduti (> 30 giorni).
-// Chiamata all'avvio dell'app così il cestino si pulisce da solo.
 function purgeTrash() {
   const before = S.cestino.length;
   S.cestino = S.cestino.filter(i => (Date.now() - i.deletedAt) < TRASH_TTL);
-  if (S.cestino.length < before) persist(); // salva solo se c'è stato un cambiamento
+  if (S.cestino.length < before) persist();
 }
 
-// ══════════════════════════════════════════════════════════
-// HELPERS LISTA — operazioni sulle voci delle liste
-// lid: id della lista  |  iid: id della voce
-// ══════════════════════════════════════════════════════════
-
-// Inverte lo stato done/non-done di una voce
 function tglLI(lid, iid) {
   const l = S.liste.find(x => x.id===lid); if (!l) return;
   const it = l.items.find(x => x.id===iid); if (!it) return;
   it.done = !it.done; l.updated = Date.now(); persist(); renderListe();
 }
-// Aggiunge una nuova voce alla lista, poi rimette il focus sull'input
+
 function addLI(lid, inp) {
   const t = inp.value.trim(); if (!t) return;
   const l = S.liste.find(x => x.id===lid); if (!l) return;
@@ -104,12 +88,12 @@ function addLI(lid, inp) {
   l.updated = Date.now(); inp.value = ''; persist(); renderListe();
   setTimeout(() => { const ni = document.getElementById('ladd-'+lid); if (ni) ni.focus(); }, 50);
 }
-// Rimuove una voce dalla lista
+
 function delLI(lid, iid) {
   const l = S.liste.find(x => x.id===lid); if (!l) return;
   l.items = l.items.filter(i => i.id!==iid); l.updated = Date.now(); persist(); renderListe();
 }
-// Modifica il testo di una voce con un prompt nativo
+
 function editLI(lid, iid) {
   const l = S.liste.find(x => x.id===lid); if (!l) return;
   const it = l.items.find(x => x.id===iid); if (!it) return;
@@ -117,9 +101,6 @@ function editLI(lid, iid) {
   if (t !== null && t.trim()) { it.text = t.trim(); l.updated = Date.now(); persist(); renderListe(); }
 }
 
-// ══════════════════════════════════════════════════════════
-// COLLASSA / ESPANDI CARD
-// ══════════════════════════════════════════════════════════
 function toggleCollapse(id, tp) {
   let arr;
   if      (tp === 'prom')   arr = curProms();
@@ -137,27 +118,17 @@ function toggleCollapse(id, tp) {
   else if (tp === 'folder') renderFolder();
 }
 
-// ══════════════════════════════════════════════════════════
-// COLOR PICKER
-// pickClr(): aggiorna ePick (colore scelto temporaneamente)
-// ══════════════════════════════════════════════════════════
 function pickClr(elId, c) { ePick = c === 'none' ? null : c; buildClrPick(elId, c); }
 
-// ══════════════════════════════════════════════════════════
-// NOME — tap sul nome apre un prompt nativo per modificarlo
-// ══════════════════════════════════════════════════════════
 function editName() {
   const n = prompt('Nome:', S.name);
   if (n && n.trim()) {
     S.name = n.trim();
-    persist(); // salva subito
-    document.getElementById('name-lbl').textContent = S.name; // aggiorna il DOM
+    persist();
+    document.getElementById('name-lbl').textContent = S.name;
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// CARTELLE — gestione cartelle personalizzate
-// ══════════════════════════════════════════════════════════
 function openFolderForm() {
   document.getElementById('new-folder-btn').style.display = 'none';
   const form = document.getElementById('new-folder-form');
@@ -182,7 +153,7 @@ function confirmFolder() {
 function delFolder(id) {
   if (!confirm('Elimina cartella? Le note non vengono eliminate.')) return;
   S.folders = (S.folders||[]).filter(f => f.id !== id);
-  // Remove folder assignment from notes
+
   [...(S.proms||[]), ...(S.idee||[])].forEach(n => { if (n.folder === id) n.folder = null; });
   if (curFolder === id) { curFolder = null; goTab(curTab); }
   persist(); renderFolders();
@@ -221,7 +192,7 @@ function unassignFolder(id, tp) {
 
 function goFolder(id) {
   curFolder = curFolder === id ? null : id;
-  // Deselect all tabs visually when a folder is active
+
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', !curFolder && b.id === 'tab-'+curTab));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', !curFolder ? v.id === 'v-'+curTab : v.id === 'v-folder'));
   document.getElementById('qcap').style.display = '';
@@ -267,34 +238,27 @@ function delFolderNote(id) {
   toast('[nel cestino]');
 }
 
-// ══════════════════════════════════════════════════════════
-// MODAL CARD (promemoria / idea)
-// openCardMod(): prepara il modal (titolo, campi, color picker) poi lo apre
-//   tp: 'prom' o 'idee'
-//   id: se presente → modifica; se null → creazione nuova
-// saveCard(): legge i valori dal form, salva in S, chiude il modal
-// ══════════════════════════════════════════════════════════
 function openCardMod(tp, id) {
   eType = tp; eId = id || null;
   let ttl, hd = '', tx = '', clr = null;
   if (id) {
-    // Modalità modifica: carica i dati esistenti
+
     const arr = tp === 'prom' ? curProms() : curIdee();
     const it = arr.find(i => i.id===id); if (!it) return;
     ttl = tp === 'prom' ? 'Modifica promemoria' : 'Modifica idea';
     hd = it.title||''; tx = it.text; clr = it.color;
   } else {
-    // Modalità creazione
+
     ttl = tp === 'prom' ? 'Nuovo promemoria' : 'Nuova idea';
   }
   ePick = clr || null;
   document.getElementById('m-card-ttl').textContent = ttl;
   document.getElementById('m-card-hd').value = hd;
-  // Il campo titolo è visibile solo per le Idee (non per i Promemoria)
+
   document.getElementById('m-hd-wrap').style.display = tp === 'prom' ? 'none' : '';
   document.getElementById('m-card-tx').value = tx;
   buildClrPick('m-card-clr', ePick || 'none');
-  // Carica/resetta il campo deadline
+
   const mdInp = document.getElementById('m-deadline-inp');
   const mdBtn = document.getElementById('m-deadline-toggle');
   const deadlineVal = id ? ((() => { const arr = tp==='prom'?curProms():curIdee(); const it=arr.find(i=>i.id===id); return it?.deadline||null; })()) : null;
@@ -312,30 +276,25 @@ function openCardMod(tp, id) {
 }
 function saveCard() {
   const tx = document.getElementById('m-card-tx').value.trim();
-  if (!tx) { document.getElementById('m-card-tx').focus(); return; } // testo obbligatorio
+  if (!tx) { document.getElementById('m-card-tx').focus(); return; }
   const hd  = document.getElementById('m-card-hd').value.trim();
   const now = Date.now();
   const mdInp = document.getElementById('m-deadline-inp');
   const deadline = mdInp.style.display !== 'none' && mdInp.value
     ? new Date(mdInp.value).getTime() : null;
   if (eId) {
-    // Aggiorna elemento esistente
+
     const arr = eType === 'prom' ? curProms() : curIdee();
     const it  = arr.find(i => i.id===eId);
     if (it) { it.text = tx; it.title = hd; it.color = ePick; it.deadline = deadline; it.updated = now; }
   } else {
-    // Crea nuovo elemento e lo aggiunge in cima
+
     const it = {id:uid(), text:tx, title:hd, color:ePick, deadline, pinned:false, created:now, updated:now};
     if (eType === 'prom') curProms().unshift(it); else curIdee().unshift(it);
   }
   persist(); closeModal('m-card'); renderAll();
 }
 
-// ══════════════════════════════════════════════════════════
-// MODAL LISTA
-// openListaMod(): prepara il modal per creare o rinominare una lista
-// saveLista(): salva il nome e il colore della lista
-// ══════════════════════════════════════════════════════════
 function openListaMod(id) {
   eId = id || null; eType = 'liste';
   let nm = '', clr = null;
@@ -360,15 +319,12 @@ function saveLista() {
     const l = S.liste.find(x => x.id===eId);
     if (l) { l.title = nm; l.color = ePick; l.updated = now; }
   } else {
-    // Nuova lista: array items vuoto, verrà popolato dall'utente
+
     S.liste.unshift({id:uid(), title:nm, items:[], color:ePick, pinned:false, created:now, updated:now});
   }
   persist(); closeModal('m-lista'); renderAll();
 }
 
-// ══════════════════════════════════════════════════════════
-// DEADLINE TOGGLE — mostra/nasconde il campo datetime
-// ══════════════════════════════════════════════════════════
 function tglDeadlineField() {
   const inp = document.getElementById('m-deadline-inp');
   const btn = document.getElementById('m-deadline-toggle');
@@ -377,7 +333,7 @@ function tglDeadlineField() {
   btn.textContent = isOn ? '[off]' : '[on]';
   if (!isOn) {
     if (!inp.value) {
-      inp.value = toLocalDatetimeInput(Date.now() + 86400e3); // default: domani
+      inp.value = toLocalDatetimeInput(Date.now() + 86400e3);
     }
     setTimeout(() => inp.focus(), 50);
   }
@@ -390,16 +346,12 @@ function tglFocusDeadlineField() {
   btn.textContent = isOn ? '[off]' : '[on]';
   if (!isOn) {
     if (!inp.value) {
-      inp.value = toLocalDatetimeInput(Date.now() + 86400e3); // default: domani
+      inp.value = toLocalDatetimeInput(Date.now() + 86400e3);
     }
     setTimeout(() => inp.focus(), 50);
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// FAB [+] — apre il modal giusto in base al tab corrente
-// Nel cestino non fa nulla (il bottone è nascosto, ma per sicurezza)
-// ══════════════════════════════════════════════════════════
 function onFab() {
   if (curFolder) {
     const fc = document.getElementById('fc-body');
@@ -411,7 +363,6 @@ function onFab() {
   else if (curTab === 'liste') openListaMod();
 }
 
-// Seleziona colore nel focus sheet
 function pickFocusClr(c, el) {
   focusColor = c === 'none' ? null : c;
   el.parentNode.querySelectorAll('.clrdot').forEach(d => d.classList.remove('sel'));

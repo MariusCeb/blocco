@@ -1,10 +1,4 @@
-/* ─────────────────────────────────────────────────────────
-   MODAL — pannello che sale dal basso (bottom sheet)
-   .modal-bg: overlay scuro semitrasparente su tutto lo schermo
-   .modal-sheet: il pannello bianco/scuro che sale
-   opacity + pointer-events: quando è chiuso è invisibile e non cliccabile
-   transform:translateY(14px) → parte leggermente sotto, poi sale a 0
-───────────────────────────────────────────────────────── */
+
 .modal-bg {
   position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
   display:flex;align-items:flex-end;justify-content:center;
@@ -18,13 +12,13 @@
   max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
 .modal-bg.open .modal-sheet {transform:translateY(0)}
-/* Titolino in cima alla sheet, tipo "NUOVO PROMEMORIA" */
+
 .modal-ttl  {font-size:9px;font-weight:600;margin-bottom:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-/* Contenitore di ogni campo del form */
+
 .m-field    {margin-bottom:9px}
-/* Etichetta del campo, tipo "NOTA" o "TITOLO" */
+
 .m-lbl      {font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px}
-/* Input e textarea del form */
+
 .m-inp      {
   width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:3px;
   padding:9px 11px;color:var(--text);font-family:var(--mono);font-size:12px;
@@ -32,7 +26,7 @@
 }
 .m-inp:focus {border-color:var(--bd2)}
 .m-inp::placeholder {color:var(--dim)}
-/* Riga con [annulla] + [salva] */
+
 .m-actions  {display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:4px}
 .m-cancel   {
   background:none;border:none;cursor:pointer;color:var(--muted);
@@ -47,11 +41,6 @@
 }
 .m-confirm:active {opacity:.6}
 
-/* ─────────────────────────────────────────────────────────
-   COLOR PICKER — pallini colorati nel modal
-   .clrdot.sel → bordo bianco/nero quando selezionato
-   .clrnone → il pallino "nessun colore" (grigio tratteggiato)
-───────────────────────────────────────────────────────── */
 .clrpick {display:flex;gap:8px;flex-wrap:wrap;padding:2px 0}
 .clrdot  {
   width:18px;height:18px;border-radius:50%;cursor:pointer;
@@ -61,11 +50,6 @@
 .clrdot.sel    {border-color:var(--text)}
 .clrnone       {background:var(--s3);border:1.5px dashed var(--bd2)}
 
-/* ─────────────────────────────────────────────────────────
-   TOAST — notifica temporanea (tipo "[nel cestino]")
-   Appare in alto al centro, poi scompare dopo 2 secondi
-   transform:translateY(-8px) → parte un po' più in su, poi scende a 0
-───────────────────────────────────────────────────────── */
 .toast {
   position:fixed;top:calc(var(--st) + 16px);left:50%;
   transform:translateX(-50%) translateY(-4px);
@@ -74,13 +58,11 @@
 }
 .toast.show {opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* Messaggio stato vuoto delle sezioni */
 .empty {
   padding:44px 20px;text-align:center;color:var(--dim);
   font-size:10px;line-height:1.9;letter-spacing:.06em;
 }
 
-/* Bottoni nel modal backup */
 .bk-btn {
   width:100%;padding:11px;background:var(--s2);border:1px solid var(--bd);
   border-radius:3px;color:var(--text);font-family:var(--mono);font-size:10px;
@@ -90,11 +72,6 @@
 .bk-btn:active {background:var(--s3)}
 .bk-btn img.emoji {width:13px;height:13px;pointer-events:none}
 
-/* ─────────────────────────────────────────────────────────
-   CESTINO — sezione elementi eliminati
-   .cestino-notice: avviso "conservati 30 giorni" in cima
-   .trash-act: bottoni [ripristina] e [elimina] senza box
-───────────────────────────────────────────────────────── */
 .cestino-notice {
   font-size:8px;color:var(--dim);letter-spacing:.06em;
   padding:14px 16px 6px;text-align:center;
@@ -107,11 +84,6 @@
 .trash-act:active {color:var(--text)}
 .trash-act.del:active {color:#e94560}
 
-/* ─────────────────────────────────────────────────────────
-   FOCUS — schermata a schermo intero, stile iOS Notes
-   Due modalità: view (lettura) ed edit (modifica)
-   Slide-up dal basso all'apertura
-───────────────────────────────────────────────────────── */
 .focus-bg {
   position:fixed;inset:0;background:var(--bg);z-index:150;
   display:flex;flex-direction:column;
@@ -121,7 +93,6 @@
 }
 .focus-bg.open {opacity:1;pointer-events:auto;transform:translateY(0)}
 
-/* ── Zen mode ── */
 .zen-exit {
   display:none;position:fixed;top:calc(var(--st) + 10px);left:14px;
   background:none;border:none;color:var(--dim);font-size:17px;
@@ -139,7 +110,6 @@
 .focus-bg.zen .focus-body  { max-width:680px;width:100%; }
 .focus-bg.zen .focus-view  { max-width:680px;width:100%;margin:0 auto;padding:40px 20px; }
 
-/* ── Command palette ── */
 .cmdpal {
   position:fixed;inset:0;z-index:300;
   background:rgba(0,0,0,.45);
@@ -175,13 +145,12 @@
 .cmdpal-sub  { font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;flex-shrink:0; }
 .cmdpal-empty { padding:18px;font-size:11px;color:var(--dim);text-align:center; }
 
-/* Barra superiore: [chiudi] a sx, status + pulsante a dx */
 .focus-topbar {
   padding:calc(var(--st) + 14px) 20px 12px;
   display:flex;align-items:center;justify-content:space-between;
   border-bottom:1px solid var(--bd);flex-shrink:0;
 }
-/* Area lettura: testo renderizzato, scrollabile */
+
 .focus-view {
   flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:24px 24px 20px;overscroll-behavior:contain;
@@ -195,7 +164,7 @@
   font-family:var(--mono);letter-spacing:.01em;
 }
 .focus-view-body p { margin:0 0 6px }
-/* Area modifica: textarea occupa tutto lo spazio disponibile */
+
 .focus-edit {flex:1;display:flex;flex-direction:column;overflow:hidden}
 .focus-ttl-inp {
   width:100%;background:transparent;border:none;
@@ -204,7 +173,7 @@
   color:var(--text);padding:14px 24px 12px;letter-spacing:-.01em;
   -webkit-appearance:none;appearance:none;flex-shrink:0;
 }
-/* Editor contenteditable — mostra direttamente il testo formattato */
+
 .focus-body {
   flex:1;padding:16px 20px;font-size:13px;line-height:1.9;
   color:var(--text);font-family:var(--mono);letter-spacing:.01em;
@@ -213,7 +182,7 @@
   white-space:pre-wrap;word-break:break-word;
 }
 .focus-body:empty::before { content:attr(data-ph);color:var(--muted);pointer-events:none;display:block; }
-/* Headings con auto-numerazione via CSS counter */
+
 .focus-body { counter-reset:subtitle 0 section 0; }
 .focus-body h1 { counter-reset:subtitle 0 section 0;font-weight:600;letter-spacing:.05em;
   text-transform:uppercase;font-size:13px;font-family:var(--mono);margin:0;line-height:1.9; }
@@ -228,18 +197,18 @@
   border-left:2px solid var(--dim);margin:0;padding-left:12px;
   color:var(--muted);font-style:italic;line-height:1.9;
 }
-/* usati anche nelle card in sola lettura */
+
 .mbig { font-size:15px; }
 .msmall { font-size:10px;opacity:.5; }
-/* Barra inferiore */
+
 .focus-foot {
   border-top:1px solid var(--bd);flex-shrink:0;
   padding:8px 20px calc(var(--sb) + 10px);
   display:flex;align-items:center;gap:10px;
 }
-/* Wrapper editor */
+
 .focus-editor-wrap {flex:1;display:flex;overflow:hidden;position:relative}
-/* ── Format panel — hidden on mobile ── */
+
 .fmt-panel {
   display:none;
   flex-direction:row;flex-shrink:0;
@@ -299,7 +268,7 @@
   border-radius:50%;
 }
 .fmt-clr-none:hover { transform:scale(1.25); }
-/* ── Slash command dropdown ── */
+
 #slash-menu {
   position:fixed;z-index:9000;
   background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r);
@@ -313,7 +282,7 @@
 .slash-item.sel, .slash-item:hover { background:var(--s3); }
 .slash-cmd  { font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);min-width:82px; }
 .slash-desc { font-family:var(--mono);font-size:10px;color:var(--muted); }
-/* Elenco slash commands nel pannello formato */
+
 .fmt-cmds {
   display:flex;flex-direction:column;gap:3px;margin-top:2px;
 }
@@ -335,7 +304,6 @@
 .fclose:active {color:var(--text)}
 .fclose.primary {color:var(--text);font-weight:600}
 
-/* ── Login overlay ── */
 #login-overlay {
   position:fixed;inset:0;z-index:9999;
   background:var(--bg);
@@ -356,7 +324,6 @@
 }
 .login-btn:hover { background:var(--s2); }
 
-/* ── Selection toolbar — appare sopra il testo selezionato ── */
 #sel-toolbar {
   position:fixed;z-index:500;
   background:var(--s2);border:1px solid var(--bd2);border-radius:5px;
@@ -389,7 +356,6 @@
 .stb-dot-none:hover { transform:scale(1.3); }
 .stb-clrs { display:flex;gap:4px;align-items:center; }
 
-/* ── Link nelle note ── */
 .ctext a,.ptext a,.focus-view-body a,.focus-body a {
   color:var(--accent);text-decoration:underline;cursor:pointer;
 }

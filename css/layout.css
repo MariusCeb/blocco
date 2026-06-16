@@ -1,5 +1,5 @@
-/* ── Desktop ≥ 680px ───────────────────────────────────── */
-/* ── Mobile-only hidden elements (must be before media query) ── */
+
+
 .cact-share   { display: none; }
 .new-folder-btn { display: none; }
 .new-folder-form { display: none; }
@@ -7,14 +7,13 @@
 .folders-sec  { display: none; }
 .folder-compose { display: none; }
 
-/* ── Mobile folder support ── */
 @media (max-width:679px) {
-  /* Slim [+] button — just one short line */
+
   .new-folder-btn {
     display: flex; align-items: center; justify-content: space-between;
     width: 100%; border: none; border-bottom: 1px solid var(--bd);
     padding: 7px 16px;
-    font-family: var(--mono); font-size: 0; /* hide long text */
+    font-family: var(--mono); font-size: 0;
     color: var(--dim); background: none; cursor: pointer;
     transition: color .15s;
   }
@@ -22,7 +21,7 @@
   .new-folder-btn::after  { content: '[+]'; font-size: 10px; }
   .new-folder-btn:active { color: var(--text); }
 
-  /* New-folder inline form */
+
   .new-folder-form {
     display: none; align-items: center;
     border-bottom: 1px solid var(--bd);
@@ -43,7 +42,7 @@
     color: var(--dim); cursor: pointer; padding: 9px 12px 9px 0;
   }
 
-  /* Folder list — horizontal scrollable chip strip */
+
   .folders-sec.has-folders {
     display: block !important;
     overflow-x: auto; overflow-y: hidden;
@@ -77,7 +76,7 @@
   .folder-del { display: none !important; }
   .folder-clr { display: none !important; }
 
-  /* Folder compose area inside v-folder */
+
   #v-folder .folder-compose {
     display: block;
     border-bottom: 1px solid var(--bd); margin-bottom: 12px;
@@ -106,9 +105,6 @@
   }
 }
 
-/* ─────────────────────────────────────────────────────────
-   DESKTOP ≥ 680px
-───────────────────────────────────────────────────────── */
 @media (min-width:680px) {
   body {
     background: var(--bg);
@@ -117,7 +113,7 @@
     padding: 0;
   }
 
-  /* ── App shell: 2-column grid, full page ── */
+
   .app {
     width: 100%;
     height: 100dvh;
@@ -127,11 +123,11 @@
     box-shadow: none;
     display: grid;
     grid-template-columns: 260px 1fr;
-    /* rows: header | search | tabs | new-folder | folders | shortcuts | quick-add */
+
     grid-template-rows: auto auto auto auto 1fr auto auto;
   }
 
-  /* ── Sidebar: column 1 ── */
+
   .vhead {
     grid-column: 1; grid-row: 1;
     padding: 26px 20px 18px;
@@ -170,7 +166,7 @@
   .tab:hover:not(.on) { background: rgba(255,255,255,.04); color: var(--text); }
   .tab-cnt { color: var(--dim); font-size: 10px; }
 
-  /* ── New folder button: row 4, always visible ── */
+
   .new-folder-btn {
     display: flex; align-items: center; gap: 6px;
     width: 100%;
@@ -212,7 +208,7 @@
   }
   .nfcancel:hover { color: var(--text); }
 
-  /* ── Folders list: row 5 (grows to fill space) ── */
+
   .folders-sec {
     grid-column: 1; grid-row: 5;
     border-right: 1px solid var(--bd);
@@ -256,7 +252,7 @@
   }
   .folder-item:hover .folder-clr { opacity: 1; }
 
-  /* ── Shortcuts panel: row 6 ── */
+
   .shortcuts-panel {
     display: block;
     grid-column: 1; grid-row: 6;
@@ -270,7 +266,7 @@
   .sc-key { font-size: 10px; color: var(--accent); letter-spacing: .04em; }
   .sc-lbl { font-size: 10px; color: var(--dim); }
 
-  /* ── Quick capture: row 7 ── */
+
   .qcap {
     grid-column: 1; grid-row: 7;
     border-right: 1px solid var(--bd);
@@ -281,7 +277,7 @@
   .qinp { padding: 13px 20px; font-size: 12px; }
   .qadd { padding: 13px 16px; font-size: 14px; }
 
-  /* ── Right panel: column 2, all rows ── */
+
   .views {
     grid-column: 2; grid-row: 1 / -1;
     background: var(--bg);
@@ -295,9 +291,9 @@
     font-size: 18px;
   }
 
-  /* ── Due colonne per promemoria e idee ── */
+
   .vscroll { padding: 28px 28px 100px; }
-  /* Il .stack nelle cartelle rimane a 740px; per prom/idee (che SONO lo .stack) sovrascriviamo via ID */
+
   .stack   { max-width: 740px; }
   #prom-l, #idee-l {
     max-width: none;
@@ -308,26 +304,26 @@
   }
   #prom-l .empty, #idee-l .empty { grid-column: 1 / -1; }
 
-  /* ── Mouse interactions ── */
+
   .card { cursor: default; }
   .card:hover { background: var(--s2); }
   .cact:hover { color: var(--text); }
   .hbt:hover  { color: var(--text); }
   .cact-share { display: inline !important; }
 
-  /* ── Thin scrollbar ── */
+
   ::-webkit-scrollbar       { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-  /* ── Cleaner cards on desktop: actions visible only on hover ── */
+
   .cacts { opacity: 0; transition: opacity .15s; }
   .card:hover .cacts { opacity: 1; }
   .cmeta { padding: 6px 14px 7px; }
   .card { margin-bottom: 10px; }
 
-  /* ── Folder compose area ── */
+
   .folder-compose { display: block; }
   .folder-compose {
     background: var(--s1); border: 1px solid var(--bd);
@@ -360,11 +356,6 @@
   .fc-save:hover { background: var(--s2); }
 }
 
-/* ─────────────────────────────────────────────────────────
-   HEADER — barra in alto con nome, data, bottoni
-   padding-top usa --st per scendere sotto il notch iPhone
-   flex-shrink:0 → non si restringe mai, rimane sempre visibile
-───────────────────────────────────────────────────────── */
 .vhead {
   padding:calc(var(--st) + 12px) 20px 10px;flex-shrink:0;
   display:flex;align-items:flex-start;justify-content:space-between;
@@ -374,10 +365,9 @@
 .vbig .hl {color:var(--accent)}
 .vname {color:var(--text);cursor:pointer;border-bottom:1px dashed var(--dim);padding-bottom:1px}
 .vdate {font-size:9px;color:var(--muted);letter-spacing:.06em;margin-top:3px}
-/* Riga statistiche: [5 prom] [3 idee] ecc. — quasi invisibile */
-/* Gruppo bottoni in alto a destra */
+
 .hbts  {display:flex;gap:12px;margin-top:2px;align-items:center}
-/* Stile base dei bottoni header: nessun box, solo testo/icona con [ ] */
+
 .hbt   {
   background:transparent;border:none;padding:0;
   cursor:pointer;font-size:10px;color:var(--muted);
@@ -386,14 +376,9 @@
   display:flex;align-items:center;
 }
 .hbt:active {color:var(--text)}
-/* Emoji Twemoji dentro i bottoni (quando presenti) */
+
 .hbt img.emoji {width:12px;height:12px;pointer-events:none;margin:0 1px}
 
-/* ─────────────────────────────────────────────────────────
-   BARRA DI RICERCA — si apre/chiude con animazione height
-   max-height:0 = nascosta; max-height:50px = visibile
-   overflow:hidden permette l'animazione senza scatti
-───────────────────────────────────────────────────────── */
 .sbar {
   border-bottom:1px solid var(--bd);flex-shrink:0;
   max-height:0;overflow:hidden;transition:max-height .25s ease;
@@ -406,11 +391,6 @@
 }
 .sinp::placeholder {color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
 
-/* ─────────────────────────────────────────────────────────
-   TAB — le 4 sezioni (Prom / Idee / Liste / Cestino)
-   flex:1 → ogni tab occupa lo stesso spazio
-   .on::after → la lineetta grigia sotto il tab attivo
-───────────────────────────────────────────────────────── */
 .tabs {display:flex;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--s1)}
 .tab  {
   flex:1;padding:9px 0;font-size:10px;font-weight:500;letter-spacing:.07em;
@@ -426,10 +406,6 @@
 .tab-badge {font-size:7px;color:var(--muted);margin-left:3px}
 .tab-cnt { color: var(--dim); font-size: 9px; }
 
-/* ─────────────────────────────────────────────────────────
-   QUICK CAPTURE — barra di input sempre visibile
-   Permette di aggiungere un promemoria veloce senza aprire il modal
-───────────────────────────────────────────────────────── */
 .qcap {
   display:flex;align-items:center;
   border-bottom:1px solid var(--bd);flex-shrink:0;
@@ -447,28 +423,17 @@
 }
 .qadd:active {color:var(--text)}
 
-/* ─────────────────────────────────────────────────────────
-   VIEWS — contenitore delle 4 viste (Prom/Idee/Liste/Cestino)
-   position:relative sul container + position:absolute sulle viste
-   permette di sovrapporre le viste e mostrarne solo una con display:block
-───────────────────────────────────────────────────────── */
 .views {flex:1;overflow:hidden;position:relative}
 .view  {
   position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;display:none; /* nascosta di default */
+  -webkit-overflow-scrolling:touch;display:none;
 }
-.view.on  {display:block} /* la vista attiva */
-/* Padding interno: 20px laterali, più spazio in basso per il FAB [+] */
+.view.on  {display:block}
+
 .vscroll  {padding:18px 16px calc(var(--sb) + 80px)}
 .stack    {display:flex;flex-direction:column;gap:18px}
 #folder-l {display:flex;flex-direction:column;gap:18px}
 
-/* ─────────────────────────────────────────────────────────
-   FAB — pulsante [+] fisso in basso a destra
-   position:fixed → rimane sempre visibile sopra lo scroll
-   bottom usa --sb per stare sopra la barra home iPhone
-   Nessun cerchio: solo testo [+] minimal
-───────────────────────────────────────────────────────── */
 .fab {
   position:fixed;bottom:calc(var(--sb) + 52px);right:20px;z-index:60;
   background:transparent;border:none;padding:4px;

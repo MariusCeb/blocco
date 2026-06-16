@@ -6,10 +6,6 @@ const _fbApp = firebase.initializeApp({
   messagingSenderId: "8856261247",
   appId: "1:8856261247:web:ef6048b99e0d26c2b3654a"
 });
-// App Check — verifica che le richieste vengano dalla nostra app reale (reCAPTCHA v3).
-// Blocca abuso della API key pubblica da origin non autorizzati. Va attivato
-// PRIMA di usare auth/firestore così il token App Check viene allegato alle richieste.
-firebase.appCheck().activate('6Ld9JCAtAAAAANsmsAgxHyLGkbVLloVr1xhDbxgb', true); // true = auto-refresh token
 
 const _fbAuth = firebase.auth();
 const _fbDb   = firebase.firestore();
@@ -20,7 +16,7 @@ function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   _fbAuth.signInWithPopup(provider).catch(err => {
-    // Popup blocked (common in iOS PWA) — fall back to redirect
+
     if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
       _fbAuth.signInWithRedirect(provider);
     } else {
@@ -33,12 +29,11 @@ function doSignOut() {
   _fbAuth.signOut();
 }
 
-// Handle redirect result after signInWithRedirect (iOS PWA fallback)
 _fbAuth.getRedirectResult().catch(err => console.error(err));
 const _loginStatus = document.getElementById('login-status');
 if (_loginStatus) _loginStatus.textContent = 'firebase ok · v37';
 
-let _fbUnsub = null; // active onSnapshot unsubscribe
+let _fbUnsub = null;
 
 _fbAuth.onAuthStateChanged(user => {
   const overlay = document.getElementById('login-overlay');
@@ -46,25 +41,15 @@ _fbAuth.onAuthStateChanged(user => {
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   if (user) {
     window._fbUser = user;
-    S = {name: user.displayName || 'Utente', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}, folders:[], folderNotes:[]};
+    S = defaultState(user.displayName || 'Utente');
     let firstLoad = true;
     _fbUnsub = _fbDb.collection('users').doc(user.uid).onSnapshot(doc => {
       if (doc.exists) {
         const d = doc.data();
-        const fresh = {
-          name:        d.name        || (user.displayName || 'Utente'),
-          proms:       d.proms       || [],
-          idee:        d.idee        || [],
-          liste:       d.liste       || [],
-          cestino:     d.cestino     || [],
-          theme:       d.theme       || 'dark',
-          secret:      d.secret      || {proms:[], idee:[]},
-          folders:     d.folders     || [],
-          folderNotes: d.folderNotes || []
-        };
+        const fresh = normalizeState(d, user.displayName || 'Utente');
         if (firstLoad) {
           S = fresh;
-          // Migrazione: sposta note con folder da idee → folderNotes
+
           const misplaced = S.idee.filter(i => i.folder);
           if (misplaced.length) {
             S.idee = S.idee.filter(i => !i.folder);
@@ -76,7 +61,7 @@ _fbAuth.onAuthStateChanged(user => {
           appEl.style.display = '';
           initApp();
         } else if (!doc.metadata.hasPendingWrites) {
-          // Data from another device — skip if focus editor is open
+
           const fm = document.getElementById('focus-modal');
           if (fm?.classList.contains('open')) return;
           S = fresh;
@@ -101,7 +86,7 @@ _fbAuth.onAuthStateChanged(user => {
   } else {
     window._fbUser = null;
     localStorage.removeItem('blocco');
-    S = {name:'', proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[],idee:[]}};
+    S = defaultState('');
     appEl.style.display = 'none';
     overlay.classList.remove('hidden');
   }
