@@ -203,6 +203,16 @@ function autoList(e) {
 
 let _focusIsEdit = false;
 
+function focusBodyHtml() {
+  return _sanitize(document.getElementById('focus-body').innerHTML);
+}
+
+function focusPlainPaste(e) {
+  e.preventDefault();
+  const text = e.clipboardData?.getData('text/plain') || '';
+  document.execCommand('insertText', false, text);
+}
+
 function openFocus(tp, id) {
   const arr = tp === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === id); if (!it) return;
@@ -245,6 +255,7 @@ function focusEnterEdit() {
   const bodyEl = document.getElementById('focus-body');
   const ttlInp = document.getElementById('focus-ttl-inp');
   bodyEl.innerHTML = md(it.text);
+  bodyEl.onpaste = focusPlainPaste;
   if (focusType === 'idee') { ttlInp.value = it.title || ''; ttlInp.style.display = ''; }
   else { ttlInp.style.display = 'none'; }
   const schedAutoSave = () => {
@@ -292,7 +303,7 @@ function _focusShowMode(mode) {
 function doFocusSave(shouldClose) {
   if (focusType === 'folder') {
     const it = (S.folderNotes||[]).find(i => i.id === focusId); if (!it) return;
-    it.text  = document.getElementById('focus-body').innerHTML;
+    it.text  = focusBodyHtml();
     it.title = document.getElementById('focus-ttl-inp').value.trim();
     it.color = focusColor;
     const _fdInp = document.getElementById('focus-deadline-inp');
@@ -305,7 +316,7 @@ function doFocusSave(shouldClose) {
   }
   const arr = focusType === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === focusId); if (!it) return;
-  it.text  = document.getElementById('focus-body').innerHTML;
+  it.text  = focusBodyHtml();
   if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
   it.color = focusColor;
   const fdInp = document.getElementById('focus-deadline-inp');
@@ -430,6 +441,7 @@ function openFolderNote(id) {
   const bodyEl  = document.getElementById('focus-body');
   const titleEl = document.getElementById('focus-ttl-inp');
   bodyEl.innerHTML = md(n.text || '');
+  bodyEl.onpaste = focusPlainPaste;
   titleEl.value = n.title || '';
   titleEl.style.display = '';
   _focusIsEdit = true;
