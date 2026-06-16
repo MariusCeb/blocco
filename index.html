@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <!-- Codifica caratteri: permette lettere accentate e simboli -->
+
   <meta charset="UTF-8">
-  <!-- Viewport mobile: impedisce lo zoom automatico su iPhone; viewport-fit=cover copre l'intero schermo fisico (notch incluso) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://www.google.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.google.com https://www.gstatic.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://www.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests">
+
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <!-- Permette di aggiungere l'app alla schermata home come PWA su iPhone -->
+
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <!-- Stile della barra di stato iPhone: trasparente scuro -->
+
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <!-- Nome che appare sotto l'icona sulla schermata home -->
+
   <meta name="apple-mobile-web-app-title" content="Blocco">
-  <!-- Colore della barra del browser (visibile su Android Chrome) -->
+
   <meta name="theme-color" content="#0e0e0e" id="tc-meta">
-  <!-- File manifest PWA: definisce icona, nome, colori dell'app installata -->
+
   <link rel="manifest" href="./notes-manifest.json">
-  <!-- Icona per la schermata home iPhone e favicon browser -->
+
   <link rel="apple-touch-icon" href="./notes-icon.svg">
   <link rel="icon" href="./notes-icon.svg" type="image/svg+xml">
   <title>Blocco — Note</title>
-  <!-- Font monospace IBM Plex Mono da Google Fonts -->
+
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <!-- Twemoji: converte le emoji di sistema in SVG neutrali di Twitter -->
+
   <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="css/tokens.css?v=37">
   <link rel="stylesheet" href="css/layout.css?v=37">
@@ -44,39 +45,31 @@
 
 <div class="app" id="app" style="display:none">
 
-<!-- ══════════════════════════════════════════════════════
-     HEADER — nome, data/ora, statistiche, bottoni
-     ══════════════════════════════════════════════════════ -->
 <div class="vhead">
   <div>
     <div class="vbig">
-      <!-- Il nome è cliccabile: chiama editName() per cambiarlo -->
+
       <span class="vname" id="name-lbl" onclick="editName()">Marius1</span><span class="hl">.</span>
     </div>
-    <!-- Data e ora aggiornate ogni 30 secondi da updateDatetime() -->
+
     <div class="vdate" id="vdate-lbl"></div>
   </div>
   <div class="hbts">
-    <!-- [🔍] apre/chiude la barra di ricerca -->
+
     <button class="hbt" id="sbtn" onclick="tglSearch()" title="Cerca">[<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>]</button>
-    <!-- [luna/sole] cambia tema scuro/chiaro; l'icona SVG viene iniettata da applyTheme() -->
+
     <button class="hbt" id="theme-btn" onclick="tglTheme()" title="Tema">[<span id="theme-ico"></span>]</button>
-    <!-- [archivio] apre il modal backup esporta/importa JSON -->
+
     <button class="hbt" onclick="openModal('m-io')" title="Backup">[<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg>]</button>
-    <!-- [esci] sign out Firebase -->
+
     <button class="hbt" onclick="doSignOut()" title="Esci">[×]</button>
   </div>
 </div>
 
-<!-- Barra di ricerca: nascosta di default, si apre con tglSearch() -->
 <div class="sbar" id="sbar">
   <input class="sinp" id="sinp" type="search" placeholder="Cerca..." oninput="doSearch(this.value)">
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     TAB — navigazione tra le 4 sezioni
-     goTab('prom'|'idee'|'liste'|'cestino') gestisce il cambio
-     ══════════════════════════════════════════════════════ -->
 <div class="tabs">
   <button class="tab on" id="tab-prom"    onclick="goTab('prom')">prom <span class="tab-cnt" id="cnt-prom"></span></button>
   <button class="tab"    id="tab-idee"    onclick="goTab('idee')">idee <span class="tab-cnt" id="cnt-idee"></span></button>
@@ -84,8 +77,6 @@
   <button class="tab"    id="tab-cestino" onclick="goTab('cestino')">cestino<span class="tab-badge" id="cestino-badge"></span></button>
 </div>
 
-<!-- Cartelle personalizzate (solo desktop) -->
-<!-- Pulsante nuova cartella — sempre visibile su desktop -->
 <button class="new-folder-btn" id="new-folder-btn" onclick="openFolderForm()">[ + nuova cartella ]</button>
 <div class="new-folder-form" id="new-folder-form">
   <input class="nfinp" id="nfinp" placeholder="nome cartella..." maxlength="32"
@@ -101,7 +92,6 @@
   <div id="folders-list"></div>
 </div>
 
-<!-- Shortcuts panel — desktop only, above quick capture -->
 <div class="shortcuts-panel">
   <div class="sc-row"><span class="sc-key">n</span><span class="sc-lbl">nuova nota</span></div>
   <div class="sc-row"><span class="sc-key">1-4</span><span class="sc-lbl">cambia tab</span></div>
@@ -110,36 +100,30 @@
   <div class="sc-row"><span class="sc-key">alt+c</span><span class="sc-lbl">zen mode</span></div>
 </div>
 
-<!-- Quick capture: input sempre visibile per promemoria rapidi.
-     Premi Invio o [+] → qAdd() aggiunge direttamente a S.proms -->
 <div class="qcap" id="qcap">
   <input class="qinp" id="qinp" placeholder="promemoria rapido..."
     onkeydown="if(event.key==='Enter')qAdd(this)">
   <button class="qadd" onclick="qAdd(document.getElementById('qinp'))">[+]</button>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     VISTE — una per ogni sezione, solo quella .on è visibile
-     Il contenuto viene generato dinamicamente da renderXxx()
-     ══════════════════════════════════════════════════════ -->
 <div class="views">
-  <!-- Vista Promemoria: le card vengono generate da renderProms() -->
+
   <div class="view on" id="v-prom">
     <div class="vscroll"><div class="stack" id="prom-l"></div></div>
   </div>
-  <!-- Vista Idee: le card vengono generate da renderIdee() -->
+
   <div class="view" id="v-idee">
     <div class="vscroll"><div class="stack" id="idee-l"></div></div>
   </div>
-  <!-- Vista Liste: le card vengono generate da renderListe() -->
+
   <div class="view" id="v-liste">
     <div class="vscroll"><div class="stack" id="liste-l"></div></div>
   </div>
-  <!-- Vista Cestino: generata da renderCestino() al cambio tab -->
+
   <div class="view" id="v-cestino">
     <div class="vscroll" id="cestino-wrap"></div>
   </div>
-  <!-- Vista Cartella: mostra le note della cartella selezionata -->
+
   <div class="view" id="v-folder">
     <div class="vscroll">
       <div class="stack">
@@ -164,14 +148,10 @@
   </div>
 </div>
 
-<!-- FAB [+] fisso in basso a destra.
-     onFab() apre il modal giusto in base al tab corrente.
-     Si nasconde automaticamente nel tab Cestino. -->
 <button class="fab" id="fab" onclick="onFab()">[+]</button>
 
-</div><!-- /.app -->
+</div>
 
-<!-- Command palette — Ctrl+K -->
 <div class="cmdpal" id="cmdpal" style="display:none" onclick="if(event.target===this)_closeCmdPal()">
   <div class="cmdpal-box">
     <input class="cmdpal-inp" id="cmdpal-inp" placeholder="cerca note o comandi..."
@@ -181,27 +161,23 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     MODAL: creazione/modifica promemoria o idea
-     Tap sull'overlay scuro chiude il modal (bgClose)
-     ══════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="m-card" onclick="bgClose(event,'m-card')">
   <div class="modal-sheet">
-    <!-- Titolo dinamico: "Nuovo promemoria" / "Modifica idea" ecc. -->
+
     <div class="modal-ttl" id="m-card-ttl">Nuovo</div>
-    <!-- Campo titolo: visibile solo per le Idee, nascosto per i Promemoria -->
+
     <div class="m-field" id="m-hd-wrap">
       <div class="m-lbl">Titolo</div>
       <input class="m-inp" id="m-card-hd" placeholder="Titolo (opzionale)...">
     </div>
     <div class="m-field">
       <div class="m-lbl">Nota</div>
-      <!-- rows="4" = altezza iniziale della textarea -->
+
       <textarea class="m-inp" id="m-card-tx" rows="4" placeholder="Scrivi qui... **grassetto** _corsivo_" onkeydown="autoList(event)"></textarea>
     </div>
     <div class="m-field">
       <div class="m-lbl">Etichetta colore</div>
-      <!-- I pallini colorati vengono generati da buildClrPick() -->
+
       <div class="clrpick" id="m-card-clr"></div>
     </div>
     <div class="m-field">
@@ -218,7 +194,6 @@
   </div>
 </div>
 
-<!-- MODAL: creazione/rinomina lista -->
 <div class="modal-bg" id="m-lista" onclick="bgClose(event,'m-lista')">
   <div class="modal-sheet">
     <div class="modal-ttl" id="m-lista-ttl">Nuova lista</div>
@@ -237,7 +212,6 @@
   </div>
 </div>
 
-<!-- MODAL: backup — esporta/importa tutto come file JSON -->
 <div class="modal-bg" id="m-io" onclick="bgClose(event,'m-io')">
   <div class="modal-sheet">
     <div class="modal-ttl">Backup dati</div>
@@ -248,7 +222,7 @@
       <button class="bk-btn" onclick="doExportText()">📄 Esporta testo</button>
     </div>
     <div class="m-field">
-      <!-- Click fittizio sull'input file nascosto -->
+
       <button class="bk-btn" onclick="document.getElementById('f-in').click()">📥 Importa JSON</button>
       <input type="file" id="f-in" accept=".json" style="display:none" onchange="doImport(this)">
     </div>
@@ -258,12 +232,11 @@
   </div>
 </div>
 
-<!-- FOCUS — schermata a schermo intero stile iOS Notes -->
 <div class="focus-bg" id="focus-modal">
-  <!-- Zen exit — visible only in zen mode, top-left -->
+
   <button class="zen-exit" onclick="toggleZen()" title="esci dal zen">⊟</button>
 
-  <!-- Barra superiore -->
+
   <div class="focus-topbar">
     <button class="fclose" onclick="closeFocus()">[←] chiudi</button>
     <div style="display:flex;align-items:center;gap:16px">
@@ -274,20 +247,20 @@
     </div>
   </div>
 
-  <!-- VIEW MODE: testo renderizzato, grande e comodo -->
+
   <div class="focus-view" id="focus-view">
     <div class="focus-view-title" id="focus-view-title" style="display:none"></div>
     <div class="focus-view-body" id="focus-view-body"></div>
     <div id="focus-view-meta" style="margin-top:20px;font-size:9px;color:var(--muted);letter-spacing:.05em"></div>
   </div>
 
-  <!-- EDIT MODE: textarea a tutto schermo -->
+
   <div class="focus-edit" id="focus-edit" style="display:none">
     <input class="focus-ttl-inp" id="focus-ttl-inp" placeholder="Titolo..." style="display:none">
     <div class="focus-editor-wrap">
       <div class="focus-body" id="focus-body" contenteditable="true" spellcheck="false"
            data-ph="Scrivi qui..." onkeydown="autoList(event)"></div>
-      <!-- Format panel — desktop only, right side -->
+
       <div class="fmt-panel" id="fmt-panel" onmousedown="event.preventDefault()">
         <button class="fmt-toggle" id="fmt-toggle" onclick="toggleFmtPanel()" title="Formattazione">‹</button>
         <div class="fmt-body" id="fmt-body">
@@ -314,14 +287,14 @@
     </div>
   </div>
 
-  <!-- Barra inferiore -->
+
   <div class="focus-foot">
-    <!-- View: mostra colore e scadenza in sola lettura -->
+
     <div id="focus-foot-view" style="display:flex;align-items:center;gap:10px;flex:1">
       <div id="focus-view-clr" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></div>
       <span id="focus-foot-dl" style="font-size:9px;color:var(--muted)"></span>
     </div>
-    <!-- Edit: color picker + scadenza -->
+
     <div id="focus-foot-edit" style="display:none;flex:1;flex-direction:column;gap:6px">
       <div class="clrpick" id="focus-clr"></div>
       <div class="dl-row">
@@ -333,10 +306,8 @@
   </div>
 </div>
 
-<!-- Slash command dropdown -->
 <div id="slash-menu" style="display:none"></div>
 
-<!-- Selection toolbar — appare sopra il testo selezionato nel focus editor -->
 <div id="sel-toolbar" onmousedown="event.preventDefault()">
   <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('bold')" title="Grassetto"><b>B</b></button>
   <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('italic')" title="Corsivo"><i>I</i></button>
@@ -350,10 +321,8 @@
   <button class="stb-btn" onmousedown="event.preventDefault()" onclick="applyFmt('clear')" title="Rimuovi formattazione">×</button>
 </div>
 
-<!-- Toast: notifica temporanea in alto al centro -->
 <div class="toast" id="toast"></div>
 
-<!-- DOMPurify: sanitizza l'HTML delle note prima del render (anti-XSS). Deve caricarsi prima di state.js -->
 <script src="js/purify.min.js?v=37"></script>
 <script src="js/state.js?v=37"></script>
 <script src="js/render.js?v=37"></script>
@@ -362,11 +331,9 @@
 <script src="js/drag.js?v=37"></script>
 <script src="js/ui.js?v=37"></script>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check-compat.js"></script>
 <script src="js/firebase.js?v=37"></script>
 </body>
 </html>

@@ -1,9 +1,5 @@
-// ══════════════════════════════════════════════════════════
-// RENDER PROMEMORIA
-// Costruisce l'HTML delle card e lo inietta in #prom-l.
-// Ordine: prima i fissati (pinned), poi per data decrescente.
-// Se c'è una ricerca attiva filtra prima di rendere.
-// ══════════════════════════════════════════════════════════
+
+
 function renderProms() {
   const el = document.getElementById('prom-l');
   let items = [...curProms()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
@@ -42,10 +38,8 @@ function renderProms() {
   applyTwemoji(el);
 }
 
-// Segna un promemoria come fatto: anima la card verso destra, poi la rimuove.
-// Non va nel cestino: è un completamento, non una cancellazione.
 function chkProm(id) {
-  const card = document.querySelector(`.card[data-id="${id}"]`);
+  const card = document.querySelector(`.card[data-id="${cssId(id)}"]`);
   const el   = card?.closest('.card-slot') || card;
   if (!el) return;
   el.style.transition = 'opacity .28s ease,transform .28s ease';
@@ -61,10 +55,6 @@ function chkProm(id) {
   }, 300);
 }
 
-// ══════════════════════════════════════════════════════════
-// RENDER IDEE — stessa logica di renderProms
-// Le idee hanno anche un titolo opzionale
-// ══════════════════════════════════════════════════════════
 function renderIdee() {
   const el = document.getElementById('idee-l');
   let items = [...curIdee()].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
@@ -98,7 +88,7 @@ function renderIdee() {
       </div>
     </div>
   `}).join('');
-  // Aggiungi fade gradient alle card con testo lungo
+
   requestAnimationFrame(() => {
     el.querySelectorAll('.idea-body').forEach(b => {
       b.classList.toggle('overflows', b.scrollHeight > b.clientHeight + 2);
@@ -109,10 +99,6 @@ function renderIdee() {
   applyTwemoji(el);
 }
 
-// ══════════════════════════════════════════════════════════
-// RENDER LISTE — ogni lista ha header, righe e riga aggiungi
-// done/tot: contatore voci completate per la lista
-// ══════════════════════════════════════════════════════════
 function renderListe() {
   const el = document.getElementById('liste-l');
   let items = [...S.liste].sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
@@ -139,7 +125,6 @@ function renderListe() {
             </div>
           `).join('')}
         </div>
-        <!-- Input in fondo per aggiungere nuove voci: Invio o + -->
         <div class="ladd">
           <input class="laddinp" id="ladd-${lst.id}" placeholder="Aggiungi voce..."
             onkeydown="if(event.key==='Enter')addLI('${lst.id}',this)">
@@ -163,32 +148,26 @@ function renderListe() {
   applyTwemoji(el);
 }
 
-// ══════════════════════════════════════════════════════════
-// RENDER CESTINO — mostra gli elementi eliminati con scadenza
-// Gli elementi vengono eliminati definitivamente dopo 30 giorni
-// oppure manualmente con [elimina] o [svuota cestino]
-// ══════════════════════════════════════════════════════════
 function renderCestino() {
   const el = document.getElementById('cestino-wrap');
   if (!S.cestino.length) {
     el.innerHTML = '<div class="empty">cestino vuoto.</div>';
     return;
   }
-  // Ordina per data eliminazione: i più recenti prima
+
   const items = [...S.cestino].sort((a,b) => b.deletedAt - a.deletedAt);
   const lbl   = {prom:'prom', idee:'idea', liste:'lista'};
 
   let html = '<div class="cestino-notice">[ elementi conservati 30 giorni ]</div>';
   html += '<div class="stack" style="margin-top:10px">';
   html += items.map(i => {
-    // Anteprima del contenuto: testo per prom/idee, voci per liste
+
     const preview = i.text
       ? i.text.slice(0, 80) + (i.text.length > 80 ? '…' : '')
       : i.items ? i.items.map(x => x.text).join(', ').slice(0, 80) : '';
     return `
       <div class="card">
         <div class="cbody">
-          <!-- Metadati: tipo, quando eliminato, quando scade -->
           <div style="font-size:8px;color:var(--dim);margin-bottom:6px;letter-spacing:.05em">
             [${lbl[i.type]||i.type}] · ${fmtTs(i.deletedAt)} · ${fmtTrashExp(i.deletedAt)}
           </div>
@@ -198,9 +177,7 @@ function renderCestino() {
         <div class="cmeta">
           <span class="cts">${new Date(i.deletedAt).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</span>
           <div class="cacts">
-            <!-- [ripristina]: rimette l'elemento nella sua sezione originale -->
             <button class="trash-act"     onclick="restoreItem('${i.id}')">[ripristina]</button>
-            <!-- [elimina]: cancella definitivamente, senza possibilità di recupero -->
             <button class="trash-act del" onclick="permaDelete('${i.id}')">[elimina]</button>
           </div>
         </div>
@@ -215,9 +192,6 @@ function renderCestino() {
   applyTwemoji(el);
 }
 
-// ══════════════════════════════════════════════════════════
-// CARTELLE — gestione cartelle personalizzate
-// ══════════════════════════════════════════════════════════
 function renderFolders() {
   const sec = document.getElementById('folders-sec');
   const lst = document.getElementById('folders-list');
@@ -279,5 +253,4 @@ function unparkFolderNote(id) {
   if (n) { n.parked = false; persist(); renderFolder(); }
 }
 
-// Re-renderizza tutte e tre le sezioni + aggiorna le statistiche
 function renderAll() { renderProms(); renderIdee(); renderListe(); updateStats(); renderFolders(); if (curFolder) renderFolder(); }

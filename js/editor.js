@@ -4,9 +4,6 @@ function _focusBgTouchMove(e) {
   e.preventDefault();
 }
 
-// Avvolge il testo selezionato nella textarea con **grassetto**
-// ── Contenteditable helpers ──
-// Testo prima del cursore nell'editor (con \n per le interruzioni di riga)
 function getTextBeforeCursor() {
   const el  = document.getElementById('focus-body');
   const sel = window.getSelection();
@@ -16,7 +13,7 @@ function getTextBeforeCursor() {
   range.setEnd(sel.focusNode, sel.focusOffset);
   return range.toString();
 }
-// Avvolge la selezione in uno span; usa extractContents se surroundContents fallisce
+
 function _wrapSelectionWith(fn) {
   const sel = window.getSelection();
   if (!sel.rangeCount || sel.isCollapsed) return;
@@ -37,8 +34,8 @@ function checkSlashTrigger() {
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount || !el.contains(sel.anchorNode)) { closeSlashMenu(); return; }
 
-  // Find the block-level ancestor of the cursor (div, h1-h6, p, li…)
-  // so range.toString() only covers the current visual line, not the whole note.
+
+
   let block = sel.anchorNode;
   while (block && block !== el) {
     if (block.nodeType === 1 && /^(DIV|P|H[1-6]|LI|BLOCKQUOTE|PRE)$/.test(block.nodeName)) break;
@@ -64,7 +61,7 @@ function checkSlashTrigger() {
 function _renderSlashMenu(ta) {
   const menu = document.getElementById('slash-menu');
   if (!menu) return;
-  // Position at the cursor using Selection API — works for any contenteditable layout
+
   let top, left;
   const sel = window.getSelection();
   if (sel && sel.rangeCount) {
@@ -101,8 +98,8 @@ function applySlashCmd(cmd) {
   const el = document.getElementById('focus-body');
   if (!el) return;
   el.focus();
-  // Cancella il testo slash corrente (/title, /hr …) — solo se presente
-  // Usa _getCurrentLineBeforeCursor per non leggere il testo dei blocchi precedenti
+
+
   const word = _getCurrentLineBeforeCursor();
   if (word.startsWith('/')) {
     for (let i = 0; i < word.length; i++) document.execCommand('delete');
@@ -125,9 +122,11 @@ function applySlashCmd(cmd) {
     case '/link': {
       const url = prompt('URL del link:', 'https://');
       if (url && url.trim()) {
+        const href = safeHref(url);
+        if (!href) { toast('[link non valido]'); break; }
         const txt = prompt('Testo del link (vuoto = URL):', '') || url.trim();
         document.execCommand('insertHTML', false,
-          `<a href="${url.trim()}" target="_blank" rel="noopener">${txt}</a>`);
+          `<a href="${attr(href)}" target="_blank" rel="noopener noreferrer">${esc(txt).replace(/<br>/g, ' ')}</a>`);
       }
       break;
     }
@@ -135,13 +134,6 @@ function applySlashCmd(cmd) {
   el.focus(); closeSlashMenu();
 }
 
-// ══════════════════════════════════════════════════════════
-// AUTO-LIST — gestione tasti speciali nel contenteditable
-// ══════════════════════════════════════════════════════════
-
-// Returns only the text of the CURRENT block (div/h1/p/…) before the cursor.
-// Unlike getTextBeforeCursor(), this never bleeds text from previous blocks
-// because range.toString() produces no \n at block boundaries.
 function _getCurrentLineBeforeCursor() {
   const el  = document.getElementById('focus-body');
   const sel = window.getSelection();
@@ -160,7 +152,7 @@ function _getCurrentLineBeforeCursor() {
 
 function autoList(e) {
   const el = document.getElementById('focus-body');
-  // Slash menu navigation
+
   if (_slashOpen && _slashItems.length) {
     if (e.key === 'ArrowDown') { e.preventDefault(); _slashIdx=(_slashIdx+1)%_slashItems.length; _renderSlashMenu(el); return; }
     if (e.key === 'ArrowUp')   { e.preventDefault(); _slashIdx=(_slashIdx-1+_slashItems.length)%_slashItems.length; _renderSlashMenu(el); return; }
@@ -174,7 +166,7 @@ function autoList(e) {
   }
   if (e.key !== 'Enter') return;
   if (!el) return;
-  // Esci da heading con Enter
+
   const sel = window.getSelection();
   if (sel && sel.rangeCount) {
     let node = sel.focusNode;
@@ -191,27 +183,35 @@ function autoList(e) {
       node = node.parentNode;
     }
   }
-  // Continua bullet/checkbox — usa solo il testo del blocco corrente
-  // così se l'utente ha cancellato il prefisso "- " la riga risulta vuota
-  // e non eredita il pattern dal blocco precedente.
+
+
+
   const currentLine = _getCurrentLineBeforeCursor();
   const m = currentLine.match(/^(\s*(?:- |\[ \] |\[x\] ))/);
   if (m) {
     e.preventDefault();
     const prefix = m[1].replace('[x] ', '[ ] ');
     if (!currentLine.slice(m[1].length).trim()) {
-      // Riga vuota con solo il prefisso → esci dalla lista
+
       for (let i = 0; i < m[1].length; i++) document.execCommand('delete');
     } else {
       document.execCommand('insertText', false, '\n' + prefix);
     }
   }
-  // default Enter: browser gestisce (inserisce <br> o <div>)
+
 }
 
-// ══════════════════════════════════════════════════════════
-// ── Focus mode — view e edit ────────────────────────────
 let _focusIsEdit = false;
+
+function focusBodyHtml() {
+  return _sanitize(document.getElementById('focus-body').innerHTML);
+}
+
+function focusPlainPaste(e) {
+  e.preventDefault();
+  const text = e.clipboardData?.getData('text/plain') || '';
+  document.execCommand('insertText', false, text);
+}
 
 function openFocus(tp, id) {
   const arr = tp === 'prom' ? curProms() : curIdee();
@@ -254,7 +254,8 @@ function focusEnterEdit() {
   _focusIsEdit = true;
   const bodyEl = document.getElementById('focus-body');
   const ttlInp = document.getElementById('focus-ttl-inp');
-  bodyEl.innerHTML = md(it.text); // md() gestisce sia vecchio formato che HTML
+  bodyEl.innerHTML = md(it.text);
+  bodyEl.onpaste = focusPlainPaste;
   if (focusType === 'idee') { ttlInp.value = it.title || ''; ttlInp.style.display = ''; }
   else { ttlInp.style.display = 'none'; }
   const schedAutoSave = () => {
@@ -269,14 +270,14 @@ function focusEnterEdit() {
   };
   bodyEl.oninput = () => { schedAutoSave(); checkSlashTrigger(); };
   if (focusType === 'idee') ttlInp.oninput = schedAutoSave;
-  // Color picker
+
   focusColor = it.color || null;
   document.getElementById('focus-clr').innerHTML = ['none',...CLRS].map(c => `
     <div class="clrdot${c==='none'?' clrnone':''}${(focusColor||'none')===c?' sel':''}"
       style="${c!=='none'?'background:'+CLRHEX[c]:''}"
       onclick="pickFocusClr('${c}',this)"></div>
   `).join('');
-  // Deadline
+
   const fdInp = document.getElementById('focus-deadline-inp');
   const fdBtn = document.getElementById('focus-deadline-toggle');
   if (it.deadline) {
@@ -302,7 +303,7 @@ function _focusShowMode(mode) {
 function doFocusSave(shouldClose) {
   if (focusType === 'folder') {
     const it = (S.folderNotes||[]).find(i => i.id === focusId); if (!it) return;
-    it.text  = document.getElementById('focus-body').innerHTML;
+    it.text  = focusBodyHtml();
     it.title = document.getElementById('focus-ttl-inp').value.trim();
     it.color = focusColor;
     const _fdInp = document.getElementById('focus-deadline-inp');
@@ -315,7 +316,7 @@ function doFocusSave(shouldClose) {
   }
   const arr = focusType === 'prom' ? curProms() : curIdee();
   const it  = arr.find(i => i.id === focusId); if (!it) return;
-  it.text  = document.getElementById('focus-body').innerHTML;
+  it.text  = focusBodyHtml();
   if (focusType === 'idee') it.title = document.getElementById('focus-ttl-inp').value.trim();
   it.color = focusColor;
   const fdInp = document.getElementById('focus-deadline-inp');
@@ -329,14 +330,11 @@ function doFocusSave(shouldClose) {
 
 function saveFocus() { clearTimeout(autoSaveTimer); doFocusSave(true); }
 
-// ══════════════════════════════════════════════════════════
-// FORMAT PANEL — pannello formattazione testo (solo desktop)
-// ══════════════════════════════════════════════════════════
 let _fmtOpen = false;
 
 function buildFmtColors() {
   const el = document.getElementById('fmt-clrs');
-  if (!el || el.childElementCount) return; // già costruito
+  if (!el || el.childElementCount) return;
   el.innerHTML = `<div class="fmt-clr-none" title="nessun colore" onclick="applyFmt('color','')"></div>` +
     CLRS.map(c => `<div class="fmt-clr-dot" style="background:${CLRHEX[c]}" title="${c}" onclick="applyFmt('color','${c}')"></div>`).join('');
 }
@@ -358,10 +356,10 @@ function applyFmt(type, arg) {
     case 'bold':   document.execCommand('bold');   break;
     case 'italic': document.execCommand('italic'); break;
     case 'color':
-      // styleWithCSS produces <span style="color:…"> instead of <font> — undo-able via Ctrl+Z
+
       document.execCommand('styleWithCSS', false, true);
       if (!arg) {
-        // Reset color only — do NOT call removeFormat (that strips bold/italic too)
+
         document.execCommand('foreColor', false, 'inherit');
       } else {
         document.execCommand('foreColor', false, CLRHEX[arg]);
@@ -382,9 +380,6 @@ function applyFmt(type, arg) {
   el.dispatchEvent(new Event('input'));
 }
 
-// ══════════════════════════════════════════════════════════
-// SELECTION TOOLBAR — appare sopra la selezione nel focus editor
-// ══════════════════════════════════════════════════════════
 function _buildSelToolbar() {
   const clrs = document.getElementById('stb-clrs');
   if (!clrs || clrs.childElementCount) return;
@@ -410,7 +405,7 @@ function _posSelToolbar() {
   if (rect.width === 0) { toolbar.classList.remove('show'); return; }
   _buildSelToolbar();
   toolbar.classList.add('show');
-  // Posiziona centrato sopra la selezione (o sotto se non c'è spazio)
+
   const tbW  = toolbar.offsetWidth  || 300;
   const tbH  = toolbar.offsetHeight || 36;
   let left = rect.left + rect.width / 2 - tbW / 2;
@@ -421,9 +416,6 @@ function _posSelToolbar() {
   toolbar.style.top  = top  + 'px';
 }
 
-// ══════════════════════════════════════════════════════════
-// LINK — aggiunge un link alla selezione nel focus editor
-// ══════════════════════════════════════════════════════════
 function _addLink() {
   const focusBody = document.getElementById('focus-body');
   if (!focusBody) return;
@@ -431,12 +423,13 @@ function _addLink() {
   if (!sel || sel.isCollapsed) { toast('[seleziona prima il testo]'); return; }
   const url = prompt('URL del link:', 'https://');
   if (!url || !url.trim()) return;
+  const href = safeHref(url);
+  if (!href) { toast('[link non valido]'); return; }
   focusBody.focus();
-  document.execCommand('createLink', false, url.trim());
-  // Assicura target=_blank su tutti i link
+  document.execCommand('createLink', false, href);
   focusBody.querySelectorAll('a').forEach(a => {
     a.setAttribute('target', '_blank');
-    a.setAttribute('rel', 'noopener');
+    a.setAttribute('rel', 'noopener noreferrer');
   });
   document.getElementById('sel-toolbar').classList.remove('show');
 }
@@ -448,6 +441,7 @@ function openFolderNote(id) {
   const bodyEl  = document.getElementById('focus-body');
   const titleEl = document.getElementById('focus-ttl-inp');
   bodyEl.innerHTML = md(n.text || '');
+  bodyEl.onpaste = focusPlainPaste;
   titleEl.value = n.title || '';
   titleEl.style.display = '';
   _focusIsEdit = true;
@@ -489,8 +483,8 @@ function closeFocus() {
   const fm = document.getElementById('focus-modal');
   fm.classList.remove('open');
   fm.removeEventListener('touchmove', _focusBgTouchMove);
-  // Reset zen mode on close
+
   if (_zenMode) { _zenMode = false; fm.classList.remove('zen'); }
-  // Dopo l'animazione di chiusura, torna in view mode per la prossima apertura
+
   setTimeout(() => { if (!fm.classList.contains('open')) _focusShowMode('view'); }, 320);
 }

@@ -1,6 +1,5 @@
-// Mostra un messaggio temporaneo in alto allo schermo.
-// dur: durata in ms prima che scompaia (default 2 secondi).
-// Usa clearTimeout per resettare il timer se chiamato più volte di seguito.
+
+
 function toast(msg, dur=2000) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -9,33 +8,27 @@ function toast(msg, dur=2000) {
   el._t = setTimeout(() => el.classList.remove('show'), dur);
 }
 
-// ══════════════════════════════════════════════════════════
-// TEMA — scuro/chiaro
-// SVG_MOON e SVG_SUN: icone Heroicons inline (nessuna dipendenza esterna)
-// applyTheme(): applica la classe .light all'html, inietta l'icona giusta,
-//               aggiorna il colore della barra del browser
-// ══════════════════════════════════════════════════════════
 const SVG_MOON    = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>`;
 const SVG_SUN     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>`;
 const SVG_GRUVBOX = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"/></svg>`;
 
 function applyTheme() {
-  // Rimuove tutte le classi tema e applica quella corrente
+
   document.documentElement.classList.remove('light', 'gruvbox');
   if (S.theme === 'light')   document.documentElement.classList.add('light');
   if (S.theme === 'gruvbox') document.documentElement.classList.add('gruvbox');
-  // Icona: mostra l'icona del tema SUCCESSIVO nel ciclo
+
   const ico = document.getElementById('theme-ico');
   if (ico) {
     if (S.theme === 'light')   ico.innerHTML = SVG_MOON;
     else if (S.theme === 'gruvbox') ico.innerHTML = SVG_SUN;
     else                       ico.innerHTML = SVG_GRUVBOX;
   }
-  // Aggiorna il colore della barra browser su Android/Safari
+
   const bgMap = { dark: '#0e0e0e', light: '#f0eeea', gruvbox: '#32302f' };
   document.getElementById('tc-meta').content = bgMap[S.theme] || '#0e0e0e';
 }
-// Toggle: dark → gruvbox → light → dark…
+
 function tglTheme() {
   const order = ['dark', 'gruvbox', 'light'];
   const idx = order.indexOf(S.theme);
@@ -43,12 +36,6 @@ function tglTheme() {
   persist(); applyTheme();
 }
 
-// ══════════════════════════════════════════════════════════
-// RICERCA
-// sOpen: stato della barra di ricerca (aperta/chiusa)
-// tglSearch(): apre o chiude la barra, mette il focus sull'input
-// doSearch(): aggiorna q (query) e ri-renderizza tutto
-// ══════════════════════════════════════════════════════════
 let sOpen = false;
 function tglSearch() {
   sOpen = !sOpen;
@@ -67,49 +54,32 @@ function doSearch(v) {
   q = v.toLowerCase().trim(); renderAll();
 }
 
-// ══════════════════════════════════════════════════════════
-// NAVIGAZIONE TAB
-// Aggiorna classe .on sui tab e sulle viste,
-// nasconde quick capture e FAB nella sezione cestino,
-// forza il render del cestino al primo accesso
-// ══════════════════════════════════════════════════════════
 function goTab(t) {
   curTab = t;
   curFolder = null;
-  // Aggiorna lo stile attivo su tab e viste
+
   document.querySelectorAll('.tab').forEach(b  => b.classList.toggle('on', b.id === 'tab-'+t));
   document.querySelectorAll('.folder-item').forEach(b => b.classList.remove('on'));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-'+t));
   const isCestino = t === 'cestino';
-  // Nel cestino non ha senso aggiungere note → nascondi quick capture e FAB
+
   document.getElementById('qcap').style.display = isCestino ? 'none' : '';
   document.getElementById('fab').style.display  = isCestino ? 'none' : '';
-  if (isCestino) renderCestino(); // genera il contenuto del cestino
+  if (isCestino) renderCestino();
 }
 
-// ══════════════════════════════════════════════════════════
-// GESTIONE MODAL
-// openModal(): aggiunge .open al modal → CSS lo rende visibile
-// closeModal(): rimuove .open
-// bgClose(): helper per chiudere cliccando l'overlay scuro
-// ══════════════════════════════════════════════════════════
 function openModal(id)  { document.getElementById(id).classList.add('open'); applyTwemoji(document.getElementById(id)); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function bgClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
 
-// ══════════════════════════════════════════════════════════
-// EXPORT / IMPORT JSON — backup completo dei dati
-// doExport(): crea un file JSON con tutti i dati e lo scarica
-// doImport(): legge un file JSON e sovrascrive i dati attuali
-// ══════════════════════════════════════════════════════════
 function doExport() {
-  // Crea un Blob (file virtuale) con i dati JSON formattati
+
   const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
   const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob); // URL temporaneo per il download
-  a.download = 'blocco-' + new Date().toISOString().slice(0,10) + '.json'; // nome file con data
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'blocco-' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
-  URL.revokeObjectURL(a.href); // libera la memoria
+  URL.revokeObjectURL(a.href);
   closeModal('m-io'); toast('[backup esportato]');
 }
 function doExportText() {
@@ -162,30 +132,20 @@ function htmlToText(html) {
 
 function doImport(inp) {
   const f = inp.files[0]; if (!f) return;
-  const r = new FileReader(); // API browser per leggere file locali
+  const r = new FileReader();
   r.onload = e => {
     try {
       const d = JSON.parse(e.target.result);
       if (!confirm('Sovrascrivere i dati attuali con questo file?')) return;
-      S = {
-        name:    d.name    || S.name,
-        proms:   d.proms   || [],
-        idee:    d.idee    || [],
-        liste:   d.liste   || [],
-        cestino: d.cestino || [],
-        theme:   d.theme   || 'dark'
-      };
+      S = normalizeState(d, S.name);
       document.getElementById('name-lbl').textContent = S.name;
       persist(); applyTheme(); renderAll(); renderCestino();
       closeModal('m-io'); toast('[importato]');
     } catch { alert('File non valido'); }
   };
-  r.readAsText(f); inp.value = ''; // resetta l'input file per permettere re-import
+  r.readAsText(f); inp.value = '';
 }
 
-// ══════════════════════════════════════════════════════════
-// ZEN MODE — modalità scrittura senza distrazioni
-// ══════════════════════════════════════════════════════════
 let _zenMode = false;
 function toggleZen() {
   const fm = document.getElementById('focus-modal');
@@ -194,9 +154,6 @@ function toggleZen() {
   fm.classList.toggle('zen', _zenMode);
 }
 
-// ══════════════════════════════════════════════════════════
-// COMMAND PALETTE — Ctrl+K: cerca note e comandi
-// ══════════════════════════════════════════════════════════
 let _palOpen = false, _palIdx = 0, _palItems = [];
 
 function openCmdPal() {
@@ -219,7 +176,7 @@ function renderCmdPal() {
   if (!lst) return;
   _palItems = [];
 
-  // Notes from all sections
+
   const sections = [
     { arr: curProms(),           label: 'prom'  },
     { arr: curIdee(),            label: 'idea'  },
@@ -235,7 +192,7 @@ function renderCmdPal() {
     });
   });
 
-  // Slash commands
+
   SLASH_DEFS.forEach(d => {
     if (!q || d.cmd.includes(q) || d.hint.includes(q))
       _palItems.push({ kind: 'cmd', label: 'cmd', id: d.cmd, title: d.cmd, preview: d.hint });
@@ -280,7 +237,6 @@ function _palSelect(idx) {
   }
 }
 
-// BOOT — chiamato dopo il login Firebase
 function initApp() {
   purgeTrash();
   applyTheme();
@@ -288,16 +244,12 @@ function initApp() {
 updateDatetime();
 setInterval(() => {
   updateDatetime();
-  // Aggiorna le card se ci sono scadenze attive (countdown che avanza)
+
   if ([...S.proms, ...S.idee, ...(S.folderNotes||[])].some(i => i.deadline)) renderAll();
 }, 30000);
 renderAll();
 initTabSwipe();
-} // end initApp()
-
-// ══════════════════════════════════════════════════════════
-// EVENT LISTENERS — tastiera, focus, touch, visibilità
-// ══════════════════════════════════════════════════════════
+}
 
 document.addEventListener('mouseup',  () => setTimeout(_posSelToolbar, 10));
 document.addEventListener('touchend', () => setTimeout(_posSelToolbar, 60));
@@ -309,18 +261,16 @@ document.addEventListener('selectionchange', () => {
   }
 });
 
-// Click su link dentro le card e il focus viewer → apre in nuova tab
 document.addEventListener('click', e => {
   const link = e.target.closest('a[href]');
   if (!link) return;
   if (!link.closest('.ctext,.ptext,.focus-view-body,.focus-body,.ctitle')) return;
   e.preventDefault();
   e.stopPropagation();
-  const href = link.getAttribute('href');
-  if (href) window.open(href, '_blank', 'noopener');
+  const href = safeHref(link.getAttribute('href'));
+  if (href) window.open(href, '_blank', 'noopener,noreferrer');
 }, true);
 
-// Nascondi FAB quando la tastiera iOS è aperta (qualsiasi input attivo)
 document.addEventListener('focusin', e => {
   if (e.target.matches('input,textarea')) {
     const fab = document.getElementById('fab');
@@ -335,8 +285,7 @@ document.addEventListener('focusout', () => {
     }
   }, 150);
 });
-// Blocca il bounce/scroll della pagina intera su iOS.
-// Solo i contenitori esplicitamente scrollabili possono ricevere touchmove.
+
 document.addEventListener('touchmove', e => {
   if (!e.target.closest('.view, .focus-view, .focus-body, .modal-sheet, textarea, .folders-sec')) {
     e.preventDefault();
@@ -347,10 +296,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && secretMode) toggleSecretMode();
 });
 
-// Fix iOS: tastiera copre le ultime righe della textarea.
-// Quando il visual viewport si riduce (tastiera aperta), aggiungo
-// padding-bottom alla textarea pari all'altezza della tastiera,
-// così l'ultima riga può essere scrollata sopra la tastiera.
 if (window.visualViewport) {
   visualViewport.addEventListener('resize', () => {
     const el = document.getElementById('focus-body');
@@ -359,7 +304,7 @@ if (window.visualViewport) {
     el.style.paddingBottom = (kbH > 80 ? kbH + 24 : 16) + 'px';
   });
 }
-// Swipe destra per chiudere il focus sheet (come iOS Notes)
+
 (function() {
   const fm = document.getElementById('focus-modal');
   let sx = 0, sy = 0, tracking = false, swiping = false, dx = 0;
@@ -379,9 +324,9 @@ if (window.visualViewport) {
     if (!swiping) {
       if (Math.abs(ddx) < 10 && Math.abs(ddy) < 10) return;
       if (ddx > 0 && Math.abs(ddx) > Math.abs(ddy) * 1.2) {
-        swiping = true; // swipe orizzontale verso destra confermato
+        swiping = true;
       } else {
-        tracking = false; return; // verticale o verso sinistra: lascia scorrere normalmente
+        tracking = false; return;
       }
     }
     dx = Math.max(0, ddx);
@@ -419,36 +364,33 @@ setTimeout(() => {
   if (s) { s.style.opacity = '0'; setTimeout(() => s.remove(), 400); }
 }, 1200);
 
-// ══════════════════════════════════════════════════════════
-// KEYBOARD SHORTCUTS — solo desktop
-// ══════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
   const inInput = e.target.matches('input,textarea,select') || e.target.isContentEditable;
 
-  // Ctrl+K — command palette (works everywhere)
+
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault(); openCmdPal(); return;
   }
-  // Cmd/Ctrl+F — focus search (works everywhere)
+
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
     e.preventDefault();
     if (!sOpen) tglSearch();
     setTimeout(() => document.getElementById('sinp')?.focus(), 60);
     return;
   }
-  // Cmd/Ctrl+Enter — save & close focus modal
+
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     const fm = document.getElementById('focus-modal');
     if (fm?.classList.contains('open')) { e.preventDefault(); doFocusSave(true); }
     return;
   }
-  // Alt+C — zen mode (only when focus editor is open)
+
   if (e.altKey && e.key.toLowerCase() === 'c') {
     const fm = document.getElementById('focus-modal');
     if (fm?.classList.contains('open')) { e.preventDefault(); toggleZen(); }
     return;
   }
-  // Esc — close: slash menu → command palette → zen → focus modal → search
+
   if (e.key === 'Escape') {
     if (_slashOpen) { closeSlashMenu(); return; }
     if (_palOpen)   { _closeCmdPal(); return; }
@@ -472,15 +414,11 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
-// STRIP CARTELLE — su layout mobile la rotella del mouse scorre
-// la strip in orizzontale (la scrollbar è nascosta)
-// ══════════════════════════════════════════════════════════
 (() => {
   const fsec = document.getElementById('folders-sec');
   if (!fsec) return;
   fsec.addEventListener('wheel', e => {
-    if (window.innerWidth >= 680) return; // su desktop la lista è verticale
+    if (window.innerWidth >= 680) return;
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
       e.preventDefault();
       fsec.scrollLeft += e.deltaY;
@@ -488,11 +426,6 @@ document.addEventListener('keydown', e => {
   }, {passive: false});
 })();
 
-// ══════════════════════════════════════════════════════════
-// SERVICE WORKER — registra il SW per la modalità offline (PWA)
-// Il file notes-sw.js gestisce la cache e gli aggiornamenti.
-// .catch(() => {}) ignora silenziosamente se il SW non è supportato.
-// ══════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }

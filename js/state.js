@@ -1,34 +1,18 @@
-// ══════════════════════════════════════════════════════════
-// COSTANTI
-// CLRS: lista dei nomi dei colori disponibili per le etichette
-// CLRHEX: mappa nome → codice colore hex (per disegnare i pallini)
-// TRASH_TTL: quanto tempo tenere gli elementi nel cestino (30 giorni in ms)
-// ══════════════════════════════════════════════════════════
+
+
 const CLRS    = ['red','orange','yellow','green','blue','purple','pink','teal','lime'];
 const CLRHEX  = {red:'#f87171',orange:'#fb923c',yellow:'#facc15',green:'#4ade80',blue:'#60a5fa',purple:'#a78bfa',pink:'#f472b6',teal:'#2dd4bf',lime:'#a3e635'};
-const TRASH_TTL = 30 * 86400e3; // 86400e3 = millisecondi in un giorno
+const TRASH_TTL = 30 * 86400e3;
 
-// ══════════════════════════════════════════════════════════
-// STATO GLOBALE — S è l'unico oggetto che contiene tutti i dati
-// Ogni modifica passa da qui e viene salvata con persist()
-// Variabili ausiliarie:
-//   curTab: tab attivo ('prom'|'idee'|'liste'|'cestino')
-//   q: testo della ricerca corrente
-//   eId/eType/ePick: dati temporanei del modal aperto (id, tipo, colore scelto)
-//   dSrcId/dOvId/dGhost: variabili per il drag-and-drop
-// ══════════════════════════════════════════════════════════
-let S = load();
+let S;
 let curTab = 'prom';
 let q = '';
 let eId = null, eType = null, ePick = null;
 let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
 let secretMode = false;
-let curFolder = null; // null = no folder filter, string = folder id
+let curFolder = null;
 
-// ══════════════════════════════════════════════════════════
-// SLASH COMMAND DROPDOWN
-// ══════════════════════════════════════════════════════════
 const SLASH_DEFS = [
   { cmd:'/subtitle', hint:'sottotitolo  1.0'     },
   { cmd:'/section',  hint:'sezione  1.1'         },
@@ -54,40 +38,139 @@ function toggleSecretMode() {
   q = ''; renderAll();
 }
 
-// Carica i dati da localStorage.
-// Se non esistono (primo avvio) o il JSON è corrotto → valori di default.
 function load() {
   try {
-    const d = JSON.parse(localStorage.getItem('blocco') || '{}');
-    return {
-      name:    d.name    || 'Marius',
-      proms:   d.proms   || [],   // array di promemoria
-      idee:    d.idee    || [],   // array di idee
-      liste:   d.liste   || [],   // array di liste
-      cestino: d.cestino || [],   // array di elementi eliminati
-      theme:   d.theme   || 'dark',
-      secret:      d.secret      || {proms:[], idee:[]},
-      folders:     d.folders     || [],
-      folderNotes: d.folderNotes || []
-    };
-  } catch { return {name:'Marius',proms:[],idee:[],liste:[],cestino:[],theme:'dark',secret:{proms:[],idee:[]},folders:[],folderNotes:[]}; }
+    return normalizeState(JSON.parse(localStorage.getItem('blocco') || '{}'));
+  } catch {
+    return defaultState();
+  }
 }
 
-// Salva tutto lo stato in localStorage come stringa JSON.
-// Viene chiamata ogni volta che qualcosa cambia.
 function persist() {
+  S = normalizeState(S, S?.name || 'Marius');
   localStorage.setItem('blocco', JSON.stringify(S));
   if (window._fbUser && window._fbDb) {
     window._fbDb.collection('users').doc(window._fbUser.uid).set(S).catch(() => {});
   }
 }
 
-// Genera un ID unico basato sul timestamp + caratteri random.
-// Esempio: "lq3k7abcd" — usato come chiave per ogni nota/lista/voce.
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function uid() {
+  if (globalThis.crypto?.getRandomValues) {
+    const a = new Uint32Array(2);
+    globalThis.crypto.getRandomValues(a);
+    return Date.now().toString(36) + a[0].toString(36) + a[1].toString(36);
+  }
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,12);
+}
 
-// Formatta un timestamp in testo leggibile relativo ("adesso", "3m fa", "2g fa"…)
-// t: timestamp in millisecondi (Date.now())
+function defaultState(name='Marius') {
+  return {name, proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[], idee:[]}, folders:[], folderNotes:[]};
+}
+
+function str(v, max=20000) {
+  return typeof v === 'string' ? v.slice(0, max) : '';
+}
+
+function arr(v, max=500) {
+  return Array.isArray(v) ? v.slice(0, max) : [];
+}
+
+function safeId(v, used) {
+  const s = str(v, 64);
+  const id = /^[A-Za-z0-9_-]{1,64}$/.test(s) && !used.has(s) ? s : uid();
+  used.add(id);
+  return id;
+}
+
+function safeTs(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 && n < 4102444800000 ? n : Date.now();
+}
+
+function safeDeadline(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 && n < 4102444800000 ? n : null;
+}
+
+function safeColor(v) {
+  return CLRS.includes(v) ? v : null;
+}
+
+function safeTheme(v) {
+  return ['dark','light','gruvbox'].includes(v) ? v : 'dark';
+}
+
+function normalizeNote(n, used, folderIds=null) {
+  const x = n && typeof n === 'object' ? n : {};
+  const note = {
+    id: safeId(x.id, used),
+    text: str(x.text),
+    title: str(x.title, 300),
+    color: safeColor(x.color),
+    pinned: x.pinned === true,
+    collapsed: x.collapsed === true,
+    created: safeTs(x.created),
+    updated: safeTs(x.updated),
+    deadline: safeDeadline(x.deadline)
+  };
+  if (folderIds) note.folder = folderIds.has(x.folder) ? x.folder : null;
+  if (x.parked === true) note.parked = true;
+  return note;
+}
+
+function normalizeListItem(x, used) {
+  const item = x && typeof x === 'object' ? x : {};
+  return {id: safeId(item.id, used), text: str(item.text, 1000), done: item.done === true};
+}
+
+function normalizeList(x, used) {
+  const l = x && typeof x === 'object' ? x : {};
+  return {
+    id: safeId(l.id, used),
+    title: str(l.title, 300),
+    items: arr(l.items, 1000).map(i => normalizeListItem(i, used)),
+    color: safeColor(l.color),
+    pinned: l.pinned === true,
+    collapsed: l.collapsed === true,
+    created: safeTs(l.created),
+    updated: safeTs(l.updated)
+  };
+}
+
+function normalizeFolder(x, used) {
+  const f = x && typeof x === 'object' ? x : {};
+  return {id: safeId(f.id, used), name: str(f.name, 200), color: safeColor(f.color)};
+}
+
+function normalizeTrash(x, used, folderIds) {
+  const t = x && typeof x === 'object' ? x : {};
+  const type = ['prom','idee','liste','folder'].includes(t.type) ? t.type : 'prom';
+  const base = type === 'liste' ? normalizeList(t, used) : normalizeNote(t, used, folderIds);
+  return {...base, type, deletedAt: safeTs(t.deletedAt)};
+}
+
+function normalizeState(raw, fallbackName='Marius') {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  const used = new Set();
+  const state = defaultState(str(d.name, 200) || fallbackName);
+  state.theme = safeTheme(d.theme);
+  state.folders = arr(d.folders, 200).map(f => normalizeFolder(f, used)).filter(f => f.name);
+  const folderIds = new Set(state.folders.map(f => f.id));
+  state.proms = arr(d.proms).map(n => normalizeNote(n, used));
+  state.idee = arr(d.idee).map(n => normalizeNote(n, used));
+  state.liste = arr(d.liste, 200).map(l => normalizeList(l, used));
+  state.folderNotes = arr(d.folderNotes).map(n => normalizeNote(n, used, folderIds));
+  const sec = d.secret && typeof d.secret === 'object' ? d.secret : {};
+  state.secret = {
+    proms: arr(sec.proms).map(n => normalizeNote(n, used)),
+    idee: arr(sec.idee).map(n => normalizeNote(n, used))
+  };
+  state.cestino = arr(d.cestino, 500).map(n => normalizeTrash(n, used, folderIds));
+  return state;
+}
+
+S = load();
+
 function fmtTs(t) {
   const d    = new Date(t);
   const time = d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
@@ -95,8 +178,6 @@ function fmtTs(t) {
   return '[' + time + ' · ' + date + ']';
 }
 
-// Calcola quanti giorni mancano alla scadenza di un elemento nel cestino.
-// deletedAt: timestamp di quando è stato eliminato.
 function fmtTrashExp(deletedAt) {
   const days = Math.ceil((deletedAt + TRASH_TTL - Date.now()) / 86400e3);
   if (days <= 0) return 'scaduto';
@@ -104,38 +185,62 @@ function fmtTrashExp(deletedAt) {
   return 'scade tra ' + days + 'g';
 }
 
-// Escape HTML: converte i caratteri speciali in entità sicure.
-// Impedisce che il testo dell'utente venga interpretato come HTML (XSS).
-// Usato per titoli e testi dove non vogliamo markdown.
 function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
-// Sanitizza HTML salvato (da contenteditable / paste) prima di iniettarlo via innerHTML.
-// Allowlist stretta sui soli tag/attr che l'editor produce. DOMPurify rimuove
-// script, handler on*, javascript:/data: URL → blocca XSS da note avvelenate.
-// Fallback fail-safe: se DOMPurify non è caricato, fa escape totale (niente HTML).
+function attr(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function safeHref(raw) {
+  try {
+    const u = new URL(String(raw || '').trim(), location.href);
+    return ['http:', 'https:', 'mailto:'].includes(u.protocol) ? u.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function cssId(s) {
+  return globalThis.CSS?.escape ? CSS.escape(String(s)) : String(s).replace(/["\\\]]/g, '\\$&');
+}
+
 const _SANITIZE_CFG = {
   ALLOWED_TAGS: ['b','i','u','s','strong','em','span','br','div','p','a','h1','h2','h3','h4','h5','h6','hr','ul','ol','li','blockquote'],
   ALLOWED_ATTR: ['class','style','href','target','rel'],
   ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i
 };
 function _sanitize(html) {
-  if (typeof DOMPurify !== 'undefined') return DOMPurify.sanitize(html, _SANITIZE_CFG);
-  return esc(html); // fail-safe: meglio testo grezzo che HTML non filtrato
+  if (typeof DOMPurify === 'undefined') return esc(html);
+  const tpl = document.createElement('template');
+  tpl.innerHTML = DOMPurify.sanitize(html, _SANITIZE_CFG);
+  tpl.content.querySelectorAll('[style]').forEach(el => {
+    const color = el.style.color;
+    el.removeAttribute('style');
+    if (color && !/url|expression|javascript/i.test(color)) el.style.color = color;
+  });
+  tpl.content.querySelectorAll('a[href]').forEach(a => {
+    const href = safeHref(a.getAttribute('href'));
+    if (!href) a.removeAttribute('href');
+    else {
+      a.setAttribute('href', href);
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+  return tpl.innerHTML;
 }
 
-// Renderer markdown leggero: prima fa escape dell'HTML (sicurezza),
-// poi applica **grassetto** e _corsivo_, poi converte i newline in <br>.
 function md(s) {
   if (!s) return '';
-  // Contenuto HTML (da contenteditable) — sanitizza PRIMA, poi converti le checkbox testuali
+
   if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(s)) {
     return _sanitize(s)
       .replace(/\[ \] /g, '<span class="cb cb-open">○</span> ')
       .replace(/\[x\] /g,  '<span class="cb cb-done">✓</span> ');
   }
-  // Vecchio formato con marcatori testuali
+
   return s
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
@@ -149,12 +254,11 @@ function md(s) {
     .replace(/\n/g,'<br>');
 }
 
-// mdCard: like md() but checkboxes get onclick handlers so they're clickable in cards.
 function mdCard(text, id, tp) {
   if (!text) return '';
   let n = 0;
   if (/<br|<b>|<i>|<span|<h[1-6]|<div|<hr/i.test(text)) {
-    // sanitizza PRIMA, poi inietta gli onclick checkbox (stringa controllata da noi)
+
     return _sanitize(text).replace(/\[([ x])\] /g, (_, c) =>
       `<span class="cb ${c===' '?'cb-open':'cb-done'}" onclick="event.stopPropagation();toggleCb('${id}','${tp}',${n++})">${c===' '?'○':'✓'}</span> `);
   }
@@ -171,7 +275,6 @@ function mdCard(text, id, tp) {
     .replace(/\n/g,'<br>');
 }
 
-// toggleCb: flip the n-th checkbox in a card's stored text.
 function toggleCb(id, tp, idx) {
   let arr;
   if      (tp === 'prom')   arr = S.proms;
@@ -227,10 +330,9 @@ function deadlineTag(item) {
   return ` · <span class="dl-lbl${p >= 1 ? ' expired' : ''}">${fmtDeadline(item.deadline)}</span>`;
 }
 
-// arr: array di stringhe da cercare (es: [titolo, testo])
 function matches(arr) { return !q || arr.some(s => s && s.toLowerCase().includes(q)); }
 
-function clrCls(c) { return c ? ' clr-'+c : ''; } // classe CSS per il bordo colorato
+function clrCls(c) { return c ? ' clr-'+c : ''; }
 function buildClrPick(elId, sel) {
   document.getElementById(elId).innerHTML = ['none',...CLRS].map(c => `
     <div class="clrdot${c==='none'?' clrnone':''}${(sel||'none')===c?' sel':''}"
@@ -239,21 +341,13 @@ function buildClrPick(elId, sel) {
   `).join('');
 }
 
-// ══════════════════════════════════════════════════════════
-// TWEMOJI — converte le emoji Unicode in immagini SVG di Twitter
-// Chiamata dopo ogni render per sostituire le emoji nei contenuti utente
-// ══════════════════════════════════════════════════════════
 function applyTwemoji(el) {
-  if (typeof twemoji === 'undefined') return; // libreria non caricata (offline)
+  if (typeof twemoji === 'undefined') return;
   twemoji.parse(el || document.body, {
     base:'https://abs.twimg.com/emoji/v2/', folder:'svg', ext:'.svg'
   });
 }
 
-// ══════════════════════════════════════════════════════════
-// DATA E ORA — aggiorna il display nell'header
-// Chiamata all'avvio e poi ogni 30 secondi con setInterval
-// ══════════════════════════════════════════════════════════
 function updateDatetime() {
   const now = new Date();
   const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
@@ -262,10 +356,6 @@ function updateDatetime() {
   if (el) el.textContent = d + ' — ' + t + ' [v37]';
 }
 
-// ══════════════════════════════════════════════════════════
-// STATISTICHE — aggiorna la riga [N prom] [N idee] ecc.
-// e il badge numerico sul tab Cestino
-// ══════════════════════════════════════════════════════════
 function updateStats() {
   const badge = document.getElementById('cestino-badge');
   if (badge) badge.textContent = S.cestino.length ? ' [' + S.cestino.length + ']' : '';
