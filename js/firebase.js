@@ -7,6 +7,11 @@ const _fbApp = firebase.initializeApp({
   appId: "1:8856261247:web:ef6048b99e0d26c2b3654a"
 });
 
+// App Check — verifica che le richieste vengano dalla nostra app reale (reCAPTCHA v3).
+// Blocca abuso della API key pubblica da origin non autorizzati. Va attivato
+// PRIMA di usare auth/firestore così il token App Check viene allegato alle richieste.
+firebase.appCheck().activate('6Ld9JCAtAAAAANsmsAgxHyLGkbVLloVr1xhDbxgb', true); // true = auto-refresh token
+
 const _fbAuth = firebase.auth();
 const _fbDb   = firebase.firestore();
 window._fbDb  = _fbDb;
@@ -31,7 +36,7 @@ function doSignOut() {
 
 _fbAuth.getRedirectResult().catch(err => console.error(err));
 const _loginStatus = document.getElementById('login-status');
-if (_loginStatus) _loginStatus.textContent = 'firebase ok · v37';
+if (_loginStatus) _loginStatus.textContent = 'firebase ok · v38';
 
 let _fbUnsub = null;
 
