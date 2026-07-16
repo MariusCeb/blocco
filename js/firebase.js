@@ -46,6 +46,7 @@ _fbAuth.onAuthStateChanged(user => {
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   if (user) {
     window._fbUser = user;
+    window._cloudReady = false;
     S = defaultState(user.displayName || 'Utente');
     let firstLoad = true;
     _fbUnsub = _fbDb.collection('users').doc(user.uid).onSnapshot(doc => {
@@ -54,6 +55,7 @@ _fbAuth.onAuthStateChanged(user => {
         const fresh = normalizeState(d, user.displayName || 'Utente');
         if (firstLoad) {
           S = fresh;
+          window._cloudReady = true;
 
           const misplaced = S.idee.filter(i => i.folder);
           if (misplaced.length) {
@@ -75,6 +77,7 @@ _fbAuth.onAuthStateChanged(user => {
         }
       } else if (firstLoad) {
         firstLoad = false;
+        window._cloudReady = true;
         overlay.classList.add('hidden');
         appEl.style.display = '';
         initApp();
@@ -85,6 +88,7 @@ _fbAuth.onAuthStateChanged(user => {
         firstLoad = false;
         overlay.classList.add('hidden');
         appEl.style.display = '';
+        toast('[offline · dati cloud non caricati, modifiche solo locali]', 4000);
         initApp();
       }
     });

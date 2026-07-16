@@ -49,7 +49,7 @@ function load() {
 function persist() {
   S = normalizeState(S, S?.name || 'Marius');
   localStorage.setItem('blocco', JSON.stringify(S));
-  if (window._fbUser && window._fbDb) {
+  if (window._fbUser && window._fbDb && window._cloudReady) {
     window._fbDb.collection('users').doc(window._fbUser.uid).set(S).catch(() => {});
   }
 }
