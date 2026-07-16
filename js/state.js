@@ -461,7 +461,7 @@ function updateDatetime() {
   const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
   const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
   const el = document.getElementById('vdate-lbl');
-  if (el) el.textContent = d + ' — ' + t + ' [v38]';
+  if (el) el.textContent = d + ' — ' + t + ' [v39]';
 }
 
 function updateStats() {
