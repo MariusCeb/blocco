@@ -47,40 +47,51 @@ _fbAuth.onAuthStateChanged(user => {
   if (user) {
     window._fbUser = user;
     window._cloudReady = false;
+    window._fbLastItems = new Map();
     S = defaultState(user.displayName || 'Utente');
+
+    const userRef  = _fbDb.collection('users').doc(user.uid);
+    const itemsRef = userRef.collection('items');
     let firstLoad = true;
-    _fbUnsub = _fbDb.collection('users').doc(user.uid).onSnapshot(doc => {
-      if (doc.exists) {
-        const d = doc.data();
-        const fresh = normalizeState(d, user.displayName || 'Utente');
-        if (firstLoad) {
-          S = fresh;
-          window._cloudReady = true;
 
-          const misplaced = S.idee.filter(i => i.folder);
-          if (misplaced.length) {
-            S.idee = S.idee.filter(i => !i.folder);
-            misplaced.forEach(i => { if (!S.folderNotes.find(n => n.id===i.id)) S.folderNotes.push(i); });
-            _fbDb.collection('users').doc(user.uid).set(S).catch(()=>{});
+    _fbUnsub = itemsRef.onSnapshot(async snap => {
+      let itemDocs = snap.docs.map(d => ({...d.data(), id: d.id}));
+
+      // Migrazione una tantum dal vecchio formato "un documento unico con tutti gli
+      // array": se la sottocollezione items è vuota ma esiste un documento legacy,
+      // lo spezzettiamo in documenti singoli.
+      if (firstLoad && itemDocs.length === 0) {
+        try {
+          const legacyDoc = await userRef.get();
+          const legacyData = legacyDoc.exists ? legacyDoc.data() : null;
+          if (legacyData && (Array.isArray(legacyData.proms) || Array.isArray(legacyData.idee) || Array.isArray(legacyData.liste))) {
+            const legacyState = normalizeState(legacyData, user.displayName || 'Utente');
+            const migrated = itemsFromState(legacyState);
+            const batch = _fbDb.batch();
+            migrated.forEach(it => batch.set(itemsRef.doc(it.id), it));
+            await batch.commit();
+            itemDocs = migrated;
           }
-          firstLoad = false;
-          overlay.classList.add('hidden');
-          appEl.style.display = '';
-          initApp();
-        } else if (!doc.metadata.hasPendingWrites) {
+        } catch (e) { console.warn('Migrazione dati legacy fallita', e); }
+      }
 
-          const fm = document.getElementById('focus-modal');
-          if (fm?.classList.contains('open')) return;
-          S = fresh;
-          applyTheme(); renderAll(); renderCestino();
-          toast('[sync ↓]', 1500);
-        }
-      } else if (firstLoad) {
+      window._fbLastItems = new Map(itemDocs.map(it => [it.id, JSON.stringify(it)]));
+      const fresh = stateFromItems(itemDocs, user.displayName || 'Utente');
+
+      if (firstLoad) {
         firstLoad = false;
+        S = fresh;
         window._cloudReady = true;
         overlay.classList.add('hidden');
         appEl.style.display = '';
         initApp();
+      } else if (!snap.metadata.hasPendingWrites) {
+
+        const fm = document.getElementById('focus-modal');
+        if (fm?.classList.contains('open')) return;
+        S = fresh;
+        applyTheme(); renderAll(); renderCestino();
+        toast('[sync ↓]', 1500);
       }
     }, err => {
       console.warn('Firestore onSnapshot error', err);
@@ -94,6 +105,8 @@ _fbAuth.onAuthStateChanged(user => {
     });
   } else {
     window._fbUser = null;
+    window._cloudReady = false;
+    window._fbLastItems = new Map();
     localStorage.removeItem('blocco');
     S = defaultState('');
     appEl.style.display = 'none';

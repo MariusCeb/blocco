@@ -46,12 +46,120 @@ function load() {
   }
 }
 
+// Ogni nota/lista/cartella vive come documento Firestore a sé (users/{uid}/items/{id}),
+// cosi' due dispositivi che aggiungono cose diverse non si sovrascrivono mai a vicenda —
+// solo il documento realmente cambiato viene riscritto.
+const KIND_TRASH_TYPE = {prom:'prom', idee:'idee', liste:'liste', folderNote:'folder'};
+const TRASH_TYPE_KIND = {prom:'prom', idee:'idee', liste:'liste', folder:'folderNote'};
+
+function _noteItem(n, kind, extra) {
+  return {
+    id: n.id, kind,
+    text: n.text, title: n.title, color: n.color,
+    pinned: n.pinned, collapsed: n.collapsed,
+    created: n.created, updated: n.updated,
+    deadline: n.deadline,
+    trashed: false, deletedAt: null,
+    ...extra
+  };
+}
+
+function _listItem(l, extra) {
+  return {
+    id: l.id, kind: 'liste',
+    title: l.title, items: l.items, color: l.color,
+    pinned: l.pinned, collapsed: l.collapsed,
+    created: l.created, updated: l.updated,
+    trashed: false, deletedAt: null,
+    ...extra
+  };
+}
+
+function itemsFromState(state) {
+  const out = [{id: '_meta', kind: 'meta', name: state.name, theme: state.theme}];
+  state.folders.forEach((f, i) => out.push({id: f.id, kind: 'folder', name: f.name, color: f.color, order: i}));
+  state.proms.forEach((n, i) => out.push(_noteItem(n, 'prom', {secret: false, order: i})));
+  state.idee.forEach((n, i) => out.push(_noteItem(n, 'idee', {secret: false, order: i})));
+  state.folderNotes.forEach((n, i) => out.push(_noteItem(n, 'folderNote', {folder: n.folder ?? null, parked: n.parked === true, order: i})));
+  state.liste.forEach((l, i) => out.push(_listItem(l, {order: i})));
+  (state.secret?.proms || []).forEach((n, i) => out.push(_noteItem(n, 'prom', {secret: true, order: i})));
+  (state.secret?.idee || []).forEach((n, i) => out.push(_noteItem(n, 'idee', {secret: true, order: i})));
+  state.cestino.forEach((t, i) => {
+    const kind = TRASH_TYPE_KIND[t.type] || 'prom';
+    if (kind === 'liste') out.push(_listItem(t, {trashed: true, deletedAt: t.deletedAt, order: i}));
+    else out.push(_noteItem(t, kind, {
+      trashed: true, deletedAt: t.deletedAt, secret: false,
+      ...(kind === 'folderNote' ? {folder: t.folder ?? null} : {}),
+      order: i
+    }));
+  });
+  return out;
+}
+
+function stateFromItems(items, fallbackName) {
+  const used = new Set();
+  const meta  = items.find(it => it.kind === 'meta') || {};
+  const state = defaultState(str(meta.name, 200) || fallbackName);
+  state.theme = safeTheme(meta.theme);
+
+  const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0);
+
+  const folderRaw = items.filter(it => it.kind === 'folder').sort(byOrder);
+  state.folders = arr(folderRaw, 200).map(f => normalizeFolder(f, used)).filter(f => f.name);
+  const folderIds = new Set(state.folders.map(f => f.id));
+
+  const b = {proms: [], idee: [], folderNotes: [], liste: [], secretProms: [], secretIdee: [], cestino: []};
+  items.forEach(it => {
+    if (it.kind === 'meta' || it.kind === 'folder') return;
+    if (it.kind === 'prom' || it.kind === 'idee') {
+      if (it.trashed) b.cestino.push(it);
+      else if (it.secret) b[it.kind === 'prom' ? 'secretProms' : 'secretIdee'].push(it);
+      else b[it.kind === 'prom' ? 'proms' : 'idee'].push(it);
+    } else if (it.kind === 'folderNote') {
+      (it.trashed ? b.cestino : b.folderNotes).push(it);
+    } else if (it.kind === 'liste') {
+      (it.trashed ? b.cestino : b.liste).push(it);
+    }
+  });
+
+  state.proms        = b.proms.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
+  state.idee         = b.idee.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
+  state.folderNotes  = b.folderNotes.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used, folderIds));
+  state.liste        = b.liste.sort(byOrder).slice(0, 200).map(l => normalizeList(l, used));
+  state.secret.proms = b.secretProms.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
+  state.secret.idee  = b.secretIdee.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
+  state.cestino      = b.cestino.sort(byOrder).slice(0, 500).map(t =>
+    normalizeTrash({...t, type: KIND_TRASH_TYPE[t.kind] || 'prom'}, used, folderIds)
+  );
+
+  return state;
+}
+
 function persist() {
   S = normalizeState(S, S?.name || 'Marius');
   localStorage.setItem('blocco', JSON.stringify(S));
   if (window._fbUser && window._fbDb && window._cloudReady) {
-    window._fbDb.collection('users').doc(window._fbUser.uid).set(S).catch(() => {});
+    _syncItemsToCloud();
   }
+}
+
+function _syncItemsToCloud() {
+  const itemsRef = window._fbDb.collection('users').doc(window._fbUser.uid).collection('items');
+  const current  = itemsFromState(S);
+  const currentMap = new Map(current.map(it => [it.id, it]));
+  const last = window._fbLastItems || new Map();
+
+  const batch = window._fbDb.batch();
+  let ops = 0;
+  currentMap.forEach((it, id) => {
+    if (last.get(id) !== JSON.stringify(it)) { batch.set(itemsRef.doc(id), it); ops++; }
+  });
+  last.forEach((_, id) => {
+    if (!currentMap.has(id)) { batch.delete(itemsRef.doc(id)); ops++; }
+  });
+
+  window._fbLastItems = new Map(current.map(it => [it.id, JSON.stringify(it)]));
+  if (ops > 0) batch.commit().catch(() => {});
 }
 
 function uid() {

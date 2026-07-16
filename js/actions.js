@@ -50,7 +50,7 @@ function restoreItem(id) {
   const tp = it.type;
   delete it.type; delete it.deletedAt;
   S.cestino.splice(idx, 1);
-  const k = tp === 'prom' ? 'proms' : tp;
+  const k = tp === 'prom' ? 'proms' : tp === 'folder' ? 'folderNotes' : tp;
   S[k].unshift(it);
   persist(); renderAll(); renderCestino(); updateStats();
   toast('[ripristinato]');
