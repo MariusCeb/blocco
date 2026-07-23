@@ -26,18 +26,20 @@ const SLASH_DEFS = [
 function curProms() { return S.proms; }
 function curIdee()  { return S.idee;  }
 
-// La modalità segreta scambia l'intero mondo pubblico/privato (note, idee, liste,
-// cartelle, cestino): S.secret conserva sempre "l'altro lato" mentre non è attivo.
 const SECRET_SWAP_KEYS = ['proms','idee','liste','folders','folderNotes','cestino'];
+
+function swappedState(state) {
+  const copy = {...state, secret: {...state.secret}};
+  SECRET_SWAP_KEYS.forEach(k => { copy[k] = state.secret[k]; copy.secret[k] = state[k]; });
+  return copy;
+}
 
 function toggleSecretMode() {
   secretMode = !secretMode;
   const dot = document.querySelector('.vbig .hl');
   if (dot) dot.style.color = secretMode ? '#e94560' : '';
 
-  const stash = {};
-  SECRET_SWAP_KEYS.forEach(k => { stash[k] = S[k]; S[k] = S.secret[k]; });
-  S.secret = stash;
+  S = swappedState(S);
 
   q = '';
   goTab('prom');
@@ -52,9 +54,6 @@ function load() {
   }
 }
 
-// Ogni nota/lista/cartella vive come documento Firestore a sé (users/{uid}/items/{id}),
-// cosi' due dispositivi che aggiungono cose diverse non si sovrascrivono mai a vicenda —
-// solo il documento realmente cambiato viene riscritto.
 const KIND_TRASH_TYPE = {prom:'prom', idee:'idee', liste:'liste', folderNote:'folder'};
 const TRASH_TYPE_KIND = {prom:'prom', idee:'idee', liste:'liste', folder:'folderNote'};
 
@@ -161,15 +160,16 @@ function stateFromItems(items, fallbackName) {
 
 function persist() {
   S = normalizeState(S, S?.name || 'Marius');
-  localStorage.setItem('blocco', JSON.stringify(S));
+  const canonical = secretMode ? swappedState(S) : S;
+  localStorage.setItem('blocco', JSON.stringify(canonical));
   if (window._fbUser && window._fbDb && window._cloudReady) {
-    _syncItemsToCloud();
+    _syncItemsToCloud(canonical);
   }
 }
 
-function _syncItemsToCloud() {
+function _syncItemsToCloud(canonicalState) {
   const itemsRef = window._fbDb.collection('users').doc(window._fbUser.uid).collection('items');
-  const current  = itemsFromState(S);
+  const current  = itemsFromState(canonicalState);
   const currentMap = new Map(current.map(it => [it.id, it]));
   const last = window._fbLastItems || new Map();
 
@@ -494,7 +494,7 @@ function updateDatetime() {
   const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
   const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
   const el = document.getElementById('vdate-lbl');
-  if (el) el.textContent = d + ' — ' + t + ' [v41]';
+  if (el) el.textContent = d + ' — ' + t + ' [v42]';
 }
 
 function updateStats() {

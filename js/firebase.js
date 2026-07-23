@@ -36,7 +36,7 @@ function doSignOut() {
 
 _fbAuth.getRedirectResult().catch(err => console.error(err));
 const _loginStatus = document.getElementById('login-status');
-if (_loginStatus) _loginStatus.textContent = 'firebase ok · v41';
+if (_loginStatus) _loginStatus.textContent = 'firebase ok · v42';
 
 let _fbUnsub = null;
 
@@ -57,9 +57,6 @@ _fbAuth.onAuthStateChanged(user => {
     _fbUnsub = itemsRef.onSnapshot(async snap => {
       let itemDocs = snap.docs.map(d => ({...d.data(), id: d.id}));
 
-      // Migrazione una tantum dal vecchio formato "un documento unico con tutti gli
-      // array": se la sottocollezione items è vuota ma esiste un documento legacy,
-      // lo spezzettiamo in documenti singoli.
       if (firstLoad && itemDocs.length === 0) {
         try {
           const legacyDoc = await userRef.get();
@@ -76,7 +73,8 @@ _fbAuth.onAuthStateChanged(user => {
       }
 
       window._fbLastItems = new Map(itemDocs.map(it => [it.id, JSON.stringify(it)]));
-      const fresh = stateFromItems(itemDocs, user.displayName || 'Utente');
+      const canonical = stateFromItems(itemDocs, user.displayName || 'Utente');
+      const fresh = secretMode ? swappedState(canonical) : canonical;
 
       if (firstLoad) {
         firstLoad = false;
