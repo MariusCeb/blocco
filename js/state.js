@@ -23,19 +23,25 @@ const SLASH_DEFS = [
   { cmd:'/link',     hint:'inserisci link'       },
 ];
 
-function curProms() { return secretMode ? S.secret.proms : S.proms; }
-function curIdee()  { return secretMode ? S.secret.idee  : S.idee;  }
+function curProms() { return S.proms; }
+function curIdee()  { return S.idee;  }
+
+// La modalità segreta scambia l'intero mondo pubblico/privato (note, idee, liste,
+// cartelle, cestino): S.secret conserva sempre "l'altro lato" mentre non è attivo.
+const SECRET_SWAP_KEYS = ['proms','idee','liste','folders','folderNotes','cestino'];
 
 function toggleSecretMode() {
   secretMode = !secretMode;
   const dot = document.querySelector('.vbig .hl');
   if (dot) dot.style.color = secretMode ? '#e94560' : '';
-  ['tab-liste','tab-cestino','v-liste','v-cestino'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = secretMode ? 'none' : '';
-  });
-  if (secretMode && (curTab === 'liste' || curTab === 'cestino')) goTab('prom');
-  q = ''; renderAll();
+
+  const stash = {};
+  SECRET_SWAP_KEYS.forEach(k => { stash[k] = S[k]; S[k] = S.secret[k]; });
+  S.secret = stash;
+
+  q = '';
+  goTab('prom');
+  renderAll();
 }
 
 function load() {
@@ -77,22 +83,26 @@ function _listItem(l, extra) {
 
 function itemsFromState(state) {
   const out = [{id: '_meta', kind: 'meta', name: state.name, theme: state.theme}];
-  state.folders.forEach((f, i) => out.push({id: f.id, kind: 'folder', name: f.name, color: f.color, order: i}));
-  state.proms.forEach((n, i) => out.push(_noteItem(n, 'prom', {secret: false, order: i})));
-  state.idee.forEach((n, i) => out.push(_noteItem(n, 'idee', {secret: false, order: i})));
-  state.folderNotes.forEach((n, i) => out.push(_noteItem(n, 'folderNote', {folder: n.folder ?? null, parked: n.parked === true, order: i})));
-  state.liste.forEach((l, i) => out.push(_listItem(l, {order: i})));
-  (state.secret?.proms || []).forEach((n, i) => out.push(_noteItem(n, 'prom', {secret: true, order: i})));
-  (state.secret?.idee || []).forEach((n, i) => out.push(_noteItem(n, 'idee', {secret: true, order: i})));
-  state.cestino.forEach((t, i) => {
-    const kind = TRASH_TYPE_KIND[t.type] || 'prom';
-    if (kind === 'liste') out.push(_listItem(t, {trashed: true, deletedAt: t.deletedAt, order: i}));
-    else out.push(_noteItem(t, kind, {
-      trashed: true, deletedAt: t.deletedAt, secret: false,
-      ...(kind === 'folderNote' ? {folder: t.folder ?? null} : {}),
-      order: i
-    }));
-  });
+
+  function pushWorld(w, secret) {
+    w.folders.forEach((f, i) => out.push({id: f.id, kind: 'folder', name: f.name, color: f.color, secret, order: i}));
+    w.proms.forEach((n, i) => out.push(_noteItem(n, 'prom', {secret, order: i})));
+    w.idee.forEach((n, i) => out.push(_noteItem(n, 'idee', {secret, order: i})));
+    w.folderNotes.forEach((n, i) => out.push(_noteItem(n, 'folderNote', {folder: n.folder ?? null, parked: n.parked === true, secret, order: i})));
+    w.liste.forEach((l, i) => out.push(_listItem(l, {secret, order: i})));
+    w.cestino.forEach((t, i) => {
+      const kind = TRASH_TYPE_KIND[t.type] || 'prom';
+      if (kind === 'liste') out.push(_listItem(t, {secret, trashed: true, deletedAt: t.deletedAt, order: i}));
+      else out.push(_noteItem(t, kind, {
+        secret, trashed: true, deletedAt: t.deletedAt,
+        ...(kind === 'folderNote' ? {folder: t.folder ?? null} : {}),
+        order: i
+      }));
+    });
+  }
+
+  pushWorld(state, false);
+  pushWorld(state.secret, true);
   return out;
 }
 
@@ -104,21 +114,29 @@ function stateFromItems(items, fallbackName) {
 
   const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0);
 
-  const folderRaw = items.filter(it => it.kind === 'folder').sort(byOrder);
-  state.folders = arr(folderRaw, 200).map(f => normalizeFolder(f, used)).filter(f => f.name);
-  const folderIds = new Set(state.folders.map(f => f.id));
+  const folderRawPub = items.filter(it => it.kind === 'folder' && !it.secret).sort(byOrder);
+  const folderRawSec = items.filter(it => it.kind === 'folder' && it.secret).sort(byOrder);
+  state.folders        = arr(folderRawPub, 200).map(f => normalizeFolder(f, used)).filter(f => f.name);
+  state.secret.folders = arr(folderRawSec, 200).map(f => normalizeFolder(f, used)).filter(f => f.name);
+  const folderIds       = new Set(state.folders.map(f => f.id));
+  const secretFolderIds = new Set(state.secret.folders.map(f => f.id));
 
-  const b = {proms: [], idee: [], folderNotes: [], liste: [], secretProms: [], secretIdee: [], cestino: []};
+  const b = {
+    proms: [], idee: [], folderNotes: [], liste: [], cestino: [],
+    sProms: [], sIdee: [], sFolderNotes: [], sListe: [], sCestino: []
+  };
   items.forEach(it => {
     if (it.kind === 'meta' || it.kind === 'folder') return;
-    if (it.kind === 'prom' || it.kind === 'idee') {
-      if (it.trashed) b.cestino.push(it);
-      else if (it.secret) b[it.kind === 'prom' ? 'secretProms' : 'secretIdee'].push(it);
-      else b[it.kind === 'prom' ? 'proms' : 'idee'].push(it);
+    if (it.trashed) {
+      (it.secret ? b.sCestino : b.cestino).push(it);
+    } else if (it.kind === 'prom') {
+      (it.secret ? b.sProms : b.proms).push(it);
+    } else if (it.kind === 'idee') {
+      (it.secret ? b.sIdee : b.idee).push(it);
     } else if (it.kind === 'folderNote') {
-      (it.trashed ? b.cestino : b.folderNotes).push(it);
+      (it.secret ? b.sFolderNotes : b.folderNotes).push(it);
     } else if (it.kind === 'liste') {
-      (it.trashed ? b.cestino : b.liste).push(it);
+      (it.secret ? b.sListe : b.liste).push(it);
     }
   });
 
@@ -126,10 +144,16 @@ function stateFromItems(items, fallbackName) {
   state.idee         = b.idee.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
   state.folderNotes  = b.folderNotes.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used, folderIds));
   state.liste        = b.liste.sort(byOrder).slice(0, 200).map(l => normalizeList(l, used));
-  state.secret.proms = b.secretProms.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
-  state.secret.idee  = b.secretIdee.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
   state.cestino      = b.cestino.sort(byOrder).slice(0, 500).map(t =>
     normalizeTrash({...t, type: KIND_TRASH_TYPE[t.kind] || 'prom'}, used, folderIds)
+  );
+
+  state.secret.proms       = b.sProms.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
+  state.secret.idee        = b.sIdee.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used));
+  state.secret.folderNotes = b.sFolderNotes.sort(byOrder).slice(0, 500).map(n => normalizeNote(n, used, secretFolderIds));
+  state.secret.liste       = b.sListe.sort(byOrder).slice(0, 200).map(l => normalizeList(l, used));
+  state.secret.cestino     = b.sCestino.sort(byOrder).slice(0, 500).map(t =>
+    normalizeTrash({...t, type: KIND_TRASH_TYPE[t.kind] || 'prom'}, used, secretFolderIds)
   );
 
   return state;
@@ -172,7 +196,10 @@ function uid() {
 }
 
 function defaultState(name='Marius') {
-  return {name, proms:[], idee:[], liste:[], cestino:[], theme:'dark', secret:{proms:[], idee:[]}, folders:[], folderNotes:[]};
+  return {
+    name, proms:[], idee:[], liste:[], cestino:[], theme:'dark', folders:[], folderNotes:[],
+    secret: {proms:[], idee:[], liste:[], cestino:[], folders:[], folderNotes:[]}
+  };
 }
 
 function str(v, max=20000) {
@@ -262,18 +289,24 @@ function normalizeState(raw, fallbackName='Marius') {
   const used = new Set();
   const state = defaultState(str(d.name, 200) || fallbackName);
   state.theme = safeTheme(d.theme);
+
   state.folders = arr(d.folders, 200).map(f => normalizeFolder(f, used)).filter(f => f.name);
   const folderIds = new Set(state.folders.map(f => f.id));
   state.proms = arr(d.proms).map(n => normalizeNote(n, used));
   state.idee = arr(d.idee).map(n => normalizeNote(n, used));
   state.liste = arr(d.liste, 200).map(l => normalizeList(l, used));
   state.folderNotes = arr(d.folderNotes).map(n => normalizeNote(n, used, folderIds));
-  const sec = d.secret && typeof d.secret === 'object' ? d.secret : {};
-  state.secret = {
-    proms: arr(sec.proms).map(n => normalizeNote(n, used)),
-    idee: arr(sec.idee).map(n => normalizeNote(n, used))
-  };
   state.cestino = arr(d.cestino, 500).map(n => normalizeTrash(n, used, folderIds));
+
+  const sec = d.secret && typeof d.secret === 'object' ? d.secret : {};
+  state.secret.folders = arr(sec.folders, 200).map(f => normalizeFolder(f, used)).filter(f => f.name);
+  const secretFolderIds = new Set(state.secret.folders.map(f => f.id));
+  state.secret.proms = arr(sec.proms).map(n => normalizeNote(n, used));
+  state.secret.idee = arr(sec.idee).map(n => normalizeNote(n, used));
+  state.secret.liste = arr(sec.liste, 200).map(l => normalizeList(l, used));
+  state.secret.folderNotes = arr(sec.folderNotes).map(n => normalizeNote(n, used, secretFolderIds));
+  state.secret.cestino = arr(sec.cestino, 500).map(n => normalizeTrash(n, used, secretFolderIds));
+
   return state;
 }
 
@@ -461,7 +494,7 @@ function updateDatetime() {
   const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
   const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
   const el = document.getElementById('vdate-lbl');
-  if (el) el.textContent = d + ' — ' + t + ' [v40]';
+  if (el) el.textContent = d + ' — ' + t + ' [v41]';
 }
 
 function updateStats() {

@@ -21,19 +21,12 @@ function delItem(id, tp) {
   const card = document.querySelector(`.card[data-id="${cssId(id)}"]`);
   const el   = card?.closest('.card-slot') || card;
   const commit = () => {
-    if (secretMode && (tp === 'prom' || tp === 'idee')) {
-      const arr = tp === 'prom' ? S.secret.proms : S.secret.idee;
-      const idx = arr.findIndex(i => i.id === id);
-      if (idx !== -1) arr.splice(idx, 1);
-      persist(); renderAll(); toast('[eliminato]');
-    } else {
-      const k   = tp === 'prom' ? 'proms' : tp;
-      const idx = S[k].findIndex(i => i.id === id);
-      if (idx === -1) return;
-      S.cestino.unshift({...S[k][idx], type: tp, deletedAt: Date.now()});
-      S[k].splice(idx, 1);
-      persist(); renderAll(); toast('[nel cestino]');
-    }
+    const k   = tp === 'prom' ? 'proms' : tp;
+    const idx = S[k].findIndex(i => i.id === id);
+    if (idx === -1) return;
+    S.cestino.unshift({...S[k][idx], type: tp, deletedAt: Date.now()});
+    S[k].splice(idx, 1);
+    persist(); renderAll(); toast('[nel cestino]');
   };
   if (el) {
     el.style.transition = 'opacity .22s ease,transform .22s ease';
