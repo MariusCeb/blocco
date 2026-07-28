@@ -321,6 +321,14 @@
   gap:20px;
 }
 #logout-confirm.open { display:flex; }
+.confirm-btn {
+  background:none;border:none;cursor:pointer;
+  font-family:var(--mono);font-size:13px;letter-spacing:.03em;
+  color:var(--dim);padding:8px 4px;transition:color .15s;
+}
+.confirm-btn:hover { color:var(--text); }
+.confirm-btn.yes { color:var(--accent); }
+.confirm-btn.yes:hover { color:var(--text); }
 .login-logo { font-size:22px;font-weight:600;letter-spacing:-.02em;font-family:inherit; }
 .login-logo .hl { color:var(--accent); }
 .login-sub { font-size:11px;color:var(--dim); }
