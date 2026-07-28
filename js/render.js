@@ -199,8 +199,10 @@ function renderFolders() {
 
   const label = document.getElementById('folders-hdr-label');
   const toggle = document.getElementById('folder-archive-toggle');
+  const toggleMobile = document.getElementById('archive-toggle-mobile');
   if (label)  label.textContent  = viewArchivedFolders ? 'archivio' : 'cartelle';
   if (toggle) toggle.textContent = viewArchivedFolders ? '[← cartelle]' : '[archivio]';
+  if (toggleMobile) toggleMobile.textContent = viewArchivedFolders ? '[← cartelle]' : '[archivio]';
 
   const folders = (S.folders || []).filter(f => !!f.archived === viewArchivedFolders);
   sec.classList.toggle('has-folders', (S.folders||[]).length > 0 || viewArchivedFolders);

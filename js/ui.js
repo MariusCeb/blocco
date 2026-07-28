@@ -1,5 +1,8 @@
 
 
+function openLogoutConfirm()  { document.getElementById('logout-confirm').classList.add('open'); }
+function closeLogoutConfirm() { document.getElementById('logout-confirm').classList.remove('open'); }
+
 function toast(msg, dur=2000) {
   const el = document.getElementById('toast');
   el.textContent = msg;

@@ -6,6 +6,7 @@
 .shortcuts-panel { display: none; }
 .folders-sec  { display: none; }
 .folder-compose { display: none; }
+.archive-toggle-mobile { display: none; }
 
 @media (max-width:679px) {
 
@@ -20,6 +21,14 @@
   .new-folder-btn::before { content: 'cartelle'; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; }
   .new-folder-btn::after  { content: '[+]'; font-size: 10px; }
   .new-folder-btn:active { color: var(--text); }
+
+  .archive-toggle-mobile {
+    display: block; width: 100%; text-align: right;
+    background: none; border: none; border-bottom: 1px solid var(--bd);
+    font-family: var(--mono); font-size: 10px; color: var(--dim);
+    padding: 7px 16px; cursor: pointer;
+  }
+  .archive-toggle-mobile:active { color: var(--text); }
 
 
   .new-folder-form {
