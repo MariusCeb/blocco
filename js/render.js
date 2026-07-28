@@ -211,11 +211,22 @@ function renderFolders() {
       <span style="display:flex;align-items:center;gap:5px">${dot}/ ${esc(f.name)}${cnt ? ' <span style="color:var(--dim);font-size:9px">['+cnt+']</span>' : ''}</span>
       <span style="display:flex;align-items:center;gap:2px">
         ${viewArchivedFolders ? '' : `<span class="folder-clr" onclick="event.stopPropagation();pickFolderColor('${f.id}')" style="color:${f.color?CLRHEX[f.color]:'var(--dim)'}">[·]</span>`}
-        <span class="folder-arch" onclick="event.stopPropagation();toggleFolderArchive('${f.id}')">${viewArchivedFolders ? '[ripristina]' : '[archivia]'}</span>
         <span class="folder-del" onclick="event.stopPropagation();delFolder('${f.id}')">[×]</span>
       </span>
     </button>`;
   }).join('') : `<div class="empty" style="padding:16px 24px;font-size:11px">${viewArchivedFolders ? 'nessuna cartella archiviata.' : 'nessuna cartella.'}</div>`;
+
+  const curAction = document.getElementById('folder-cur-action');
+  if (curAction) {
+    const cur = (S.folders || []).find(f => f.id === curFolder);
+    if (cur) {
+      curAction.style.display = '';
+      curAction.textContent = cur.archived ? '[ripristina cartella]' : '[archivia questa cartella]';
+      curAction.onclick = () => toggleFolderArchive(cur.id);
+    } else {
+      curAction.style.display = 'none';
+    }
+  }
 }
 
 function renderFolder() {

@@ -36,7 +36,7 @@ function doSignOut() {
 
 _fbAuth.getRedirectResult().catch(err => console.error(err));
 const _loginStatus = document.getElementById('login-status');
-if (_loginStatus) _loginStatus.textContent = 'firebase ok · v43';
+if (_loginStatus) _loginStatus.textContent = 'firebase ok · v44';
 
 let _fbUnsub = null;
 

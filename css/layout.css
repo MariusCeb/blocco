@@ -7,6 +7,14 @@
 .folders-sec  { display: none; }
 .folder-compose { display: none; }
 
+.folder-cur-action {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; border-top: 1px solid var(--bd);
+  font-family: var(--mono); font-size: 11px; color: var(--dim);
+  padding: 10px 24px; cursor: pointer; transition: color .15s;
+}
+.folder-cur-action:hover { color: var(--accent); }
+
 @media (max-width:679px) {
 
   .new-folder-btn {
@@ -75,7 +83,6 @@
   }
   .folder-del { display: none !important; }
   .folder-clr { display: none !important; }
-  .folder-arch { display: none !important; }
 
 
   #v-folder .folder-compose {
@@ -258,13 +265,6 @@
     transition: opacity .15s; flex-shrink: 0;
   }
   .folder-item:hover .folder-clr { opacity: 1; }
-  .folder-arch {
-    background: none; border: none; color: var(--dim); font-family: inherit;
-    font-size: 11px; cursor: pointer; opacity: 0; padding: 2px 4px;
-    transition: opacity .15s; flex-shrink: 0;
-  }
-  .folder-item:hover .folder-arch { opacity: 1; }
-  .folder-arch:hover { color: var(--accent); }
 
 
   .shortcuts-panel {
