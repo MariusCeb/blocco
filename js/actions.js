@@ -152,6 +152,14 @@ function delFolder(id) {
   persist(); renderFolders();
 }
 
+function toggleFolderArchive(id) {
+  const f = (S.folders||[]).find(x => x.id === id); if (!f) return;
+  f.archived = !f.archived;
+  if (curFolder === id) { curFolder = null; goTab(curTab); }
+  persist(); renderFolders();
+  toast(f.archived ? '[cartella archiviata]' : '[cartella ripristinata]');
+}
+
 function pickFolderColor(id) {
   const f = (S.folders||[]).find(x => x.id === id); if (!f) return;
   const idx = CLRS.indexOf(f.color);

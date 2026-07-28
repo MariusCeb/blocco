@@ -12,6 +12,7 @@ let dSrcId = null, dOvId = null, dGhost = null;
 let focusType = null, focusId = null, focusColor = null, autoSaveTimer = null;
 let secretMode = false;
 let curFolder = null;
+let viewArchivedFolders = false;
 
 const SLASH_DEFS = [
   { cmd:'/subtitle', hint:'sottotitolo  1.0'     },
@@ -84,7 +85,7 @@ function itemsFromState(state) {
   const out = [{id: '_meta', kind: 'meta', name: state.name, theme: state.theme}];
 
   function pushWorld(w, secret) {
-    w.folders.forEach((f, i) => out.push({id: f.id, kind: 'folder', name: f.name, color: f.color, secret, order: i}));
+    w.folders.forEach((f, i) => out.push({id: f.id, kind: 'folder', name: f.name, color: f.color, archived: f.archived === true, secret, order: i}));
     w.proms.forEach((n, i) => out.push(_noteItem(n, 'prom', {secret, order: i})));
     w.idee.forEach((n, i) => out.push(_noteItem(n, 'idee', {secret, order: i})));
     w.folderNotes.forEach((n, i) => out.push(_noteItem(n, 'folderNote', {folder: n.folder ?? null, parked: n.parked === true, secret, order: i})));
@@ -274,7 +275,7 @@ function normalizeList(x, used) {
 
 function normalizeFolder(x, used) {
   const f = x && typeof x === 'object' ? x : {};
-  return {id: safeId(f.id, used), name: str(f.name, 200), color: safeColor(f.color)};
+  return {id: safeId(f.id, used), name: str(f.name, 200), color: safeColor(f.color), archived: f.archived === true};
 }
 
 function normalizeTrash(x, used, folderIds) {
@@ -494,7 +495,7 @@ function updateDatetime() {
   const d = now.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
   const t = now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
   const el = document.getElementById('vdate-lbl');
-  if (el) el.textContent = d + ' — ' + t + ' [v42]';
+  if (el) el.textContent = d + ' — ' + t + ' [v43]';
 }
 
 function updateStats() {

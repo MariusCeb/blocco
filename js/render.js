@@ -196,19 +196,26 @@ function renderFolders() {
   const sec = document.getElementById('folders-sec');
   const lst = document.getElementById('folders-list');
   if (!sec || !lst) return;
-  const folders = S.folders || [];
-  sec.classList.toggle('has-folders', folders.length > 0);
-  lst.innerHTML = folders.map(f => {
+
+  const label = document.getElementById('folders-hdr-label');
+  const toggle = document.getElementById('folder-archive-toggle');
+  if (label)  label.textContent  = viewArchivedFolders ? 'archivio' : 'cartelle';
+  if (toggle) toggle.textContent = viewArchivedFolders ? '[← cartelle]' : '[archivio]';
+
+  const folders = (S.folders || []).filter(f => !!f.archived === viewArchivedFolders);
+  sec.classList.toggle('has-folders', (S.folders||[]).length > 0 || viewArchivedFolders);
+  lst.innerHTML = folders.length ? folders.map(f => {
     const cnt = (S.folderNotes||[]).filter(n => n.folder === f.id).length;
     const dot = f.color ? `<span style="width:5px;height:5px;border-radius:50%;background:${CLRHEX[f.color]};display:inline-block;flex-shrink:0"></span>` : '';
     return `<button class="folder-item${curFolder===f.id?' on':''}" onclick="goFolder('${f.id}')">
       <span style="display:flex;align-items:center;gap:5px">${dot}/ ${esc(f.name)}${cnt ? ' <span style="color:var(--dim);font-size:9px">['+cnt+']</span>' : ''}</span>
       <span style="display:flex;align-items:center;gap:2px">
-        <span class="folder-clr" onclick="event.stopPropagation();pickFolderColor('${f.id}')" style="color:${f.color?CLRHEX[f.color]:'var(--dim)'}">[·]</span>
+        ${viewArchivedFolders ? '' : `<span class="folder-clr" onclick="event.stopPropagation();pickFolderColor('${f.id}')" style="color:${f.color?CLRHEX[f.color]:'var(--dim)'}">[·]</span>`}
+        <span class="folder-arch" onclick="event.stopPropagation();toggleFolderArchive('${f.id}')">${viewArchivedFolders ? '[ripristina]' : '[archivia]'}</span>
         <span class="folder-del" onclick="event.stopPropagation();delFolder('${f.id}')">[×]</span>
       </span>
     </button>`;
-  }).join('');
+  }).join('') : `<div class="empty" style="padding:16px 24px;font-size:11px">${viewArchivedFolders ? 'nessuna cartella archiviata.' : 'nessuna cartella.'}</div>`;
 }
 
 function renderFolder() {

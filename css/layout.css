@@ -75,6 +75,7 @@
   }
   .folder-del { display: none !important; }
   .folder-clr { display: none !important; }
+  .folder-arch { display: none !important; }
 
 
   #v-folder .folder-compose {
@@ -219,11 +220,17 @@
   .folders-sec::-webkit-scrollbar { display: none; }
   .folders-sec.has-folders { display: block; }
   .folder-hdr {
+    display: flex; align-items: center; justify-content: space-between;
     padding: 10px 16px 10px 24px;
     font-size: 10px; color: var(--dim); letter-spacing: .08em;
     border-bottom: 1px solid var(--bd);
     text-transform: uppercase;
   }
+  .folder-archive-toggle {
+    cursor: pointer; text-transform: none; letter-spacing: normal;
+    transition: color .15s;
+  }
+  .folder-archive-toggle:hover { color: var(--accent); }
   .folder-item {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 14px 12px 24px;
@@ -251,6 +258,13 @@
     transition: opacity .15s; flex-shrink: 0;
   }
   .folder-item:hover .folder-clr { opacity: 1; }
+  .folder-arch {
+    background: none; border: none; color: var(--dim); font-family: inherit;
+    font-size: 11px; cursor: pointer; opacity: 0; padding: 2px 4px;
+    transition: opacity .15s; flex-shrink: 0;
+  }
+  .folder-item:hover .folder-arch { opacity: 1; }
+  .folder-arch:hover { color: var(--accent); }
 
 
   .shortcuts-panel {

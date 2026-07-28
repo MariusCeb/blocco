@@ -36,6 +36,11 @@ function tglTheme() {
   persist(); applyTheme();
 }
 
+function toggleArchiveView() {
+  viewArchivedFolders = !viewArchivedFolders;
+  renderFolders();
+}
+
 let sOpen = false;
 function tglSearch() {
   sOpen = !sOpen;
