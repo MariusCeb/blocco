@@ -215,30 +215,25 @@ function renderFolders() {
       </span>
     </button>`;
   }).join('') : `<div class="empty" style="padding:16px 24px;font-size:11px">${viewArchivedFolders ? 'nessuna cartella archiviata.' : 'nessuna cartella.'}</div>`;
-
-  const curAction = document.getElementById('folder-cur-action');
-  if (curAction) {
-    const cur = (S.folders || []).find(f => f.id === curFolder);
-    if (cur) {
-      curAction.style.display = '';
-      curAction.textContent = cur.archived ? '[ripristina cartella]' : '[archivia questa cartella]';
-      curAction.onclick = () => toggleFolderArchive(cur.id);
-    } else {
-      curAction.style.display = 'none';
-    }
-  }
 }
 
 function renderFolder() {
   const el = document.getElementById('folder-l');
   const ep = document.getElementById('folder-parked');
   if (!el) return;
+  const f = (S.folders || []).find(x => x.id === curFolder);
   let all = (S.folderNotes||[]).filter(n => n.folder === curFolder).sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0) || b.created-a.created);
   if (q) all = all.filter(n => matches([n.title, n.text]));
   const active = all.filter(n => !n.parked);
   const parked = all.filter(n =>  n.parked);
-  el.innerHTML = active.length ? active.map(n => _folderCardHtml(n, false)).join('') :
+  let html = active.length ? active.map(n => _folderCardHtml(n, false)).join('') :
     `<div class="empty">${q ? 'nessun risultato.' : 'nessuna nota.<br>scrivine una qui sopra.'}</div>`;
+  if (f) {
+    html += `<div style="text-align:center;padding:0 16px 20px">
+      <button class="trash-act del" onclick="toggleFolderArchive('${f.id}')" style="font-size:9px">${f.archived ? '[ripristina cartella]' : '[archivia questa cartella]'}</button>
+    </div>`;
+  }
+  el.innerHTML = html;
   if (ep) ep.innerHTML = parked.map(n => _folderCardHtml(n, true)).join('');
   initFolderDrag(el);
   applyTwemoji(el);
